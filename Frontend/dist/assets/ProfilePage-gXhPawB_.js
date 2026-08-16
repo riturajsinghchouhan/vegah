@@ -1,0 +1,21 @@
+import{c as t,u as r,a as p,j as e,m as s}from"./index-M8Yzebkt.js";import{B as d}from"./Button-ISh2nWdE.js";import{P as m}from"./PageHeader-DeX-nATG.js";import{C as x}from"./credit-card-BGum800H.js";import{B as h}from"./bell-DHa27SFa.js";import{C as u}from"./circle-question-mark-BF-uDrYi.js";/**
+ * @license lucide-react v1.31.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const b=[["path",{d:"m16 17 5-5-5-5",key:"1bji2h"}],["path",{d:"M21 12H9",key:"dn1m92"}],["path",{d:"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",key:"1uf3rs"}]],f=t("log-out",b);/**
+ * @license lucide-react v1.31.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const j=[["path",{d:"M15 22a1 1 0 0 1-1-1v-4a1 1 0 0 1 .445-.832l3-2a1 1 0 0 1 1.11 0l3 2A1 1 0 0 1 22 17v4a1 1 0 0 1-1 1z",key:"1p1rcz"}],["path",{d:"M18 10a8 8 0 0 0-16 0c0 4.993 5.539 10.193 7.399 11.799a1 1 0 0 0 .601.2",key:"mcbcs9"}],["path",{d:"M18 22v-3",key:"1t1ugv"}],["circle",{cx:"10",cy:"10",r:"3",key:"1ns7v1"}]],g=t("map-pin-house",j);/**
+ * @license lucide-react v1.31.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const y=[["path",{d:"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",key:"oel41y"}]],N=t("shield",y);/**
+ * @license lucide-react v1.31.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const v=[["path",{d:"M2 9a3 3 0 1 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z",key:"1l48ns"}],["path",{d:"M9 9h.01",key:"1q5me6"}],["path",{d:"m15 9-6 6",key:"1uzhvr"}],["path",{d:"M15 15h.01",key:"lqbp3k"}]],k=t("ticket-percent",v),M=[{label:"Payment methods",subtitle:"Cards, UPI and wallets",icon:x},{label:"Saved locations",subtitle:"Home, office and pickup hubs",icon:g},{label:"Notifications",subtitle:"Trip and charging alerts",icon:h},{label:"Refer & earn",subtitle:"Share and unlock credits",icon:k},{label:"Help & support",subtitle:"Trip issues and assistance",icon:u},{label:"Terms & privacy",subtitle:"Policies and permissions",icon:N}],L=()=>{const i=r(),{logout:c}=p(),l=async()=>{await c(),i("/login",{replace:!0})};return e.jsxs("main",{className:"page-padding",children:[e.jsx(m,{subtitle:"Manage account details and mobility preferences",title:"Profile"}),e.jsx("section",{className:"surface-card p-6",children:e.jsxs("div",{className:"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",children:[e.jsxs("div",{children:[e.jsx("p",{className:"text-xs font-semibold uppercase tracking-[0.18em] text-app-subtle",children:"Account"}),e.jsx("h2",{className:"mt-2 text-3xl font-semibold tracking-tight text-app-text",children:s.fullName}),e.jsx("p",{className:"mt-2 text-sm text-app-subtle",children:s.phone}),e.jsx("p",{className:"mt-1 text-sm text-app-subtle",children:s.email})]}),e.jsxs("div",{className:"rounded-[1.5rem] bg-emerald-50 px-5 py-4",children:[e.jsx("p",{className:"text-sm text-app-subtle",children:"Saved places"}),e.jsxs("p",{className:"mt-2 text-lg font-semibold text-app-primary",children:[s.savedLocations.length," locations"]})]})]})}),e.jsx("section",{className:"mt-6 grid gap-4",children:M.map(({label:a,subtitle:n,icon:o})=>e.jsxs("button",{className:"surface-card flex items-center justify-between p-5 text-left transition hover:border-app-primary",type:"button",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[e.jsx("div",{className:"rounded-2xl bg-emerald-50 p-3 text-app-primary",children:e.jsx(o,{size:18})}),e.jsxs("div",{children:[e.jsx("p",{className:"text-sm font-semibold text-app-text",children:a}),e.jsx("p",{className:"text-sm text-app-subtle",children:n})]})]}),e.jsx("span",{className:"text-sm font-medium text-app-primary",children:"Open"})]},a))}),e.jsx("div",{className:"mt-6",children:e.jsxs(d,{className:"w-full",onClick:l,variant:"secondary",children:[e.jsx(f,{className:"mr-2",size:16}),"Logout"]})})]})};export{L as default};

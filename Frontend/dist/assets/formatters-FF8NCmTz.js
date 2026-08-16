@@ -1,0 +1,1 @@
+const t=r=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(r),e=r=>r?new Intl.DateTimeFormat("en-IN",{day:"numeric",month:"short",year:"numeric"}).format(new Date(r)):"TBD";export{e as a,t as f};
