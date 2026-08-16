@@ -1,1 +1,0 @@
-const e=["All","Cars","Bikes","Scooters"],a=[{value:"hourly",label:"Hourly"},{value:"daily",label:"Daily"}],l=["Upcoming","Active","Completed","Cancelled"],s=["Available now","Fast charging","AC","DC","CCS2","Type 2"];export{l as b,s as c,a as r,e as v};
