@@ -16,7 +16,7 @@ export const popularCars = [
     transmission: "Manual",
     price: 1199,
     discount: "20% OFF",
-    image: "https://freepngimg.com/thumb/car/8-2-car-png-hd.png" // Placeholder, adjust as needed
+    image: "/assets/category/18ab8fbf-0957-4003-a27b-d1cf1ce9d68f.png"
   },
   {
     id: "city-02",
@@ -26,7 +26,7 @@ export const popularCars = [
     transmission: "Manual",
     price: 2199,
     discount: "15% OFF",
-    image: "https://freepngimg.com/thumb/car/3-2-car-free-download-png.png" // Placeholder
+    image: "/assets/category/2fc37eaa-6b55-4703-bf9c-3d02ce3674e4.png"
   },
   {
     id: "creta-03",
@@ -36,7 +36,7 @@ export const popularCars = [
     transmission: "Manual",
     price: 2999,
     discount: "10% OFF",
-    image: "https://freepngimg.com/thumb/car/4-2-car-png-picture.png" // Placeholder
+    image: "/assets/category/80403236-3851-41fd-af84-1f5f53514bdc.png"
   },
   {
     id: "nexon-04",
@@ -46,7 +46,7 @@ export const popularCars = [
     transmission: "Manual",
     price: 2499,
     discount: "10% OFF",
-    image: "https://freepngimg.com/thumb/car/1-2-car-png-picture.png" // Placeholder
+    image: "/assets/category/a8d84954-c85d-4a06-82d1-3ef9587e9844.png"
   }
 ];
 

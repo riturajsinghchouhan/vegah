@@ -1,46 +1,88 @@
-import { useState } from "react";
-import StationCard from "../../components/charging/StationCard";
-import PageHeader from "../../components/layout/PageHeader";
-import { chargingFilters } from "../../constants/options";
+import { useEffect, useState } from "react";
+import ChargingFilterChips from "../../components/charging/ChargingFilterChips";
+import ChargingHeader from "../../components/charging/ChargingHeader";
+import ChargingMap from "../../components/charging/ChargingMap";
+import ChargingSkeleton from "../../components/charging/ChargingSkeleton";
+import FilterBottomSheet from "../../components/charging/FilterBottomSheet";
+import NearbyStations from "../../components/charging/NearbyStations";
+import SearchBar from "../../components/charging/SearchBar";
+import SupportBanner from "../../components/charging/SupportBanner";
 import { chargingStations } from "../../data/chargingStations";
 
 const ChargingPage = () => {
-  const [activeFilter, setActiveFilter] = useState("Available now");
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filteredStations, setFilteredStations] = useState(chargingStations);
+
+  useEffect(() => {
+    // Simulate initial data loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Apply quick filters
+    if (activeFilter === "all") {
+      setFilteredStations(chargingStations);
+    } else if (activeFilter === "dc-fast") {
+      setFilteredStations(chargingStations.filter(s => s.chargingType === "DC Fast" || s.chargingType === "Ultra Fast"));
+    } else if (activeFilter === "ac") {
+      setFilteredStations(chargingStations.filter(s => s.chargingType === "AC"));
+    } else if (activeFilter === "available") {
+      setFilteredStations(chargingStations.filter(s => s.status === "Available"));
+    } else if (activeFilter === "my-plug") {
+      setFilteredStations(chargingStations.filter(s => s.connector === "CCS2")); // Mock logic for "my plug"
+    }
+  }, [activeFilter]);
+
+  const handleApplyFilters = (filters) => {
+    // Basic mock implementation of advanced filters
+    let result = [...chargingStations];
+    
+    if (filters.type && filters.type !== "Any Type") {
+      result = result.filter(s => s.chargingType === filters.type);
+    }
+    
+    if (filters.availability && filters.availability !== "Any Availability") {
+      if (filters.availability === "Available Now") {
+        result = result.filter(s => s.status === "Available");
+      }
+    }
+    
+    setFilteredStations(result);
+    setIsFilterOpen(false);
+  };
+
+  if (isLoading) {
+    return <ChargingSkeleton />;
+  }
 
   return (
-    <main className="page-padding">
-      <PageHeader showBack subtitle="Search charging stations" title="Charging Stations" />
+    <div className="bg-[#F8F9FA] min-h-screen pb-28 font-sans">
+      <ChargingHeader />
+      
+      <SearchBar onFilterClick={() => setIsFilterOpen(true)} />
+      
+      <ChargingFilterChips 
+        activeFilter={activeFilter} 
+        setActiveFilter={setActiveFilter} 
+      />
+      
+      <ChargingMap stations={filteredStations} />
+      
+      <NearbyStations stations={filteredStations} />
+      
+      <SupportBanner />
 
-      <section className="surface-card overflow-hidden p-4">
-        <div className="h-[320px] rounded-[20px] bg-[url('https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center">
-          <div className="flex h-full items-end rounded-[20px] bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.92)_100%)] p-4">
-            <div className="rounded-[18px] bg-white/95 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-app-subtle">Navigation</p>
-              <p className="mt-1 text-sm font-semibold text-app-text">Route and marker surface ready</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="mt-6 flex flex-wrap gap-2">
-        {chargingFilters.map((filter) => (
-          <button
-            key={filter}
-            className={`chip ${activeFilter === filter ? "chip-active" : ""}`}
-            onClick={() => setActiveFilter(filter)}
-            type="button"
-          >
-            {filter}
-          </button>
-        ))}
-      </div>
-
-      <section className="mt-6 space-y-3">
-        {chargingStations.map((station) => (
-          <StationCard key={station.id} station={station} />
-        ))}
-      </section>
-    </main>
+      <FilterBottomSheet 
+        isOpen={isFilterOpen} 
+        onClose={() => setIsFilterOpen(false)}
+        onApply={handleApplyFilters}
+      />
+    </div>
   );
 };
 
