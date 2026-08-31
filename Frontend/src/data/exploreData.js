@@ -1,9 +1,9 @@
 export const carCategories = [
   { id: "all", name: "All Scoots", icon: "layout-grid", isActive: true },
-  { id: "electric", name: "Electric", icon: "car", isActive: false },
-  { id: "city", name: "City", icon: "car", isActive: false },
-  { id: "premium", name: "Premium", icon: "crown", isActive: false },
-  { id: "performance", name: "Performance", icon: "car", isActive: false },
+  { id: "electric", name: "Electric", icon: "scoot", image: "/assets/category/image.png", isActive: false },
+  { id: "city", name: "City", icon: "scoot", image: "/assets/category/dfafa.png", isActive: false },
+  { id: "premium", name: "Premium", icon: "crown", image: "/assets/category/image.png", isActive: false },
+  { id: "performance", name: "Performance", icon: "scoot", image: "/assets/category/dfafa.png", isActive: false },
 ];
 
 export const popularCars = [
@@ -15,7 +15,7 @@ export const popularCars = [
     transmission: "Twist & Go",
     price: 899,
     discount: "20% OFF",
-    image: "/assets/category/18ab8fbf-0957-4003-a27b-d1cf1ce9d68f.png",
+    image: "/assets/category/image.png",
   },
   {
     id: "ola-s1-pro",
@@ -25,7 +25,7 @@ export const popularCars = [
     transmission: "Twist & Go",
     price: 999,
     discount: "15% OFF",
-    image: "/assets/category/2fc37eaa-6b55-4703-bf9c-3d02ce3674e4.png",
+    image: "/assets/category/dfafa.png",
   },
   {
     id: "tvs-iqube-st",
@@ -35,7 +35,7 @@ export const popularCars = [
     transmission: "Twist & Go",
     price: 949,
     discount: "10% OFF",
-    image: "/assets/category/80403236-3851-41fd-af84-1f5f53514bdc.png",
+    image: "/assets/category/image.png",
   },
   {
     id: "chetak-3501",
@@ -45,7 +45,7 @@ export const popularCars = [
     transmission: "Twist & Go",
     price: 1099,
     discount: "10% OFF",
-    image: "/assets/category/a8d84954-c85d-4a06-82d1-3ef9587e9844.png",
+    image: "/assets/category/dfafa.png",
   },
 ];
 

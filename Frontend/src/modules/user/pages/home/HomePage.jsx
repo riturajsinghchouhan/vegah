@@ -1,7 +1,16 @@
-import { 
-  Bell, MapPin, Search, Mic, Tag, ChevronDown, Repeat, Calendar, Clock, 
-  ShieldCheck, BadgeIndianRupee, Headphones, XCircle, Heart, ChevronRight,
-  Home, ClipboardList, Car, Wallet, User, CarFront
+import {
+  BadgeIndianRupee,
+  Bell,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  Headphones,
+  MapPin,
+  Mic,
+  Search,
+  ShieldCheck,
+  Tag,
+  XCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import VehicleCard from "../../../../components/vehicle/VehicleCard";
@@ -10,8 +19,6 @@ import { vehicles } from "../../../../data/vehicles";
 const HomePage = () => {
   return (
     <div className="bg-[#FAFAFA] min-h-screen pb-24 relative overflow-x-hidden font-sans">
-      
-      {/* 1. Header */}
       <div className="px-4 pt-5 pb-3 flex items-center justify-between">
         <div className="flex items-start gap-2">
           <MapPin size={22} className="text-[#FF5500] mt-0.5" />
@@ -34,13 +41,12 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* 2. Search & Offers */}
       <div className="px-4 mb-5 flex items-center gap-3">
         <div className="flex-1 flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm">
           <Search size={18} className="text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Search destination, scoot or offer" 
+          <input
+            type="text"
+            placeholder="Search destination, scoot or offer"
             className="flex-1 bg-transparent text-xs text-gray-800 placeholder-gray-400 outline-none"
           />
           <Mic size={18} className="text-gray-800" />
@@ -54,52 +60,46 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* 3. Vehicle Categories (Horizontal Scroll) */}
       <div className="px-4 mb-6 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-3 w-max">
           <div className="flex flex-col items-center justify-center bg-white rounded-2xl border border-[#FF5500] w-[80px] py-3 shadow-sm">
-            <img src="/assets/category/18ab8fbf-0957-4003-a27b-d1cf1ce9d68f.png" alt="Electric" className="h-8 object-contain mb-2" />
+            <img src="/assets/category/image.png" alt="Electric" className="h-8 object-contain mb-2" />
             <span className="text-[10px] font-bold text-gray-900">Electric</span>
             <span className="text-[8px] text-gray-500">From ₹799</span>
           </div>
           <div className="flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 w-[80px] py-3 shadow-sm">
-            <img src="/assets/category/2fc37eaa-6b55-4703-bf9c-3d02ce3674e4.png" alt="Performance" className="h-8 object-contain mb-2" />
+            <img src="/assets/category/dfafa.png" alt="Performance" className="h-8 object-contain mb-2" />
             <span className="text-[10px] font-bold text-gray-900">Performance</span>
             <span className="text-[8px] text-gray-500">From ₹999</span>
           </div>
           <div className="flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 w-[80px] py-3 shadow-sm">
-            <img src="/assets/category/80403236-3851-41fd-af84-1f5f53514bdc.png" alt="City" className="h-8 object-contain mb-2" />
+            <img src="/assets/category/image.png" alt="City" className="h-8 object-contain mb-2" />
             <span className="text-[10px] font-bold text-gray-900">City</span>
             <span className="text-[8px] text-gray-500">From Rs 949</span>
           </div>
           <div className="flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 w-[80px] py-3 shadow-sm">
-            <img src="/assets/category/a8d84954-c85d-4a06-82d1-3ef9587e9844.png" alt="Premium" className="h-8 object-contain mb-2" />
+            <img src="/assets/category/dfafa.png" alt="Premium" className="h-8 object-contain mb-2" />
             <span className="text-[10px] font-bold text-gray-900">Premium</span>
             <span className="text-[8px] text-gray-500">From Rs 1099</span>
           </div>
           <div className="flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 w-[80px] py-3 shadow-sm">
-            <div className="h-8 mb-2 flex flex-col items-center justify-center">
-               <CarFront size={20} className="text-gray-800" />
-            </div>
+            <img src="/assets/category/image.png" alt="More scoots" className="h-8 object-contain mb-2" />
             <span className="text-[10px] font-bold text-gray-900">More</span>
             <span className="text-[8px] text-gray-500">Explore all</span>
           </div>
         </div>
       </div>
 
-      {/* 4. Hero Banner */}
       <div className="px-4 mb-6">
         <Link to="/vehicles" className="block relative rounded-[20px] overflow-hidden shadow-md bg-white">
-          <img 
-            src="/assets/herobanner.png" 
-            alt="Drive More, Save Big! Up to 40% OFF" 
+          <img
+            src="/assets/herobanner.png"
+            alt="Drive More, Save Big! Up to 40% OFF"
             className="w-full object-cover"
           />
         </Link>
       </div>
 
-
-      {/* 5. Rent a Scoot Form */}
       <div className="px-4 mb-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 relative">
           <div className="flex items-center justify-between mb-4">
@@ -107,7 +107,6 @@ const HomePage = () => {
           </div>
 
           <div className="space-y-3">
-            {/* Location */}
             <div className="border border-gray-200 rounded-xl p-3">
               <p className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
                 <MapPin size={12} className="text-[#FF5500]" /> City or Location
@@ -118,7 +117,6 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Dates & Times */}
             <div className="flex gap-2">
               <div className="flex-1 border border-gray-200 rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
@@ -141,7 +139,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* 7. Promo Banner */}
       <div className="px-4 mb-6">
         <div className="bg-[#F0FDF4] border border-green-200 border-dashed rounded-xl p-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -150,7 +147,9 @@ const HomePage = () => {
             </div>
             <div>
               <h3 className="text-xs font-bold text-gray-900">Flat 15% OFF on first booking!</h3>
-              <p className="text-[10px] text-gray-600 mt-0.5">Use code <span className="font-bold text-green-600">VEGAH15</span></p>
+              <p className="text-[10px] text-gray-600 mt-0.5">
+                Use code <span className="font-bold text-green-600">VEGAH15</span>
+              </p>
             </div>
           </div>
           <button className="border border-green-500 text-green-600 text-[10px] font-bold px-3 py-1.5 rounded-full bg-white">
@@ -159,7 +158,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* 8. Popular Scoots */}
       <div className="mb-6 pl-4">
         <div className="flex items-center justify-between pr-4 mb-4">
           <h2 className="text-base font-bold text-gray-900">Popular Scoots</h2>
@@ -168,7 +166,7 @@ const HomePage = () => {
           </Link>
         </div>
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 pr-4">
-          {vehicles.map(vehicle => (
+          {vehicles.map((vehicle) => (
             <div key={vehicle.id} className="min-w-[160px]">
               <VehicleCard vehicle={vehicle} />
             </div>
@@ -176,7 +174,6 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* 9. Why Choose Vegah */}
       <div className="px-4 mb-8">
         <h2 className="text-base font-bold text-gray-900 mb-4">Why Choose Vegah?</h2>
         <div className="grid grid-cols-2 gap-3">
@@ -218,7 +215,6 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };

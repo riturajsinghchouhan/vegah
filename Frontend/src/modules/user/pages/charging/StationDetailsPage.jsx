@@ -17,6 +17,11 @@ const StationDetailsPage = () => {
     return null;
   }
 
+  const connectorTypes = station.connectorTypes ?? [station.connector].filter(Boolean);
+  const chargers = station.chargers ?? [];
+  const supportedVehicles = station.supportedVehicles ?? ["All electric scoots"];
+  const paymentMethods = station.paymentMethods ?? ["UPI"];
+
   return (
     <main className="page-padding">
       <PageHeader showBack subtitle="Station details and battery availability" title={station.name} />
@@ -24,7 +29,9 @@ const StationDetailsPage = () => {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
           <section className="surface-card overflow-hidden p-4">
-            <img alt={station.name} className="h-72 w-full rounded-[1.75rem] object-cover sm:h-96" src={station.image} />
+            <div className="rounded-[1.75rem] bg-[#0B1320] p-4">
+              <img alt={station.name} className="h-72 w-full object-contain sm:h-96" src={station.image} />
+            </div>
           </section>
 
           <section className="surface-card p-5">
@@ -54,7 +61,7 @@ const StationDetailsPage = () => {
               <div className="rounded-3xl border border-app-border bg-app-card p-4">
                 <Zap size={18} className="text-app-primary" />
                 <p className="mt-3 text-sm font-medium text-app-text">{station.speedLabel}</p>
-                <p className="mt-1">Connector types: {station.connectorTypes.join(", ")}</p>
+                <p className="mt-1">Connector types: {connectorTypes.join(", ")}</p>
               </div>
             </div>
           </section>
@@ -64,7 +71,7 @@ const StationDetailsPage = () => {
           <section className="surface-card p-5">
             <h3 className="text-lg font-semibold text-app-text">Battery status</h3>
             <div className="mt-4 space-y-3">
-              {station.chargers.map((charger) => (
+              {chargers.map((charger) => (
                 <div key={charger.name + charger.connector} className="rounded-3xl border border-app-border bg-app-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -85,8 +92,8 @@ const StationDetailsPage = () => {
             <h3 className="text-lg font-semibold text-app-text">Station info</h3>
             <div className="mt-4 space-y-3 text-sm text-app-subtle">
               <p>Amenities: {station.amenities.join(", ")}</p>
-              <p>Supported vehicles: {station.supportedVehicles.join(", ")}</p>
-              <p>Payment methods: {station.paymentMethods.join(", ")}</p>
+              <p>Supported vehicles: {supportedVehicles.join(", ")}</p>
+              <p>Payment methods: {paymentMethods.join(", ")}</p>
               <p>Pricing starts at Rs {station.pricePerKwh}/kWh</p>
             </div>
 

@@ -21,8 +21,7 @@ export const vehicles = [
       hour: 149,
       day: 899,
     },
-    image:
-      "/assets/category/18ab8fbf-0957-4003-a27b-d1cf1ce9d68f.png",
+    image: "/assets/category/image.png",
     pickupNote: "Helmet included. Pickup from EVORA hub near Sony Signal.",
   },
   {
@@ -47,8 +46,7 @@ export const vehicles = [
       hour: 179,
       day: 999,
     },
-    image:
-      "/assets/category/2fc37eaa-6b55-4703-bf9c-3d02ce3674e4.png",
+    image: "/assets/category/dfafa.png",
     pickupNote: "Great for quick city rides and daily errands.",
   },
   {
@@ -73,8 +71,7 @@ export const vehicles = [
       hour: 169,
       day: 949,
     },
-    image:
-      "/assets/category/80403236-3851-41fd-af84-1f5f53514bdc.png",
+    image: "/assets/category/image.png",
     pickupNote: "Extra helmet and battery top-up available on request.",
   },
   {
@@ -99,8 +96,7 @@ export const vehicles = [
       hour: 189,
       day: 1099,
     },
-    image:
-      "/assets/category/a8d84954-c85d-4a06-82d1-3ef9587e9844.png",
+    image: "/assets/category/dfafa.png",
     pickupNote: "Premium scoot suited for stylish commutes and long city runs.",
   },
 ];

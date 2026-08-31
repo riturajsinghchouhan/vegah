@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 
 const ExploreCarCard = ({ car }) => {
   return (
-    <Link 
+    <Link
       to={`/vehicles/${car.id}`}
       className="block w-[180px] bg-white rounded-[20px] border border-gray-100 shadow-sm p-3.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative group"
     >
-      <button 
+      <button
         onClick={(e) => {
           e.preventDefault();
           // Toggle favourite logic here
@@ -18,9 +18,9 @@ const ExploreCarCard = ({ car }) => {
       </button>
 
       <div className="h-[90px] mb-4 flex items-center justify-center pt-2">
-        <img 
-          src={car.image} 
-          alt={car.name} 
+        <img
+          src={car.image}
+          alt={car.name}
           className="h-full object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
         />
       </div>
@@ -43,7 +43,7 @@ const ExploreCarCard = ({ car }) => {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-[15px] font-bold text-[#FF5A1F] leading-none">
-              ₹{car.price.toLocaleString('en-IN')}
+              ₹{car.price.toLocaleString("en-IN")}
               <span className="text-[10px] text-gray-400 font-medium ml-0.5">/ day</span>
             </p>
           </div>
