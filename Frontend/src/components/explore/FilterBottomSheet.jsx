@@ -40,6 +40,11 @@ const FilterBottomSheet = ({ isOpen, onClose, onApply }) => {
     onClose();
   };
 
+  const getSectionLabel = (key) => {
+    if (key === "carType") return "Scoot Type";
+    return key.replace(/([A-Z])/g, " $1").trim();
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -68,7 +73,7 @@ const FilterBottomSheet = ({ isOpen, onClose, onApply }) => {
           {Object.entries(filterOptions).map(([key, options]) => (
             <div key={key}>
               <h3 className="text-[14px] font-bold text-gray-900 mb-3 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
+                {getSectionLabel(key)}
               </h3>
               <div className="flex flex-wrap gap-2.5">
                 {options.map((option) => {

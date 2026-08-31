@@ -2,7 +2,7 @@ export const bookings = [
   {
     id: "EVR-20391",
     status: "Upcoming",
-    vehicleName: "Tata Nexon EV",
+    vehicleName: "Ola S1 Pro",
     dateRange: "18 Aug 2026, 10:00 AM - 19 Aug 2026, 10:00 AM",
     location: "HSR Layout Hub",
     amount: 3980,
@@ -18,7 +18,7 @@ export const bookings = [
   {
     id: "EVR-20280",
     status: "Completed",
-    vehicleName: "Revolt RV400",
+    vehicleName: "TVS iQube ST",
     dateRange: "09 Aug 2026, 9:00 AM - 09 Aug 2026, 7:00 PM",
     location: "Indiranagar Hub",
     amount: 1480,

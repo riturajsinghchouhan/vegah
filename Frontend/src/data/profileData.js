@@ -14,7 +14,7 @@ export const userProfile = {
 export const latestBooking = {
   id: "#CB12345",
   status: "Upcoming", // Upcoming, Completed, Cancelled
-  carName: "Hyundai Creta",
+  carName: "TVS iQube ST",
   carImage: "/assets/category/80403236-3851-41fd-af84-1f5f53514bdc.png",
   dateRange: "20 May 2024 - 22 May 2024",
   pickup: "Indore Airport, Indore, MP",
@@ -25,7 +25,7 @@ export const quickActions = [
   { id: "bookings", label: "My Bookings", icon: "calendar", color: "text-[#FF5A1F]", bg: "bg-[#FFF0EB]" },
   { id: "payments", label: "Payments", icon: "credit-card", color: "text-blue-500", bg: "bg-blue-50" },
   { id: "offers", label: "Offers & Coupons", icon: "badge-percent", color: "text-green-500", bg: "bg-green-50" },
-  { id: "saved", label: "Saved Cars", icon: "heart", color: "text-purple-500", bg: "bg-purple-50" }
+  { id: "saved", label: "Saved Scoots", icon: "heart", color: "text-purple-500", bg: "bg-purple-50" }
 ];
 
 export const accountSettings = [

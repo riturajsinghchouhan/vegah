@@ -1,4 +1,4 @@
-export const vehicleCategories = ["All", "Cars", "Bikes", "Scooters"];
+export const vehicleCategories = ["All", "Scoots", "Bikes", "Scooters"];
 export const rentalTypes = [
   { value: "hourly", label: "Hourly" },
   { value: "daily", label: "Daily" },
