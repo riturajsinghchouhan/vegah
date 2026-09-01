@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const ExploreCarCard = ({ car }) => {
   return (
     <Link
-      to={`/vehicles/${car.id}`}
+      to={`/user/vehicles/${car.id}`}
       className="block w-[180px] bg-white rounded-[20px] border border-gray-100 shadow-sm p-3.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative group"
     >
       <button

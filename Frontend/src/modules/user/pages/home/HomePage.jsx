@@ -91,7 +91,7 @@ const HomePage = () => {
       </div>
 
       <div className="px-4 mb-6">
-        <Link to="/vehicles" className="block relative rounded-[20px] overflow-hidden shadow-md bg-white">
+        <Link to="/user/vehicles" className="block relative rounded-[20px] overflow-hidden shadow-md bg-white">
           <img
             src="/assets/herobanner.png"
             alt="Drive More, Save Big! Up to 40% OFF"
@@ -161,7 +161,7 @@ const HomePage = () => {
       <div className="mb-6 pl-4">
         <div className="flex items-center justify-between pr-4 mb-4">
           <h2 className="text-base font-bold text-gray-900">Popular Scoots</h2>
-          <Link to="/vehicles" className="text-xs font-bold text-[#FF5500] flex items-center">
+          <Link to="/user/vehicles" className="text-xs font-bold text-[#FF5500] flex items-center">
             View All <ChevronRight size={14} />
           </Link>
         </div>

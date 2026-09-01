@@ -10,7 +10,7 @@ const PopularCarsSection = ({ cars }) => {
       <div className="flex items-center justify-between px-4 mb-4">
         <h2 className="text-[17px] font-bold text-gray-900">Popular Scoots</h2>
         <Link 
-          to="/vehicles" 
+          to="/user/vehicles" 
           className="text-[12px] font-bold text-[#FF5A1F] flex items-center gap-1 hover:text-[#E64D00] transition-colors"
         >
           View All <ArrowRight size={14} />

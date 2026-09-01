@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { formatCurrency } from "../../utils/formatters";
 
 const VehicleCard = ({ vehicle }) => (
-  <Link className="block bg-white rounded-[16px] border border-gray-100 shadow-sm p-3 hover:border-gray-200 transition-colors relative" to={`/vehicles/${vehicle.id}`}>
+  <Link className="block bg-white rounded-[16px] border border-gray-100 shadow-sm p-3 hover:border-gray-200 transition-colors relative" to={`/user/vehicles/${vehicle.id}`}>
     
     <button className="absolute top-3 right-3 z-10" type="button" onClick={(e) => e.preventDefault()}>
       <Heart size={16} className="text-gray-400 hover:text-[#FF5500] transition-colors" />
