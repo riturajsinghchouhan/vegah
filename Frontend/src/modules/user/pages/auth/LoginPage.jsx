@@ -15,7 +15,7 @@ const LoginPage = () => {
     
     setLoading(true);
     await requestOtp(`+91 ${phone}`);
-    navigate("/otp", { state: { phone: `+91 ${phone}` } });
+    navigate("/user/otp", { state: { phone: `+91 ${phone}` } });
   };
 
   return (
