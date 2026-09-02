@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/layout/AdminSidebar";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Search, Bell } from "lucide-react";
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -22,9 +22,24 @@ export default function AdminLayout() {
         }`}
       >
         <header className="h-16 sticky top-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-800">Admin Portal</h2>
+          <h2 className="text-xl font-semibold text-gray-800 hidden sm:block">Admin Portal</h2>
           
-          <div className="flex items-center gap-4">
+          <div className="flex-1 flex justify-center px-4 sm:px-8">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search anything..."
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-full transition-colors">
+              <Bell size={20} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
             <button
               onClick={() => navigate("/admin/profile")}
               className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"

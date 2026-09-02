@@ -22,6 +22,7 @@ import AdminFinance from "./pages/AdminFinance";
 import AdminSettlements from "./pages/AdminSettlements";
 import AdminTaxBilling from "./pages/AdminTaxBilling";
 import AdminSettings from "./pages/AdminSettings";
+import AdminProfile from "./pages/AdminProfile";
 import AdminLogin from "./pages/AdminLogin";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 
@@ -79,6 +80,9 @@ export default function AdminRoutes() {
         <Route path="settlements" element={<AdminSettlements />} />
         <Route path="tax-billing" element={<AdminTaxBilling />} />
         <Route path="settings" element={<AdminSettings />} />
+
+        {/* Profile route */}
+        <Route path="profile" element={<AdminProfile />} />
 
         {/* Catch-all route for the placeholders */}
         <Route path="*" element={<AdminPlaceholderPage />} />
