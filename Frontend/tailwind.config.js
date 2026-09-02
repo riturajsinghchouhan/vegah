@@ -28,7 +28,7 @@ export default {
         "4xl": "2rem",
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ['"Open Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       backgroundImage: {
         'hero-gradient': 'linear-gradient(135deg, #111827 0%, #1F2937 100%)',

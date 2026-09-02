@@ -24,8 +24,8 @@ export default function AdminLayout() {
           <h2 className="text-xl font-semibold text-gray-800 hidden sm:block">Vegah</h2>
 
           <div className="flex-1 flex justify-center px-4 sm:px-8">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="relative w-full max-w-md group">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-blue-500" />
               <input
                 type="text"
                 placeholder="Search anything..."
