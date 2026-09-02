@@ -37,55 +37,7 @@ export const adminSidebarMenu = [
       },
     ],
   },
-  {
-    type: "section",
-    title: "Vendors",
-    permissionKey: "vendors",
-    items: [
-      {
-        type: "link",
-        label: "Vendor List",
-        icon: Building2,
-        path: "/admin/vendors",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Joining Requests",
-        icon: UserPlus,
-        path: "/admin/joining-requests",
-        permissionKey: "joining_requests",
-      },
-      {
-        type: "link",
-        label: "Category Approvals",
-        icon: FolderTree,
-        path: "/admin/category-approvals",
-        permissionKey: "joining_requests",
-      },
-      {
-        type: "link",
-        label: "EV Approvals",
-        icon: Car,
-        path: "/admin/ev-approvals",
-        permissionKey: "joining_requests",
-      },
-      {
-        type: "link",
-        label: "Coupon Approvals",
-        icon: Tag,
-        path: "/admin/coupon-approvals",
-        permissionKey: "joining_requests",
-      },
-      {
-        type: "link",
-        label: "Vendor Withdrawals",
-        icon: Wallet,
-        path: "/admin/vendor-withdrawals",
-        permissionKey: "joining_requests",
-      },
-    ],
-  },
+
   {
     type: "section",
     title: "Inventory",
@@ -116,57 +68,56 @@ export const adminSidebarMenu = [
   },
   {
     type: "section",
-    title: "Bookings",
+    title: "Booking Management",
     permissionKey: "bookings",
     items: [
       {
-        type: "link",
-        label: "Live Rentals",
-        icon: Car,
-        path: "/admin/bookings?ops=live",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Upcoming Pickups",
-        icon: Clock,
-        path: "/admin/bookings?ops=pickups",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Upcoming Returns",
-        icon: RefreshCw,
-        path: "/admin/bookings?ops=returns",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Late Returns",
-        icon: AlertTriangle,
-        path: "/admin/bookings?ops=late",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Extension Requests",
-        icon: Timer,
-        path: "/admin/bookings?ops=extensions",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Pending Deposits",
-        icon: PiggyBank,
-        path: "/admin/bookings?depositStatus=pending_collection",
-        permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "Pending Approvals",
-        icon: Clock,
-        path: "/admin/bookings?status=pending_approval",
-        permissionKey: "list",
+        type: "collapse",
+        label: "Bookings",
+        icon: ClipboardList,
+        path: "/admin/bookings", // Base path for exact match checks
+        items: [
+          {
+            type: "link",
+            label: "All Bookings",
+            path: "/admin/bookings",
+          },
+          {
+            type: "link",
+            label: "Live Rentals",
+            path: "/admin/bookings?ops=live",
+          },
+          {
+            type: "link",
+            label: "Upcoming Pickups",
+            path: "/admin/bookings?ops=pickups",
+          },
+          {
+            type: "link",
+            label: "Upcoming Returns",
+            path: "/admin/bookings?ops=returns",
+          },
+          {
+            type: "link",
+            label: "Late Returns",
+            path: "/admin/bookings?ops=late",
+          },
+          {
+            type: "link",
+            label: "Extension Requests",
+            path: "/admin/bookings?ops=extensions",
+          },
+          {
+            type: "link",
+            label: "Pending Deposits",
+            path: "/admin/bookings?depositStatus=pending_collection",
+          },
+          {
+            type: "link",
+            label: "Pending Approvals",
+            path: "/admin/bookings?status=pending_approval",
+          }
+        ],
       },
       {
         type: "link",
@@ -181,14 +132,7 @@ export const adminSidebarMenu = [
         icon: ClipboardCheck,
         path: "/admin/inspections",
         permissionKey: "list",
-      },
-      {
-        type: "link",
-        label: "All Bookings",
-        icon: ClipboardList,
-        path: "/admin/bookings",
-        permissionKey: "list",
-      },
+      }
     ],
   },
   {

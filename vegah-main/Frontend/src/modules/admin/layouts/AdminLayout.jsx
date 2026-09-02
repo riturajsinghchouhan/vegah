@@ -13,7 +13,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    <div className="flex min-h-screen bg-gray-50 font-sans">
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       
       <div 
@@ -21,7 +21,7 @@ export default function AdminLayout() {
           isSidebarOpen ? "ml-64" : "ml-20"
         }`}
       >
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">
+        <header className="h-16 sticky top-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800">Admin Portal</h2>
           
           <div className="flex items-center gap-4">
@@ -42,7 +42,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 p-8">
           <Outlet />
         </main>
       </div>

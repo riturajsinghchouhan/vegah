@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge as ShadcnBadge } from '@/components/ui/badge';
+
 import { cn } from '@/lib/utils';
 
 const Badge = ({ children, variant = 'gray', className, ...props }) => {
@@ -13,19 +13,19 @@ const Badge = ({ children, variant = 'gray', className, ...props }) => {
     };
 
     return (
-        <ShadcnBadge
-            variant="outline"
+        <span
             className={cn(
-                'text-[10px] font-medium transition-colors px-2 py-0.5',
+                'inline-flex items-center rounded-full border text-[10px] font-medium transition-colors px-2 py-0.5',
                 variantStyles[variant] || variantStyles.gray,
                 className
             )}
             {...props}
         >
             {children}
-        </ShadcnBadge>
+        </span>
     );
 };
 
 export default Badge;
+export { Badge };
 

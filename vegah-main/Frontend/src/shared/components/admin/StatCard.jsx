@@ -53,8 +53,8 @@ export default function StatCard({
           : undefined
       }
       className={cn(
-        "just-order-card group relative overflow-hidden p-4",
-        clickable && "just-order-card-interactive cursor-pointer active:scale-[0.99]",
+        "bg-white border border-gray-100 rounded-xl shadow-sm group relative overflow-hidden p-5",
+        clickable && "cursor-pointer hover:shadow-md hover:border-gray-200 active:scale-[0.99] transition-all duration-200",
         className
       )}
     >
@@ -94,7 +94,7 @@ export default function StatCard({
           )}
         </div>
         {icon && (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/10 transition-all duration-200 group-hover:scale-110 group-hover:bg-primary/15">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center text-blue-600 transition-all duration-200 group-hover:scale-110">
             {icon}
           </span>
         )}
