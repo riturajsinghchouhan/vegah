@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Filter, MapPin, Wrench, AlertTriangle } from 'lucide-react';
+import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, SettingsIcon as Filter, MapPinIcon as MapPin, WrenchIcon as Wrench, BadgeAlertIcon as AlertTriangle } from 'lucide-animated';
 import { Button } from '@/shared/components/ui/Button';
 
 // Mock Data for the Timeline
@@ -74,7 +74,7 @@ const mockScooties = [
 
 export default function AdminFleetTimeline() {
   return (
-    <div className="space-y-6 pb-8 max-w-[1600px] mx-auto bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+    <div className="space-y-8 pb-8 max-w-[1600px] mx-auto bg-white/90 backdrop-blur-3xl p-8 rounded-2xl border border-gray-100 shadow-2xl shadow-indigo-100/30">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-4">
@@ -103,50 +103,66 @@ export default function AdminFleetTimeline() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-6 text-sm py-2">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500"></span> Available</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Booked</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500"></span> Pickup</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500"></span> Return</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500"></span> Maintenance</div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full overflow-hidden flex bg-red-100 border border-red-300">
-            <div className="w-full h-full bg-red-500 transform -skew-x-12 scale-150"></div>
-          </div>
-           Overlap / Conflict
+      <div className="flex flex-wrap items-center gap-3 py-4">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200"></span> Available
         </div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-gray-300"></span> Unavailable</div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200"></span> Booked
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-100 text-purple-700 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <span className="w-2 h-2 rounded-full bg-purple-500 shadow-sm shadow-purple-200"></span> Pickup
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-100 text-orange-700 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm shadow-orange-200"></span> Return
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-100 text-rose-700 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-200"></span> Maintenance
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <div className="w-2 h-2 rounded-full overflow-hidden flex bg-amber-100 border border-amber-300">
+            <div className="w-full h-full bg-amber-500 transform -skew-x-12 scale-150"></div>
+          </div>
+          Overlap / Conflict
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-gray-600 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:-translate-y-0.5 cursor-default">
+          <span className="w-2 h-2 rounded-full bg-gray-400 shadow-sm shadow-gray-200"></span> Unavailable
+        </div>
       </div>
 
       {/* Timeline Grid */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden mt-4">
+      <div className="border border-gray-200/80 rounded-2xl overflow-hidden mt-6 shadow-sm">
         
         {/* Grid Header */}
-        <div className="flex border-b border-gray-200 bg-gray-50/80">
-          <div className="w-48 shrink-0 border-r border-gray-200 p-4 font-semibold text-gray-700">Scooty</div>
+        <div className="flex border-b border-gray-200/80 bg-gray-50/50">
+          <div className="w-56 shrink-0 border-r border-gray-200/80 p-5 font-bold text-gray-800 uppercase tracking-wider text-xs flex items-center">Vehicle</div>
           <div className="flex-1 flex">
             {daysOfWeek.map((d, i) => (
-              <div key={i} className="flex-1 text-center py-3 border-r border-gray-200 last:border-r-0">
-                <div className="text-sm font-semibold text-gray-900">{d.day}</div>
-                <div className="text-xs text-gray-500">{d.date}</div>
+              <div key={i} className="flex-1 text-center py-3 border-r border-gray-200/80 last:border-r-0 bg-white/50">
+                <div className="text-sm font-bold text-gray-900">{d.day}</div>
+                <div className="text-xs font-medium text-gray-500">{d.date}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Grid Rows */}
-        <div className="divide-y divide-gray-200">
-          {mockScooties.map((scooty) => (
-            <div key={scooty.id} className="flex bg-white group hover:bg-gray-50/50 transition-colors">
+        <div className="divide-y divide-gray-200/80">
+          {mockScooties.map((scooty, index) => (
+            <div key={scooty.id} className="flex bg-white group hover:bg-indigo-50/30 transition-colors">
               
               {/* Scooty Info Column */}
-              <div className="w-48 shrink-0 border-r border-gray-200 p-4 flex items-center gap-3 bg-white z-10 relative">
-                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
-                  <span className="text-xl">🛵</span>
+              <div className="w-56 shrink-0 border-r border-gray-200/80 p-4 flex items-center gap-4 bg-white group-hover:bg-indigo-50/30 transition-colors z-10 relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-gray-200 shadow-sm p-1.5">
+                  <img 
+                    src={index % 2 === 0 ? '/assets/category/dfafa.png' : '/assets/category/image.png'} 
+                    alt={scooty.name} 
+                    className="w-full h-full object-contain" 
+                  />
                 </div>
                 <div>
-                  <div className="font-bold text-gray-900 text-sm">{scooty.name}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{scooty.reg}</div>
+                  <div className="font-bold text-gray-900 text-[15px]">{scooty.name}</div>
+                  <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mt-1">{scooty.reg}</div>
                 </div>
               </div>
 
@@ -170,18 +186,18 @@ export default function AdminFleetTimeline() {
                     return (
                       <div 
                         key={idx}
-                        className="absolute top-2 bottom-2 z-20 px-1"
+                        className="absolute top-2 bottom-2 z-20 px-1.5 group/event cursor-pointer"
                         style={{ left: `${leftPercentage}%`, width: `${widthPercentage}%` }}
                       >
-                        <div className="w-full h-full bg-blue-100 border border-blue-200 rounded-lg shadow-sm flex items-center justify-between px-3 overflow-hidden">
+                        <div className="w-full h-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/60 rounded-xl shadow-sm group-hover/event:shadow-md group-hover/event:-translate-y-0.5 transition-all duration-300 flex items-center justify-between px-3 overflow-hidden">
                           <div className="flex items-center gap-2 truncate">
-                            <MapPin size={16} className="text-purple-600 shrink-0" />
+                            <MapPin size={16} className="text-indigo-600 shrink-0" />
                             <div className="truncate">
-                              <div className="text-sm font-semibold text-blue-700 truncate">{evt.user}</div>
-                              <div className="text-xs text-blue-500 truncate">{evt.time}</div>
+                              <div className="text-sm font-bold text-indigo-900 truncate tracking-tight">{evt.user}</div>
+                              <div className="text-xs font-medium text-indigo-600/80 truncate">{evt.time}</div>
                             </div>
                           </div>
-                          <MapPin size={16} className="text-orange-500 shrink-0 ml-2" />
+                          <MapPin size={16} className="text-blue-500 shrink-0 ml-2 opacity-50 group-hover/event:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     );
@@ -191,14 +207,14 @@ export default function AdminFleetTimeline() {
                     return (
                       <div 
                         key={idx}
-                        className="absolute top-2 bottom-2 z-20 px-1"
+                        className="absolute top-2 bottom-2 z-20 px-1.5 group/event cursor-pointer"
                         style={{ left: `${leftPercentage}%`, width: `${widthPercentage}%` }}
                       >
-                        <div className="w-full h-full bg-red-100 border border-red-200 rounded-lg shadow-sm flex items-center px-3 overflow-hidden">
-                          <Wrench size={16} className="text-red-500 shrink-0 mr-2" />
+                        <div className="w-full h-full bg-gradient-to-r from-rose-50 to-red-50 border border-rose-200/60 rounded-xl shadow-sm group-hover/event:shadow-md group-hover/event:-translate-y-0.5 transition-all duration-300 flex items-center px-3 overflow-hidden">
+                          <Wrench size={16} className="text-rose-600 shrink-0 mr-2" />
                           <div className="truncate">
-                            <div className="text-sm font-semibold text-red-700">{evt.text}</div>
-                            <div className="text-xs text-red-500">{evt.time}</div>
+                            <div className="text-sm font-bold text-rose-900 tracking-tight">{evt.text}</div>
+                            <div className="text-xs font-medium text-rose-600/80">{evt.time}</div>
                           </div>
                         </div>
                       </div>
@@ -209,15 +225,15 @@ export default function AdminFleetTimeline() {
                     return (
                       <div 
                         key={idx}
-                        className="absolute top-2 bottom-2 z-20 px-1"
+                        className="absolute top-2 bottom-2 z-20 px-1.5 group/event cursor-pointer"
                         style={{ left: `${leftPercentage}%`, width: `${widthPercentage}%` }}
                       >
-                        <div className="w-full h-full bg-red-50 border border-red-300 rounded-lg shadow-sm flex items-center px-3 overflow-hidden" 
-                             style={{ backgroundImage: 'repeating-linear-gradient(45deg, #fee2e2 0, #fee2e2 2px, transparent 2px, transparent 8px)' }}>
-                          <AlertTriangle size={16} className="text-red-600 shrink-0 mr-2 bg-white rounded-full" />
-                          <div className="truncate bg-white/80 px-1 rounded">
-                            <div className="text-sm font-bold text-red-700">{evt.text}</div>
-                            <div className="text-xs text-red-600 font-medium">{evt.time}</div>
+                        <div className="w-full h-full bg-orange-50/80 border border-orange-300/60 rounded-xl shadow-sm group-hover/event:shadow-md group-hover/event:-translate-y-0.5 transition-all duration-300 flex items-center px-3 overflow-hidden" 
+                             style={{ backgroundImage: 'repeating-linear-gradient(45deg, rgba(255, 237, 213, 0.5) 0, rgba(255, 237, 213, 0.5) 2px, transparent 2px, transparent 8px)' }}>
+                          <AlertTriangle size={16} className="text-orange-600 shrink-0 mr-2 bg-white rounded-full shadow-sm" />
+                          <div className="truncate bg-white/90 px-2 py-0.5 rounded-lg shadow-sm">
+                            <div className="text-sm font-bold text-orange-900 tracking-tight">{evt.text}</div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-orange-600">{evt.time}</div>
                           </div>
                         </div>
                       </div>
@@ -233,42 +249,42 @@ export default function AdminFleetTimeline() {
       </div>
 
       {/* Footer Metrics */}
-      <div className="flex flex-wrap items-center justify-between pt-6 border-t border-gray-100 mt-6 text-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold">7</div>
+      <div className="flex flex-wrap items-center justify-between pt-8 mt-8 border-t border-gray-100">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl flex items-center justify-center text-indigo-600 font-black text-xl shadow-inner border border-indigo-100/50">7</div>
           <div>
-            <div className="text-gray-500">Total Scooties</div>
-            <div className="font-bold text-gray-900 text-lg">7</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Total Fleet</div>
+            <div className="font-black text-gray-900 text-xl leading-tight">7 Scooties</div>
           </div>
         </div>
         
-        <div className="flex gap-8">
-          <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-500">✓</div>
+        <div className="flex gap-10">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 flex items-center justify-center text-emerald-600 font-bold shadow-sm">✓</div>
              <div>
-               <div className="text-gray-500 text-xs">Available</div>
-               <div className="font-bold text-gray-900">4</div>
+               <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Available</div>
+               <div className="font-black text-gray-900 text-lg leading-none mt-0.5">4</div>
              </div>
           </div>
-          <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">📅</div>
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm">📅</div>
              <div>
-               <div className="text-gray-500 text-xs">Booked</div>
-               <div className="font-bold text-gray-900">3</div>
+               <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Booked</div>
+               <div className="font-black text-gray-900 text-lg leading-none mt-0.5">3</div>
              </div>
           </div>
-          <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500"><Wrench size={14}/></div>
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-50 to-red-50 border border-rose-100 flex items-center justify-center text-rose-500 shadow-sm"><Wrench size={16}/></div>
              <div>
-               <div className="text-gray-500 text-xs">Maintenance</div>
-               <div className="font-bold text-gray-900">1</div>
+               <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Maintenance</div>
+               <div className="font-black text-gray-900 text-lg leading-none mt-0.5">1</div>
              </div>
           </div>
-          <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500"><AlertTriangle size={14}/></div>
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 flex items-center justify-center text-orange-500 shadow-sm"><AlertTriangle size={16}/></div>
              <div>
-               <div className="text-gray-500 text-xs">Conflict</div>
-               <div className="font-bold text-gray-900">1</div>
+               <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Conflict</div>
+               <div className="font-black text-gray-900 text-lg leading-none mt-0.5">1</div>
              </div>
           </div>
         </div>

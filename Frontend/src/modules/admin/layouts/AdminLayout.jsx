@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AdminSidebar from "../components/layout/AdminSidebar";
-import { User, LogOut, Search, Bell } from "lucide-react";
+import { UserIcon as User, LogoutIcon as LogOut, SearchIcon as Search, BellIcon as Bell } from "lucide-animated";
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -15,15 +15,14 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      
-      <div 
-        className={`flex-1 flex flex-col transition-all duration-300 ${
-          isSidebarOpen ? "ml-64" : "ml-20"
-        }`}
+
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"
+          }`}
       >
         <header className="h-16 sticky top-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-800 hidden sm:block">Admin Portal</h2>
-          
+          <h2 className="text-xl font-semibold text-gray-800 hidden sm:block">Vegah</h2>
+
           <div className="flex-1 flex justify-center px-4 sm:px-8">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

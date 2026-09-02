@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { adminSidebarMenu } from "../../utils/adminSidebarMenu";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight } from "lucide-animated";
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
@@ -16,13 +16,13 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-white border-r border-gray-200 transition-all duration-300 ${
-        isOpen ? "w-64" : "w-20"
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[#000000] border-r border-gray-800 transition-all duration-300 ${
+        isOpen ? "w-72" : "w-20"
       }`}
     >
-      <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200">
+      <div className="flex h-16 items-center justify-between px-4 border-b border-gray-800">
         <h1
-          className={`font-bold text-xl text-gray-800 transition-opacity duration-300 ${
+          className={`font-bold text-xl text-white transition-opacity duration-300 ${
             isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
           }`}
         >
@@ -30,7 +30,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
         </h1>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-1 rounded-md hover:bg-gray-100 text-gray-600"
+          className="p-1 rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
         >
           {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </button>
@@ -57,8 +57,8 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                         onClick={() => toggleMenu(item.label)}
                         className={`w-full flex items-center justify-between px-6 py-2.5 mx-2 rounded-lg transition-colors ${
                           isChildActive && !isExpanded
-                            ? "bg-blue-50 text-blue-600 font-medium"
-                            : "text-gray-600 hover:bg-gray-100"
+                            ? "bg-gray-800 text-white font-medium"
+                            : "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
                         }`}
                         title={!isOpen ? item.label : ""}
                       >
@@ -66,7 +66,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                           <item.icon
                             size={20}
                             className={`shrink-0 ${
-                              isChildActive && !isExpanded ? "text-blue-600" : "text-gray-500"
+                              isChildActive && !isExpanded ? "text-blue-400" : "text-gray-500"
                             }`}
                           />
                           <span
@@ -78,7 +78,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                           </span>
                         </div>
                         {isOpen && (
-                          <span className={`text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
+                          <span className={`text-gray-600 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
                             <ChevronRight size={16} />
                           </span>
                         )}
@@ -99,11 +99,11 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                                   to={subItem.path}
                                   className={`flex items-center pl-14 pr-6 py-2 mx-2 rounded-lg transition-colors text-sm ${
                                     isSubActive
-                                      ? "bg-orange-50 text-orange-600 font-medium"
-                                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                      ? "bg-gray-800 text-white font-medium"
+                                      : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"
                                   }`}
                                 >
-                                  <span className={`mr-2 ${isSubActive ? "text-orange-500" : "text-gray-300"}`}>•</span>
+                                  <span className={`mr-2 ${isSubActive ? "text-orange-500" : "text-gray-700"}`}>•</span>
                                   <span className="whitespace-nowrap">{subItem.label}</span>
                                 </Link>
                               </li>
@@ -123,15 +123,15 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                       to={item.path}
                       className={`flex items-center px-6 py-2.5 mx-2 rounded-lg transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-600 font-medium"
-                          : "text-gray-600 hover:bg-gray-100"
+                          ? "bg-gray-800 text-white font-medium"
+                          : "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
                       }`}
                       title={!isOpen ? item.label : ""}
                     >
                       <item.icon
                         size={20}
                         className={`shrink-0 ${
-                          isActive ? "text-blue-600" : "text-gray-500"
+                          isActive ? "text-blue-400" : "text-gray-500"
                         }`}
                       />
                       <span

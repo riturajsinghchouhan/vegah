@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
-import { Plus, Eye, Edit3, Trash2, Search, Battery, MapPin, Tag } from 'lucide-react';
+import { PlusIcon as Plus, EyeIcon as Eye, SquarePenIcon as Edit3, ArchiveIcon as Trash2, SearchIcon as Search, BatteryIcon as Battery, MapPinIcon as MapPin, BookmarkIcon as Tag } from 'lucide-animated';
 import { cn } from '@/lib/utils';
 
 const mockScooties = [
@@ -83,7 +83,7 @@ export default function AdminEVs() {
       {/* Grid of EV Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredScooties.map((scooty) => (
-          <div key={scooty.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+          <div key={scooty.id} className="bg-indigo-50/30 rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col">
             
             {/* Card Header */}
             <div className="p-5 pb-4 border-b border-gray-100 flex justify-between items-start">
@@ -91,10 +91,10 @@ export default function AdminEVs() {
                 <h3 className="text-lg font-bold text-gray-900 leading-tight">{scooty.plate}</h3>
                 <p className="text-sm text-gray-500 mt-0.5">{scooty.model}</p>
               </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <button className="p-1.5 hover:bg-gray-100 rounded-md hover:text-blue-600 transition-colors"><Eye size={16} strokeWidth={2.5} /></button>
-                <button className="p-1.5 hover:bg-gray-100 rounded-md hover:text-green-600 transition-colors"><Edit3 size={16} strokeWidth={2.5} /></button>
-                <button className="p-1.5 hover:bg-gray-100 rounded-md hover:text-red-600 transition-colors"><Trash2 size={16} strokeWidth={2.5} /></button>
+              <div className="flex items-center gap-2 text-black">
+                <button className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"><Eye size={16} strokeWidth={2.5} /></button>
+                <button className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"><Edit3 size={16} strokeWidth={2.5} /></button>
+                <button className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"><Trash2 size={16} strokeWidth={2.5} /></button>
               </div>
             </div>
 

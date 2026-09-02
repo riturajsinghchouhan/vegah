@@ -4,6 +4,7 @@ import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Eye, Phone, Clock, StopCircle, Search, Filter, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import Modal from '@/shared/components/ui/Modal';
 import { cn } from '@/lib/utils';
 
 // --- MOCK DATA ---
@@ -113,6 +114,8 @@ export default function AdminBookings() {
 
 // --- LIVE RENTALS TABLE ---
 function LiveRentalsTable({ navigate }) {
+  const [selectedRental, setSelectedRental] = useState(null);
+
   return (
     <div className="space-y-4">
       {/* Search Bar */}
@@ -125,10 +128,10 @@ function LiveRentalsTable({ navigate }) {
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+            <tr className="bg-gray-50/50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-600 font-semibold divide-x divide-gray-200">
               <th className="px-6 py-4">Booking Info</th>
               <th className="px-6 py-4">Customer Info</th>
               <th className="px-6 py-4">Vehicle Details</th>
@@ -137,9 +140,9 @@ function LiveRentalsTable({ navigate }) {
               <th className="px-6 py-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-200">
             {mockLiveRentals.map((rental) => (
-              <tr key={rental.id} className="hover:bg-blue-50/30 transition-colors">
+              <tr key={rental.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
                 {/* Booking Info */}
                 <td className="px-6 py-4">
                   <div className="font-bold text-gray-900">{rental.id}</div>
@@ -181,7 +184,7 @@ function LiveRentalsTable({ navigate }) {
                     <button 
                       title="View Details" 
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      onClick={() => navigate(`/admin/bookings/${rental.id}`)}
+                      onClick={() => setSelectedRental(rental)}
                     >
                       <Eye size={18} />
                     </button>
@@ -201,6 +204,32 @@ function LiveRentalsTable({ navigate }) {
           </tbody>
         </table>
       </div>
+
+      <Modal 
+        isOpen={!!selectedRental} 
+        onClose={() => setSelectedRental(null)} 
+        title={selectedRental ? `Booking Details - ${selectedRental.id}` : ''}
+        size="md"
+      >
+        {selectedRental && (
+          <div className="space-y-4 text-base text-gray-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div><strong className="text-gray-900 block">Customer</strong> {selectedRental.user.name} <br/> <span className="text-sm text-gray-500">{selectedRental.user.phone}</span></div>
+              <div><strong className="text-gray-900 block">Vehicle</strong> {selectedRental.scooty.name} <br/> <span className="text-sm text-gray-500">{selectedRental.scooty.reg}</span></div>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div className="mb-2"><strong className="text-gray-900">Pickup:</strong> {selectedRental.pickup.time} ({selectedRental.pickup.location})</div>
+              <div className="mb-2"><strong className="text-gray-900">Expected Drop:</strong> {selectedRental.expectedReturn}</div>
+              <div><strong className="text-gray-900">Duration:</strong> {selectedRental.duration}</div>
+            </div>
+            <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+              <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedRental.financials.amount}</span></div>
+              <div className="text-right"><strong className="text-gray-900 block">Deposit</strong> {selectedRental.financials.deposit}</div>
+              <div className="text-right"><strong className="text-gray-900 block">Status</strong> <StatusBadge status={selectedRental.financials.status} /></div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -208,6 +237,7 @@ function LiveRentalsTable({ navigate }) {
 // --- UPCOMING PICKUPS TABLE ---
 function UpcomingPickupsTable({ navigate }) {
   const [activeFilter, setActiveFilter] = useState('Today');
+  const [selectedPickup, setSelectedPickup] = useState(null);
   const filters = ['Today', 'Tomorrow', 'This Week'];
 
   const filteredPickups = mockPickups.filter(p => p.pickup.date === activeFilter);
@@ -243,10 +273,10 @@ function UpcomingPickupsTable({ navigate }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+            <tr className="bg-gray-50/50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-600 font-semibold divide-x divide-gray-200">
               <th className="px-6 py-4">Booking ID</th>
               <th className="px-6 py-4">Customer Info</th>
               <th className="px-6 py-4">Vehicle Details</th>
@@ -255,9 +285,9 @@ function UpcomingPickupsTable({ navigate }) {
               <th className="px-6 py-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-200">
             {filteredPickups.map((pickup) => (
-              <tr key={pickup.id} className="hover:bg-blue-50/30 transition-colors">
+              <tr key={pickup.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
                 
                 {/* Booking Info */}
                 <td className="px-6 py-4">
@@ -305,7 +335,7 @@ function UpcomingPickupsTable({ navigate }) {
                     <button 
                       title="View Details" 
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      onClick={() => navigate(`/admin/bookings/${pickup.id}`)}
+                      onClick={() => setSelectedPickup(pickup)}
                     >
                       <Eye size={18} />
                     </button>
@@ -330,6 +360,31 @@ function UpcomingPickupsTable({ navigate }) {
           </tbody>
         </table>
       </div>
+
+      <Modal 
+        isOpen={!!selectedPickup} 
+        onClose={() => setSelectedPickup(null)} 
+        title={selectedPickup ? `Pickup Details - ${selectedPickup.id}` : ''}
+        size="md"
+      >
+        {selectedPickup && (
+          <div className="space-y-4 text-base text-gray-700">
+            <div className="grid grid-cols-2 gap-4">
+              <div><strong className="text-gray-900 block">Customer</strong> {selectedPickup.user.name} <br/> <span className="text-sm text-gray-500">{selectedPickup.user.phone}</span></div>
+              <div><strong className="text-gray-900 block">Vehicle</strong> {selectedPickup.scooty.name} <br/> <span className="text-sm text-gray-500">{selectedPickup.scooty.reg}</span></div>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div className="mb-2"><strong className="text-gray-900">Pickup Date:</strong> {selectedPickup.pickup.date} at {selectedPickup.pickup.time}</div>
+              <div><strong className="text-gray-900">Location:</strong> {selectedPickup.pickup.location}</div>
+            </div>
+            <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+              <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedPickup.financials.amount}</span></div>
+              <div className="text-right"><strong className="text-gray-900 block">Deposit</strong> {selectedPickup.financials.depositStatus}</div>
+              <div className="text-right"><strong className="text-gray-900 block">Payment</strong> {selectedPickup.financials.paymentStatus}</div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

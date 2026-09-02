@@ -1,8 +1,8 @@
 import React from "react";
 import { 
-  Bike, CheckCircle, Clock, Wrench, Users, Calendar, 
-  TrendingUp, Activity, XCircle
-} from "lucide-react";
+  ActivityIcon as Bike, CheckCheckIcon as CheckCircle, ClockIcon as Clock, WrenchIcon as Wrench, UsersIcon as Users, CalendarDaysIcon as Calendar, 
+  TrendingUpIcon as TrendingUp, SquareActivityIcon as Activity, BanIcon as XCircle
+} from "lucide-animated";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend
@@ -60,25 +60,25 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {/* Scooties Stats */}
-        <StatCard title="Total Scooties" value="156" icon={<Bike />} trend="+12%" trendDirection="up" />
-        <StatCard title="Available" value="89" icon={<CheckCircle />} helper="Ready to ride" />
-        <StatCard title="Currently Booked" value="54" icon={<Activity />} />
-        <StatCard title="Under Maintenance" value="13" icon={<Wrench />} trend="-2" trendDirection="down" />
+        <StatCard title="Total Scooties" value="156" icon={<Bike />} trend="+12%" trendDirection="up" className="bg-indigo-50 border-indigo-100" />
+        <StatCard title="Available" value="89" icon={<CheckCircle />} helper="Ready to ride" className="bg-emerald-50 border-emerald-100" />
+        <StatCard title="Currently Booked" value="54" icon={<Activity />} className="bg-blue-50 border-blue-100" />
+        <StatCard title="Under Maintenance" value="13" icon={<Wrench />} trend="-2" trendDirection="down" className="bg-orange-50 border-orange-100" />
         
         {/* User & Bookings Stats */}
-        <StatCard title="Total Users" value="4,821" icon={<Users />} trend="+156 this week" trendDirection="up" />
-        <StatCard title="Total Bookings" value="12,450" icon={<Calendar />} />
-        <StatCard title="Today's Bookings" value="142" icon={<Clock />} trend="+14%" trendDirection="up" />
-        <StatCard title="Pending Approvals" value="8" icon={<Clock />} helper="Requires action" />
-        <StatCard title="Cancelled Bookings" value="24" icon={<XCircle />} trend="-5%" trendDirection="down" />
-        <StatCard title="Today's Revenue" value="₹42,500" icon={<TrendingUp />} trend="+18%" trendDirection="up" />
+        <StatCard title="Total Users" value="4,821" icon={<Users />} trend="+156 this week" trendDirection="up" className="bg-purple-50 border-purple-100" />
+        <StatCard title="Total Bookings" value="12,450" icon={<Calendar />} className="bg-cyan-50 border-cyan-100" />
+        <StatCard title="Today's Bookings" value="142" icon={<Clock />} trend="+14%" trendDirection="up" className="bg-teal-50 border-teal-100" />
+        <StatCard title="Pending Approvals" value="8" icon={<Clock />} helper="Requires action" className="bg-amber-50 border-amber-100" />
+        <StatCard title="Cancelled Bookings" value="24" icon={<XCircle />} trend="-5%" trendDirection="down" className="bg-rose-50 border-rose-100" />
+        <StatCard title="Today's Revenue" value="₹42,500" icon={<TrendingUp />} trend="+18%" trendDirection="up" className="bg-green-50 border-green-100" />
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Revenue Chart */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Revenue Trend</h3>
+        <div className="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm">
+          <h3 className="text-lg font-semibold text-blue-900 mb-4">Revenue Trend</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -93,8 +93,8 @@ export default function AdminDashboard() {
         </div>
 
         {/* Bookings Chart */}
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Bookings</h3>
+        <div className="bg-emerald-50/50 p-6 rounded-xl border border-emerald-100 shadow-sm">
+          <h3 className="text-lg font-semibold text-emerald-900 mb-4">Monthly Bookings</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={bookingData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
