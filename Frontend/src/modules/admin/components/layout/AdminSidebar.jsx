@@ -16,13 +16,13 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[#000000] border-r border-gray-800 transition-all duration-300 ${
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[#6D28D9] border-r border-violet-800 transition-all duration-300 ${
         isOpen ? "w-72" : "w-20"
       }`}
     >
-      <div className="flex h-16 items-center justify-between px-4 border-b border-gray-800">
+      <div className="flex h-16 items-center justify-between px-4 border-b border-violet-800/60 shadow-sm">
         <h1
-          className={`font-bold text-xl text-white transition-opacity duration-300 ${
+          className={`font-black tracking-tight text-xl text-white transition-opacity duration-300 ${
             isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
           }`}
         >
@@ -30,21 +30,21 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
         </h1>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-1 rounded-md hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+          className="p-1 rounded-md hover:bg-white/10 text-violet-200 hover:text-white transition-colors"
         >
           {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-4" data-lenis-prevent>
+      <div className="flex-1 overflow-y-auto py-6" data-lenis-prevent>
         {adminSidebarMenu.map((section, idx) => (
-          <div key={idx} className="mb-6">
+          <div key={idx} className="mb-8">
             {isOpen && (
-              <h2 className="px-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <h2 className="px-6 mb-3 text-[11px] font-bold text-violet-300/80 uppercase tracking-widest">
                 {section.title}
               </h2>
             )}
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {section.items.map((item, itemIdx) => {
                 if (item.type === "collapse") {
                   // Check if any child is active
@@ -55,18 +55,18 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                     <li key={itemIdx}>
                       <button
                         onClick={() => toggleMenu(item.label)}
-                        className={`w-full flex items-center justify-between px-6 py-2.5 mx-2 rounded-lg transition-colors ${
+                        className={`w-full flex items-center justify-between px-6 py-2.5 mx-2 rounded-xl transition-all duration-200 ${
                           isChildActive && !isExpanded
-                            ? "bg-gray-800 text-white font-medium"
-                            : "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
+                            ? "bg-white/15 text-white font-bold shadow-sm backdrop-blur-sm"
+                            : "text-violet-100 hover:bg-white/10 hover:text-white font-medium"
                         }`}
                         title={!isOpen ? item.label : ""}
                       >
                         <div className="flex items-center">
                           <item.icon
                             size={20}
-                            className={`shrink-0 ${
-                              isChildActive && !isExpanded ? "text-blue-400" : "text-gray-500"
+                            className={`shrink-0 transition-colors ${
+                              isChildActive && !isExpanded ? "text-white drop-shadow-sm" : "text-violet-300"
                             }`}
                           />
                           <span
@@ -78,7 +78,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                           </span>
                         </div>
                         {isOpen && (
-                          <span className={`text-gray-600 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
+                          <span className={`text-violet-300 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
                             <ChevronRight size={16} />
                           </span>
                         )}
@@ -86,7 +86,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                       
                       {/* Sub-items */}
                       {isOpen && isExpanded && (
-                        <ul className="mt-1 space-y-1">
+                        <ul className="mt-2 space-y-1">
                           {item.items.map((subItem, subIdx) => {
                             // Exact match logic for query params since they share the same base path
                             const isSubActive = 
@@ -97,13 +97,13 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                               <li key={subIdx}>
                                 <Link
                                   to={subItem.path}
-                                  className={`flex items-center pl-14 pr-6 py-2 mx-2 rounded-lg transition-colors text-sm ${
+                                  className={`flex items-center pl-14 pr-6 py-2 mx-2 rounded-lg transition-all duration-200 text-sm ${
                                     isSubActive
-                                      ? "bg-gray-800 text-white font-medium"
-                                      : "text-gray-500 hover:text-gray-300 hover:bg-gray-900"
+                                      ? "bg-white/15 text-white font-bold shadow-sm"
+                                      : "text-violet-200/90 hover:text-white hover:bg-white/10 font-medium"
                                   }`}
                                 >
-                                  <span className={`mr-2 ${isSubActive ? "text-orange-500" : "text-gray-700"}`}>•</span>
+                                  <span className={`mr-2.5 text-xs ${isSubActive ? "text-white" : "text-violet-400"}`}>•</span>
                                   <span className="whitespace-nowrap">{subItem.label}</span>
                                 </Link>
                               </li>
@@ -121,17 +121,17 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                   <li key={itemIdx}>
                     <Link
                       to={item.path}
-                      className={`flex items-center px-6 py-2.5 mx-2 rounded-lg transition-colors ${
+                      className={`flex items-center px-6 py-2.5 mx-2 rounded-xl transition-all duration-200 ${
                         isActive
-                          ? "bg-gray-800 text-white font-medium"
-                          : "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
+                          ? "bg-white/15 text-white font-bold shadow-sm backdrop-blur-sm"
+                          : "text-violet-100 hover:bg-white/10 hover:text-white font-medium"
                       }`}
                       title={!isOpen ? item.label : ""}
                     >
                       <item.icon
                         size={20}
-                        className={`shrink-0 ${
-                          isActive ? "text-blue-400" : "text-gray-500"
+                        className={`shrink-0 transition-colors ${
+                          isActive ? "text-white drop-shadow-sm" : "text-violet-300"
                         }`}
                       />
                       <span
