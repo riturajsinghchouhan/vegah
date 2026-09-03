@@ -57,3 +57,21 @@ export const updateProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+export const uploadDocument = async (req, res, next) => {
+  try {
+    const document = await usersService.uploadDocument(req.user.id, req.body, req.file);
+    sendSuccess(res, 201, 'Document uploaded successfully', document);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUserDocuments = async (req, res, next) => {
+  try {
+    const documents = await usersService.getUserDocuments(req.user.id);
+    sendSuccess(res, 200, 'Documents fetched successfully', documents);
+  } catch (error) {
+    next(error);
+  }
+};

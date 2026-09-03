@@ -53,6 +53,7 @@ import categoriesRoutes from './modules/categories/categories.routes.js';
 import vehiclesRoutes from './modules/vehicles/vehicles.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
+import bookingsRoutes from './modules/bookings/bookings.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -61,6 +62,7 @@ app.use('/api/admin/categories', categoriesRoutes);
 app.use('/api/admin/inventory', inventoryRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/bookings', bookingsRoutes);
 
 // Global Error Handler (must be the last middleware)
 app.use(errorHandler);

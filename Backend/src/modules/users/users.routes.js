@@ -21,6 +21,21 @@ router.patch(
   usersController.updateProfile
 );
 
+import { upload } from '../../config/cloudinary.js';
+import * as documentsValidation from './documents.validation.js';
+
+router.post(
+  '/documents',
+  upload.single('file'),
+  validate(documentsValidation.uploadDocumentSchema),
+  usersController.uploadDocument
+);
+
+router.get(
+  '/documents',
+  usersController.getUserDocuments
+);
+
 // Admin endpoints
 router.use(authorize('ADMIN', 'SUPER_ADMIN'));
 

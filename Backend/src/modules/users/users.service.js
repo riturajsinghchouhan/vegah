@@ -78,3 +78,37 @@ export const updateProfile = async (id, data) => {
   }
   return user;
 };
+
+import Document from '../../models/Document.js';
+import { BadRequestError } from '../../utils/errors.js';
+
+export const uploadDocument = async (userId, data, file) => {
+  if (!file) {
+    throw new BadRequestError('File is required');
+  }
+
+  // Find existing document of this type for user
+  const existingDoc = await Document.findOne({ user: userId, type: data.type });
+
+  let document;
+  if (existingDoc) {
+    // Optionally delete old file from Cloudinary here
+    existingDoc.fileUrl = file.path;
+    existingDoc.documentNumber = data.documentNumber || existingDoc.documentNumber;
+    existingDoc.verificationStatus = 'PENDING';
+    document = await existingDoc.save();
+  } else {
+    document = await Document.create({
+      user: userId,
+      type: data.type,
+      documentNumber: data.documentNumber,
+      fileUrl: file.path,
+    });
+  }
+
+  return document;
+};
+
+export const getUserDocuments = async (userId) => {
+  return await Document.find({ user: userId });
+};
