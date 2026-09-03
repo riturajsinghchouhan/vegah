@@ -1,9 +1,8 @@
-import { mockUser } from "../data/user";
-import { delay } from "../utils/delay";
+import api from "./api";
 
 export const userService = {
   async getProfile() {
-    await delay(250);
-    return mockUser;
+    const response = await api.get('/users/me');
+    return response.data.data;
   },
 };

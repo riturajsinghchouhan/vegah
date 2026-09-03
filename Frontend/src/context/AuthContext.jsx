@@ -16,8 +16,8 @@ export const AuthProvider = ({ children }) => {
 
   const requestOtp = async (phone) => authService.requestOtp(phone);
 
-  const verifyOtp = async () => {
-    const session = await authService.verifyOtp();
+  const verifyOtp = async (phone, otp) => {
+    const session = await authService.verifyOtp(phone, otp);
     window.localStorage.setItem("evora-session", JSON.stringify(session));
     setUser(session.user);
     return session;
