@@ -10,6 +10,7 @@ import {
   ArrowRightIcon as ArrowRight
 } from "lucide-animated";
 import { Shield, Headphones, Award, Bike, Mail } from "lucide-react";
+import api from "../../../../services/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -17,10 +18,25 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    localStorage.setItem("admin_token", "dummy_admin_token");
-    navigate("/admin/dashboard");
+    try {
+      const response = await api.post("/admin/auth/login", { email, password });
+      const { accessToken, admin } = response.data.data;
+      
+      // We can store it as evora-session or admin_token, since the interceptor uses evora-session
+      // Let's store it as evora-session so it works out of the box
+      window.localStorage.setItem("evora-session", JSON.stringify({
+        accessToken,
+        user: admin,
+      }));
+      window.localStorage.setItem("admin_token", accessToken); // for legacy/other components
+      
+      navigate("/admin/dashboard");
+    } catch (error) {
+      console.error("Admin login failed", error);
+      alert(error.response?.data?.message || "Login failed");
+    }
   };
 
   return (
