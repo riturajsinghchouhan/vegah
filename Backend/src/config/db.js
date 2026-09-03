@@ -5,8 +5,6 @@ import logger from '../utils/logger.js';
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       autoIndex: true, // Don't build indexes in production for huge databases, but fine for now
     });
     
