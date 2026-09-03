@@ -10,7 +10,7 @@ import {
   ArrowRightIcon as ArrowRight
 } from "lucide-animated";
 import { Shield, Headphones, Award, Bike, Mail } from "lucide-react";
-import api from "../../../../services/api";
+import api from "../../../services/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -21,7 +21,8 @@ export default function AdminLogin() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("/admin/auth/login", { email, password });
+      console.log("Attempting login with:", { email: email.trim(), password });
+      const response = await api.post("/admin/auth/login", { email: email.trim(), password });
       const { accessToken, admin } = response.data.data;
       
       // We can store it as evora-session or admin_token, since the interceptor uses evora-session
