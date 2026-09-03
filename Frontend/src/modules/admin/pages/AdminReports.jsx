@@ -166,12 +166,12 @@ export default function AdminReports() {
         <div className="space-y-6">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <StatCard title="Total Bookings" value="1,265" icon={<CalendarIcon />} trend="+12.5% vs Apr 2025" trendDirection="up" />
-            <StatCard title="Completed Bookings" value="1,032" icon={<CheckCircle />} trend="+10.8% vs Apr 2025" trendDirection="up" />
-            <StatCard title="Cancelled Bookings" value="233" icon={<XCircle />} trend="-4.3% vs Apr 2025" trendDirection="down" />
-            <StatCard title="Total Revenue" value="₹7,85,420" icon={<IndianRupee />} trend="+15.6% vs Apr 2025" trendDirection="up" />
-            <StatCard title="Total Refunds" value="₹42,680" icon={<RefreshCcw />} trend="-6.2% vs Apr 2025" trendDirection="down" />
-            <StatCard title="Active Customers" value="2,843" icon={<Users />} trend="+9.7% vs Apr 2025" trendDirection="up" />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Total Bookings" value="1,265" icon={<CalendarIcon className="text-blue-600" />} trend="+12.5% vs Apr 2025" trendDirection="up" />
+            <StatCard className="bg-green-50/80 border-green-100" title="Completed Bookings" value="1,032" icon={<CheckCircle className="text-green-600" />} trend="+10.8% vs Apr 2025" trendDirection="up" />
+            <StatCard className="bg-red-50/80 border-red-100" title="Cancelled Bookings" value="233" icon={<XCircle className="text-red-500" />} trend="-4.3% vs Apr 2025" trendDirection="down" />
+            <StatCard className="bg-amber-50/80 border-amber-100" title="Total Revenue" value="₹7,85,420" icon={<IndianRupee className="text-amber-600" />} trend="+15.6% vs Apr 2025" trendDirection="up" />
+            <StatCard className="bg-purple-50/80 border-purple-100" title="Total Refunds" value="₹42,680" icon={<RefreshCcw className="text-purple-500" />} trend="-6.2% vs Apr 2025" trendDirection="down" />
+            <StatCard className="bg-indigo-50/80 border-indigo-100" title="Active Customers" value="2,843" icon={<Users className="text-indigo-500" />} trend="+9.7% vs Apr 2025" trendDirection="up" />
           </div>
 
           {/* Charts Row */}
@@ -306,7 +306,7 @@ export default function AdminReports() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-gray-100 text-sm text-gray-500">
+                    <tr className="bg-gray-800 text-sm text-white">
                       <th className="pb-3 font-medium px-2">Booking ID</th>
                       <th className="pb-3 font-medium px-2">Customer</th>
                       <th className="pb-3 font-medium px-2">Scooty</th>
@@ -414,10 +414,10 @@ export default function AdminReports() {
       {activeTab === "Bookings" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Bookings" value="1,265" icon={<CalendarIcon />} trend="+12.5%" />
-            <StatCard title="Completed" value="1,032" icon={<CheckCircle />} trend="+10.8%" />
-            <StatCard title="Ongoing" value="128" icon={<RefreshCcw />} trend="stable" />
-            <StatCard title="Cancelled" value="105" icon={<XCircle />} trend="-4.3%" trendDirection="down" />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Total Bookings" value="1,265" icon={<CalendarIcon className="text-blue-600" />} trend="+12.5%" />
+            <StatCard className="bg-green-50/80 border-green-100" title="Completed" value="1,032" icon={<CheckCircle className="text-green-600" />} trend="+10.8%" />
+            <StatCard className="bg-indigo-50/80 border-indigo-100" title="Ongoing" value="128" icon={<RefreshCcw className="text-indigo-500" />} trend="stable" />
+            <StatCard className="bg-red-50/80 border-red-100" title="Cancelled" value="105" icon={<XCircle className="text-red-500" />} trend="-4.3%" trendDirection="down" />
           </div>
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
              <h3 className="text-lg font-semibold text-gray-900 mb-4">Bookings Ledger</h3>
@@ -425,7 +425,7 @@ export default function AdminReports() {
              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-gray-100 text-sm text-gray-500">
+                    <tr className="bg-gray-800 text-sm text-white">
                       <th className="pb-3 font-medium px-2">Booking ID</th>
                       <th className="pb-3 font-medium px-2">Customer</th>
                       <th className="pb-3 font-medium px-2">Scooty</th>
@@ -459,10 +459,10 @@ export default function AdminReports() {
       {activeTab === "Revenue" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Revenue" value="₹7,85,420" icon={<IndianRupee />} trend="+15.6%" />
-            <StatCard title="Average Order Value" value="₹620" icon={<IndianRupee />} trend="+6.7%" />
-            <StatCard title="Coupon Discounts" value="₹42,650" icon={<RefreshCcw />} trend="+12%" trendDirection="down" />
-            <StatCard title="Late Fees Collected" value="₹65,320" icon={<IndianRupee />} trend="+4%" />
+            <StatCard className="bg-amber-50/80 border-amber-100" title="Total Revenue" value="₹7,85,420" icon={<IndianRupee className="text-amber-600" />} trend="+15.6%" />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Average Order Value" value="₹620" icon={<IndianRupee className="text-blue-600" />} trend="+6.7%" />
+            <StatCard className="bg-purple-50/80 border-purple-100" title="Coupon Discounts" value="₹42,650" icon={<RefreshCcw className="text-purple-500" />} trend="+12%" trendDirection="down" />
+            <StatCard className="bg-emerald-50/80 border-emerald-100" title="Late Fees Collected" value="₹65,320" icon={<IndianRupee className="text-emerald-600" />} trend="+4%" />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -507,10 +507,10 @@ export default function AdminReports() {
       {activeTab === "Customers" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Customers" value="12,450" icon={<Users />} trend="+5.2%" />
-            <StatCard title="Active This Month" value="2,843" icon={<CheckCircle />} trend="+9.7%" />
-            <StatCard title="New Signups" value="450" icon={<Users />} trend="-2.1%" trendDirection="down" />
-            <StatCard title="Banned Accounts" value="42" icon={<XCircle />} />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Total Customers" value="12,450" icon={<Users className="text-blue-600" />} trend="+5.2%" />
+            <StatCard className="bg-green-50/80 border-green-100" title="Active This Month" value="2,843" icon={<CheckCircle className="text-green-600" />} trend="+9.7%" />
+            <StatCard className="bg-indigo-50/80 border-indigo-100" title="New Signups" value="450" icon={<Users className="text-indigo-500" />} trend="-2.1%" trendDirection="down" />
+            <StatCard className="bg-red-50/80 border-red-100" title="Banned Accounts" value="42" icon={<XCircle className="text-red-500" />} />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -583,10 +583,10 @@ export default function AdminReports() {
       {activeTab === "Scooties" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Fleet" value="450" icon={<RefreshCcw />} />
-            <StatCard title="Active Rentals" value="128" icon={<CheckCircle />} />
-            <StatCard title="Under Maintenance" value="15" icon={<XCircle />} />
-            <StatCard title="Avg. Utilization" value="68%" icon={<CalendarIcon />} trend="+2%" />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Total Fleet" value="450" icon={<RefreshCcw className="text-blue-600" />} />
+            <StatCard className="bg-green-50/80 border-green-100" title="Active Rentals" value="128" icon={<CheckCircle className="text-green-600" />} />
+            <StatCard className="bg-orange-50/80 border-orange-100" title="Under Maintenance" value="15" icon={<XCircle className="text-orange-500" />} />
+            <StatCard className="bg-purple-50/80 border-purple-100" title="Avg. Utilization" value="68%" icon={<CalendarIcon className="text-purple-500" />} trend="+2%" />
           </div>
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Fleet Performance</h3>
@@ -608,17 +608,17 @@ export default function AdminReports() {
       {activeTab === "Payments" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Total Collected" value="₹7,85,420" icon={<IndianRupee />} trend="+15.6%" />
-            <StatCard title="Successful Payments" value="1,240" icon={<CheckCircle />} />
-            <StatCard title="Failed Payments" value="45" icon={<XCircle />} />
-            <StatCard title="Pending Settlements" value="₹12,400" icon={<RefreshCcw />} />
+            <StatCard className="bg-amber-50/80 border-amber-100" title="Total Collected" value="₹7,85,420" icon={<IndianRupee className="text-amber-600" />} trend="+15.6%" />
+            <StatCard className="bg-green-50/80 border-green-100" title="Successful Payments" value="1,240" icon={<CheckCircle className="text-green-600" />} />
+            <StatCard className="bg-red-50/80 border-red-100" title="Failed Payments" value="45" icon={<XCircle className="text-red-500" />} />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Pending Settlements" value="₹12,400" icon={<RefreshCcw className="text-blue-500" />} />
           </div>
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h3>
              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-gray-100 text-sm text-gray-500">
+                    <tr className="bg-gray-800 text-sm text-white">
                       <th className="pb-3 font-medium px-2">Transaction ID</th>
                       <th className="pb-3 font-medium px-2">Booking ID</th>
                       <th className="pb-3 font-medium px-2">Date</th>
@@ -654,16 +654,16 @@ export default function AdminReports() {
       {activeTab === "Refunds" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCard title="Total Refunded" value="₹42,680" icon={<RefreshCcw />} />
-            <StatCard title="Pending Refunds" value="12" icon={<CalendarIcon />} />
-            <StatCard title="Avg Processing Time" value="1.2 Days" icon={<CheckCircle />} />
+            <StatCard className="bg-purple-50/80 border-purple-100" title="Total Refunded" value="₹42,680" icon={<RefreshCcw className="text-purple-500" />} />
+            <StatCard className="bg-amber-50/80 border-amber-100" title="Pending Refunds" value="12" icon={<CalendarIcon className="text-amber-500" />} />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Avg Processing Time" value="1.2 Days" icon={<CheckCircle className="text-blue-500" />} />
           </div>
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
              <h3 className="text-lg font-semibold text-gray-900 mb-4">Refund Requests</h3>
              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-gray-100 text-sm text-gray-500">
+                    <tr className="bg-gray-800 text-sm text-white">
                       <th className="pb-3 font-medium px-2">Booking ID</th>
                       <th className="pb-3 font-medium px-2">Customer</th>
                       <th className="pb-3 font-medium px-2">Reason</th>

@@ -168,7 +168,7 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                  <tr className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold bg-gray-50/30">
+                  <tr className="bg-gray-800 text-sm text-white">
                     <th className="px-5 py-3">Booking ID</th>
                     <th className="px-5 py-3">Scooty</th>
                     <th className="px-5 py-3">Dates</th>

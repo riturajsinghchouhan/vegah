@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
+import Modal from '@/shared/components/ui/Modal';
 import { MapPin, Map, Plus, Eye, Edit3, Trash2, Power, Search, Bike } from 'lucide-react';
 
 const mockZones = [
@@ -15,6 +16,7 @@ const mockZones = [
 
 export default function AdminZones() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedZone, setSelectedZone] = useState(null);
   const navigate = useNavigate();
 
   return (
@@ -70,7 +72,12 @@ export default function AdminZones() {
                 <p className="text-sm text-gray-500 mt-1">{zone.subtitle}</p>
               </div>
               <div className="flex items-center gap-3 text-gray-400">
-                <button className="hover:text-blue-600 transition-colors"><Eye size={18} strokeWidth={2.5} /></button>
+                <button 
+                  className="hover:text-blue-600 transition-colors"
+                  onClick={() => setSelectedZone(zone)}
+                >
+                  <Eye size={18} strokeWidth={2.5} />
+                </button>
                 <button 
                   className="hover:text-green-600 transition-colors"
                   onClick={() => navigate(`/admin/zones/${zone.id}`)}
@@ -117,6 +124,64 @@ export default function AdminZones() {
           </div>
         ))}
       </div>
+
+      {/* View Zone Modal */}
+      <Modal 
+        isOpen={!!selectedZone} 
+        onClose={() => setSelectedZone(null)} 
+        title="Zone Overview" 
+        size="md"
+        accent={false}
+      >
+        {selectedZone && (
+          <div className="space-y-5">
+             <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div className="bg-red-500 text-white p-3 rounded-xl shadow-sm">
+                  <MapPin size={24} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">{selectedZone.name}</h2>
+                  <p className="text-sm text-gray-500">{selectedZone.subtitle}</p>
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
+                   <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Total Fleet</p>
+                   <p className="text-2xl font-bold text-gray-900">{selectedZone.totalScooties}</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
+                   <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Available</p>
+                   <p className="text-2xl font-bold text-green-600">{selectedZone.availableScooties}</p>
+                </div>
+             </div>
+             
+             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-3">
+                  <span className="text-gray-500 font-medium">Zone ID</span>
+                  <span className="font-semibold text-gray-900">{selectedZone.id}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-3">
+                  <span className="text-gray-500 font-medium">Measurement Unit</span>
+                  <span className="font-semibold text-gray-900 capitalize">{selectedZone.unit}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500 font-medium">Current Status</span>
+                  <StatusBadge status={selectedZone.status} />
+                </div>
+             </div>
+             
+             <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => navigate(`/admin/zones/${selectedZone.id}`)}>
+                  <Edit3 size={16} className="mr-2" /> Edit Zone
+                </Button>
+                <Button variant="primary" className="bg-blue-600 hover:bg-blue-700 border-none text-white shadow-sm" onClick={() => setSelectedZone(null)}>
+                  Close
+                </Button>
+             </div>
+          </div>
+        )}
+      </Modal>
 
     </div>
   );

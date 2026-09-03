@@ -131,7 +131,7 @@ function LiveRentalsTable({ navigate }) {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-600 font-semibold divide-x divide-gray-200">
+            <tr className="bg-gray-800 text-sm text-white">
               <th className="px-6 py-4">Booking Info</th>
               <th className="px-6 py-4">Customer Info</th>
               <th className="px-6 py-4">Vehicle Details</th>
@@ -276,7 +276,7 @@ function UpcomingPickupsTable({ navigate }) {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full text-left border-collapse whitespace-nowrap">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-600 font-semibold divide-x divide-gray-200">
+            <tr className="bg-gray-800 text-sm text-white">
               <th className="px-6 py-4">Booking ID</th>
               <th className="px-6 py-4">Customer Info</th>
               <th className="px-6 py-4">Vehicle Details</th>

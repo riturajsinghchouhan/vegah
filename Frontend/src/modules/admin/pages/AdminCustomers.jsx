@@ -111,15 +111,15 @@ export default function AdminCustomers() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
-                <th className="px-6 py-4">Customer</th>
+              <tr className="bg-gray-800 text-sm text-white">
+                <th className="px-6 py-4 text-center">Customer</th>
                 <th className="px-6 py-4">Contact</th>
                 <th className="px-6 py-4">Bookings</th>
                 <th className="px-6 py-4">Total Spent</th>
                 <th className="px-6 py-4">Wallet</th>
                 <th className="px-6 py-4">Reg. Date</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -130,7 +130,7 @@ export default function AdminCustomers() {
                 >
                   {/* Customer Col */}
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">
                         {customer.name.charAt(0)}
                       </div>
@@ -182,8 +182,8 @@ export default function AdminCustomers() {
                   </td>
 
                   {/* Actions Col */}
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <Button 
                         variant="outline" 
                         className="bg-white h-8 px-3 text-xs" 

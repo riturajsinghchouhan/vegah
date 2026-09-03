@@ -120,7 +120,7 @@ export default function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 text-sm text-gray-500">
+                <tr className="bg-gray-800 text-sm text-white">
                   <th className="pb-3 font-medium">ID</th>
                   <th className="pb-3 font-medium">User</th>
                   <th className="pb-3 font-medium">Scooty</th>
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 text-sm text-gray-500">
+                <tr className="bg-gray-800 text-sm text-white">
                   <th className="pb-3 font-medium">ID</th>
                   <th className="pb-3 font-medium">Name</th>
                   <th className="pb-3 font-medium">Joined</th>

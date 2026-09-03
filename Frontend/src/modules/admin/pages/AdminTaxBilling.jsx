@@ -106,7 +106,7 @@ export default function AdminTaxBilling() {
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
+                  <tr className="bg-gray-800 text-sm text-white">
                     <th className="py-3 px-4 font-medium">Invoice ID</th>
                     <th className="py-3 px-4 font-medium">Customer</th>
                     <th className="py-3 px-4 font-medium text-right">Subtotal</th>
