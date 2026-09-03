@@ -17,7 +17,7 @@ export default function AdminLayout() {
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarOpen ? "ml-72" : "ml-20"
           }`}
       >
         <header className="h-16 sticky top-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">

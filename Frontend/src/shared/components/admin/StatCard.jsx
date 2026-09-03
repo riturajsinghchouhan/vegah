@@ -94,7 +94,7 @@ export default function StatCard({
           )}
         </div>
         {icon && (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center text-black transition-all duration-200 group-hover:scale-110">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center text-blue-400 transition-all duration-200 group-hover:scale-110">
             {icon}
           </span>
         )}

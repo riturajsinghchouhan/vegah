@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import { Search, ChevronRight, Ban, CheckCircle, Eye, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-
+import Modal from '@/shared/components/ui/Modal';
+import AdminCustomerDetails from './AdminCustomerDetails';
 // Mock Customer Data
 const mockCustomers = [
   {
@@ -63,6 +64,7 @@ const mockCustomers = [
 export default function AdminCustomers() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const filtered = mockCustomers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -185,7 +187,7 @@ export default function AdminCustomers() {
                       <Button 
                         variant="outline" 
                         className="bg-white h-8 px-3 text-xs" 
-                        onClick={() => navigate(`/admin/customers/${customer.id}`)}
+                        onClick={() => setSelectedCustomer(customer)}
                       >
                         <Eye size={14} className="mr-1.5" /> View
                       </Button>
@@ -211,6 +213,19 @@ export default function AdminCustomers() {
           </table>
         </div>
       </div>
+
+      {/* Customer Details Modal */}
+      <Modal 
+        isOpen={!!selectedCustomer} 
+        onClose={() => setSelectedCustomer(null)} 
+        title="Customer Profile" 
+        size="xl"
+        accent={false}
+      >
+        {selectedCustomer && (
+          <AdminCustomerDetails customerIdProp={selectedCustomer.id} asModal={true} />
+        )}
+      </Modal>
     </div>
   );
 }
