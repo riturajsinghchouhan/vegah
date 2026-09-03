@@ -24,7 +24,7 @@ const StationDetailsPage = () => {
 
   return (
     <main className="page-padding">
-      <PageHeader showBack subtitle="Station details and battery availability" title={station.name} />
+      <PageHeader showBack subtitle="Station details and battery availability" title={station.name} showBell={false} />
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
@@ -41,9 +41,17 @@ const StationDetailsPage = () => {
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-app-text">{station.name}</h2>
                 <p className="mt-2 text-sm text-app-subtle">{station.address}</p>
               </div>
-              <div className="rounded-[1.5rem] bg-emerald-50 px-4 py-3">
-                <p className="text-sm text-app-subtle">{station.openStatus}</p>
-                <p className="mt-1 text-xl font-semibold text-app-primary">{station.availableChargers}/{station.totalChargers} open</p>
+              <div className="flex flex-wrap gap-3">
+                <div className="rounded-[1.5rem] bg-orange-50 px-4 py-3">
+                  <p className="text-sm text-orange-600 font-medium">Price</p>
+                  <p className="mt-1 text-xl font-semibold text-[#FF5A1F]">
+                    ₹{station.pricePerKwh?.toFixed(2) || "0.00"}<span className="text-sm font-medium text-orange-600/70">/kWh</span>
+                  </p>
+                </div>
+                <div className="rounded-[1.5rem] bg-emerald-50 px-4 py-3">
+                  <p className="text-sm text-emerald-700 font-medium">{station.openStatus}</p>
+                  <p className="mt-1 text-xl font-semibold text-emerald-600">{station.availableChargers}/{station.totalChargers} open</p>
+                </div>
               </div>
             </div>
 

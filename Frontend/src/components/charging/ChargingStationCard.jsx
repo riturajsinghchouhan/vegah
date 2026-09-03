@@ -30,7 +30,7 @@ const ChargingStationCard = ({ station }) => {
 
   return (
     <Link
-      to={`/charging/${station.id}`}
+      to={`/user/charging/${station.id}`}
       className="bg-white rounded-[20px] border border-gray-100 shadow-sm p-4 flex gap-4 hover:shadow-md transition-shadow mb-3 block"
     >
       <div className="w-[80px] h-[100px] shrink-0 bg-[#0B1320] rounded-[16px] flex items-center justify-center p-2 overflow-hidden">
@@ -64,9 +64,9 @@ const ChargingStationCard = ({ station }) => {
           </div>
         </div>
 
-        <div className="flex justify-between items-end mt-2">
-          <div className="flex gap-2">
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700">
+        <div className="flex justify-between items-end mt-2 gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex flex-wrap gap-1.5">
+            <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700 whitespace-nowrap">
               {station.chargingType === "AC" ? (
                 <Cable size={12} className="text-[#FF5A1F]" />
               ) : (
@@ -74,13 +74,13 @@ const ChargingStationCard = ({ station }) => {
               )}
               <span className="text-[10px] font-bold">{station.chargingType}</span>
             </div>
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700">
+            <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700 whitespace-nowrap">
               <Cable size={12} className="text-gray-500" />
               <span className="text-[10px] font-bold">{station.connector}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
             <div className="text-right">
               <p className="text-[14px] font-bold text-gray-900 leading-none">
                 ₹{station.pricePerKwh.toFixed(2)}<span className="text-[11px] text-gray-500 font-medium">/kWh</span>
@@ -88,7 +88,7 @@ const ChargingStationCard = ({ station }) => {
             </div>
 
             <div className="flex flex-col items-center justify-center">
-              <div className="w-8 h-8 rounded-full border border-[#FF5A1F] text-[#FF5A1F] flex items-center justify-center hover:bg-[#FFF0EB] transition-colors mb-1">
+              <div className="w-8 h-8 rounded-full border border-[#FF5A1F] text-[#FF5A1F] flex items-center justify-center hover:bg-[#FFF0EB] transition-colors mb-1 shrink-0">
                 <ArrowRight size={16} strokeWidth={2.5} />
               </div>
               <p className="text-[8px] text-gray-500 font-medium leading-none text-center">
