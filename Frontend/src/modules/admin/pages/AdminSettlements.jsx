@@ -99,14 +99,14 @@ export default function AdminSettlements() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead>
-              <tr className="border-b border-gray-100 text-sm text-gray-500">
+              <tr className="bg-gray-800 text-sm text-white">
                 <th className="py-4 px-6 font-medium">Settlement ID</th>
                 <th className="py-4 px-6 font-medium">Owner / Partner</th>
                 <th className="py-4 px-6 font-medium">Bookings</th>
                 <th className="py-4 px-6 font-medium">Gross Rev.</th>
-                <th className="py-4 px-6 font-medium text-red-500">Commission (10%)</th>
-                <th className="py-4 px-6 font-medium text-red-500">Deductions</th>
-                <th className="py-4 px-6 font-medium text-green-600">Net Payable</th>
+                <th className="py-4 px-6 font-medium">Commission (10%)</th>
+                <th className="py-4 px-6 font-medium">Deductions</th>
+                <th className="py-4 px-6 font-medium">Net Payable</th>
                 <th className="py-4 px-6 font-medium">Date</th>
                 <th className="py-4 px-6 font-medium">Status</th>
                 <th className="py-4 px-6 font-medium text-right">Actions</th>

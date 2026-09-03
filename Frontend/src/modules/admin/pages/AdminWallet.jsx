@@ -107,7 +107,7 @@ export default function AdminWallet() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100 text-sm text-gray-500">
+                <tr className="bg-gray-800 text-sm text-white">
                   <th className="py-4 px-6 font-medium">Customer</th>
                   <th className="py-4 px-6 font-medium">Current Balance</th>
                   <th className="py-4 px-6 font-medium">Total Added</th>
@@ -145,7 +145,7 @@ export default function AdminWallet() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[1100px]">
               <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100 text-sm text-gray-500">
+                <tr className="bg-gray-800 text-sm text-white">
                   <th className="py-4 px-6 font-medium">Refund ID</th>
                   <th className="py-4 px-6 font-medium">Booking ID</th>
                   <th className="py-4 px-6 font-medium">Customer</th>

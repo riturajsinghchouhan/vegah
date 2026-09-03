@@ -3,32 +3,34 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, CreditCard, Star, ShieldCheck, FileText, Ban, Activity } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 
-export default function AdminCustomerDetails() {
+export default function AdminCustomerDetails({ customerIdProp, asModal }) {
   const navigate = useNavigate();
   const { id } = useParams();
   
-  const customerId = id || 'CUST-1001';
+  const customerId = customerIdProp || id || 'CUST-1001';
 
   return (
-    <div className="space-y-6 pb-8 max-w-[1400px] mx-auto bg-gray-50/30 p-4 rounded-xl">
+    <div className={`space-y-6 pb-8 max-w-[1400px] mx-auto bg-gray-50/30 rounded-xl ${asModal ? '' : 'p-4'}`}>
       
       {/* Top Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/admin/customers')} className="p-2 hover:bg-gray-100 rounded-md text-gray-500 transition-colors">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Customer Profile</h1>
-            <p className="text-sm text-gray-500">Manage customer details, bookings, and transactions.</p>
+      {!asModal && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/admin/customers')} className="p-2 hover:bg-gray-100 rounded-md text-gray-500 transition-colors">
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Customer Profile</h1>
+              <p className="text-sm text-gray-500">Manage customer details, bookings, and transactions.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 bg-white">
+              <Ban size={16} className="mr-2" /> Block User
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 bg-white">
-            <Ban size={16} className="mr-2" /> Block User
-          </Button>
-        </div>
-      </div>
+      )}
 
       {/* Profile Summary Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row gap-8 items-start">
@@ -166,7 +168,7 @@ export default function AdminCustomerDetails() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                  <tr className="border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold bg-gray-50/30">
+                  <tr className="bg-gray-800 text-sm text-white">
                     <th className="px-5 py-3">Booking ID</th>
                     <th className="px-5 py-3">Scooty</th>
                     <th className="px-5 py-3">Dates</th>

@@ -1,7 +1,7 @@
 import { ArrowLeft, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const PageHeader = ({ title, subtitle, showBack = false }) => {
+const PageHeader = ({ title, subtitle, showBack = false, showBell = true }) => {
   const navigate = useNavigate();
 
   return (
@@ -22,9 +22,11 @@ const PageHeader = ({ title, subtitle, showBack = false }) => {
         </div>
       </div>
 
-      <button className="rounded-xl border border-app-border bg-white p-3 text-app-subtle transition hover:text-app-primary" type="button">
-        <Bell size={18} />
-      </button>
+      {showBell && (
+        <button className="rounded-xl border border-app-border bg-white p-3 text-app-subtle transition hover:text-app-primary" type="button">
+          <Bell size={18} />
+        </button>
+      )}
     </header>
   );
 };

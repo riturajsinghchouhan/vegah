@@ -41,10 +41,10 @@ const BookingSuccessPage = () => {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link to="/bookings">
+          <Link to="/user/bookings">
             <Button className="w-full sm:min-w-[180px]">View bookings</Button>
           </Link>
-          <Link to="/charging">
+          <Link to="/user/charging">
             <Button className="w-full sm:min-w-[180px]" variant="secondary">
               <Navigation className="mr-2" size={16} />
               Find chargers

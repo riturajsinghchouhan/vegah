@@ -58,10 +58,10 @@ export default function AdminCoupons() {
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1200px]">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100 text-sm text-gray-500">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px] hide-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[1200px] relative">
+            <thead className="sticky top-0 z-10 shadow-sm">
+              <tr className="bg-gray-800 text-sm text-white">
                 <th className="py-4 px-6 font-medium">Code</th>
                 <th className="py-4 px-6 font-medium">Type</th>
                 <th className="py-4 px-6 font-medium">Value</th>

@@ -70,7 +70,7 @@ export default function AdminInspections() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50/80 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+            <tr className="bg-gray-800 text-sm text-white">
               <th className="px-6 py-4">Inspection ID</th>
               <th className="px-6 py-4">Booking</th>
               <th className="px-6 py-4">User</th>

@@ -182,7 +182,7 @@ export default function AdminFinance() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="border-b border-gray-100 text-sm text-gray-500">
+              <tr className="bg-gray-800 text-sm text-white">
                 <th className="pb-3 font-medium px-2">Transaction ID</th>
                 <th className="pb-3 font-medium px-2">Booking ID</th>
                 <th className="pb-3 font-medium px-2">Customer</th>
