@@ -1,10 +1,14 @@
 import winston from 'winston';
 import env from '../config/env.js';
 
-const { combine, timestamp, printf, colorize, errors } = winston.format;
+const { combine, timestamp, printf, colorize, errors, uncolorize } = winston.format;
 
 const logFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
-  return `${timestamp} ${level}: ${stack || message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
+  let metaStr = '';
+  if (Object.keys(meta).length) {
+    metaStr = ` ${JSON.stringify(meta)}`;
+  }
+  return `${timestamp} ${level}: ${stack || message}${metaStr}`;
 });
 
 const logger = winston.createLogger({
@@ -18,9 +22,17 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       format: combine(
         colorize(),
-        timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         logFormat
       ),
+    }),
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+      format: combine(uncolorize(), logFormat),
+    }),
+    new winston.transports.File({
+      filename: 'logs/combined.log',
+      format: combine(uncolorize(), logFormat),
     }),
   ],
 });

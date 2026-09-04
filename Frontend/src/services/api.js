@@ -8,17 +8,28 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    let token = null;
+
     const sessionStr = window.localStorage.getItem("evora-session");
     if (sessionStr) {
       try {
         const session = JSON.parse(sessionStr);
         if (session.accessToken) {
-          config.headers.Authorization = `Bearer ${session.accessToken}`;
+          token = session.accessToken;
         }
       } catch (err) {
         console.error("Failed to parse session", err);
       }
     }
+
+    if (!token) {
+      token = window.localStorage.getItem("admin_token") || window.localStorage.getItem("token");
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -29,8 +40,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       window.localStorage.removeItem("evora-session");
-      // Optional: Emit event or reload to push user to login
-      // window.dispatchEvent(new Event("auth-expired"));
+      window.localStorage.removeItem("admin_token");
+      window.localStorage.removeItem("token");
     }
     return Promise.reject(error);
   }

@@ -54,12 +54,14 @@ import vehiclesRoutes from './modules/vehicles/vehicles.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import bookingsRoutes from './modules/bookings/bookings.routes.js';
+import inspectionsRoutes from './modules/inspections/inspections.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/zones', zonesRoutes);
 app.use('/api/admin/categories', categoriesRoutes);
 app.use('/api/admin/inventory', inventoryRoutes);
+app.use('/api/admin/inspections', inspectionsRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bookings', bookingsRoutes);

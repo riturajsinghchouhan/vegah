@@ -87,3 +87,20 @@ export const getAllZonesAvailability = async () => {
 
   return zonesMap;
 };
+
+import Booking from '../../models/Booking.js';
+import User from '../../models/User.js';
+
+export const getInventorySummary = async () => {
+  const [totalVehicles, activeBookings, totalUsers] = await Promise.all([
+    Vehicle.countDocuments({ deletedAt: null }),
+    Booking.countDocuments({ status: { $in: ['ACTIVE', 'OVERDUE'] } }),
+    User.countDocuments({ isBlocked: false })
+  ]);
+
+  return {
+    totalScooties: totalVehicles,
+    activeRentals: activeBookings,
+    totalUsers: totalUsers
+  };
+};

@@ -23,7 +23,7 @@ export default function AdminZones() {
         const mappedZones = data.map(z => ({
           id: z._id,
           name: z.name,
-          subtitle: z.city || 'Bengaluru',
+          subtitle: z.subtitle || z.city || '',
           unit: 'kilometer',
           status: z.isActive ? 'Active' : 'Inactive',
           totalScooties: z.vehicleCount || 0,
@@ -40,8 +40,38 @@ export default function AdminZones() {
     fetchZones();
   }, []);
 
+  const handleToggleStatus = async (zoneId, currentStatus) => {
+    try {
+      const nextStatus = currentStatus === 'Active' ? 'INACTIVE' : 'ACTIVE';
+      const updated = await adminService.updateZone(zoneId, { status: nextStatus });
+      setZones(prev => prev.map(z => z.id === zoneId ? {
+        ...z,
+        status: (updated.status === 'ACTIVE' || updated.status === 'Active') ? 'Active' : 'Inactive'
+      } : z));
+      if (selectedZone?.id === zoneId) {
+        setSelectedZone(prev => prev ? { ...prev, status: nextStatus === 'ACTIVE' ? 'Active' : 'Inactive' } : null);
+      }
+    } catch (error) {
+      console.error("Failed to update zone status", error);
+      alert(error.response?.data?.message || "Failed to update status");
+    }
+  };
+
+  const handleDeleteZone = async (zoneId) => {
+    if (!window.confirm("Are you sure you want to delete this zone?")) return;
+    try {
+      await adminService.deleteZone(zoneId);
+      setZones(prev => prev.filter(z => z.id !== zoneId));
+      if (selectedZone?.id === zoneId) setSelectedZone(null);
+    } catch (error) {
+      console.error("Failed to delete zone", error);
+      alert(error.response?.data?.message || "Failed to delete zone");
+    }
+  };
+
   const filteredZones = zones.filter(zone => 
-    zone.name.toLowerCase().includes(searchTerm.toLowerCase())
+    zone.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (zone.subtitle && zone.subtitle.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -88,6 +118,10 @@ export default function AdminZones() {
       {/* Grid of Cards */}
       {loading ? (
         <div className="p-8 text-center text-gray-500">Loading zones...</div>
+      ) : filteredZones.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500">
+          No zones found. Click "Add Zone" to create one!
+        </div>
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredZones.map((zone) => (
@@ -103,16 +137,24 @@ export default function AdminZones() {
                 <button 
                   className="hover:text-blue-600 transition-colors"
                   onClick={() => setSelectedZone(zone)}
+                  title="View Zone"
                 >
                   <Eye size={18} strokeWidth={2.5} />
                 </button>
                 <button 
                   className="hover:text-green-600 transition-colors"
                   onClick={() => navigate(`/admin/zones/${zone.id}`)}
+                  title="Edit Zone"
                 >
                   <Edit3 size={18} strokeWidth={2.5} />
                 </button>
-                <button className="hover:text-red-600 transition-colors"><Trash2 size={18} strokeWidth={2.5} /></button>
+                <button 
+                  className="hover:text-red-600 transition-colors"
+                  onClick={() => handleDeleteZone(zone.id)}
+                  title="Delete Zone"
+                >
+                  <Trash2 size={18} strokeWidth={2.5} />
+                </button>
               </div>
             </div>
 
@@ -120,7 +162,7 @@ export default function AdminZones() {
             <div className="p-5 space-y-4 flex-1">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Unit:</span>
-                <span className="font-semibold text-gray-900">{zone.unit}</span>
+                <span className="font-semibold text-gray-900 capitalize">{zone.unit}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Status:</span>
@@ -139,11 +181,17 @@ export default function AdminZones() {
             {/* Card Footer (Action) */}
             <div className="p-5 pt-0">
               {zone.status === 'Active' ? (
-                <button className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors">
+                <button 
+                  onClick={() => handleToggleStatus(zone.id, zone.status)}
+                  className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors"
+                >
                   <Power size={18} /> Deactivate Zone
                 </button>
               ) : (
-                <button className="w-full flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 font-medium py-2.5 rounded-lg transition-colors">
+                <button 
+                  onClick={() => handleToggleStatus(zone.id, zone.status)}
+                  className="w-full flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 font-medium py-2.5 rounded-lg transition-colors"
+                >
                   <Power size={18} /> Activate Zone
                 </button>
               )}

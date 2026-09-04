@@ -94,7 +94,7 @@ export const getVehicleById = async (id) => {
 export const listVehicles = async (query) => {
   const { page = 1, limit = 20, type, category, zone, status, search, minPriceDay, maxPriceDay } = query;
   
-  const filter = { deletedAt: null };
+  const filter = {};
   
   if (type) filter.type = type;
   if (category) filter.category = category;
@@ -139,11 +139,7 @@ export const listVehicles = async (query) => {
 };
 
 export const deleteVehicle = async (id) => {
-  const vehicle = await Vehicle.findOneAndUpdate(
-    { _id: id, deletedAt: null },
-    { $set: { deletedAt: new Date(), status: 'INACTIVE' } },
-    { new: true }
-  );
+  const vehicle = await Vehicle.findByIdAndDelete(id);
 
   if (!vehicle) {
     throw new NotFoundError('Vehicle not found');

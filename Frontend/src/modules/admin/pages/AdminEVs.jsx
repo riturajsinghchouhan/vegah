@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
+import Modal from '@/shared/components/ui/Modal';
 import { PlusIcon as Plus, EyeIcon as Eye, SquarePenIcon as Edit3, ArchiveIcon as Trash2, SearchIcon as Search, BatteryIcon as Battery, MapPinIcon as MapPin, BookmarkIcon as Tag } from 'lucide-animated';
 import { cn } from '@/lib/utils';
 import { adminService } from '../services/adminService';
@@ -9,38 +11,57 @@ import { adminService } from '../services/adminService';
 const FILTERS = ['All', 'Available', 'Booked', 'Maintenance', 'Inactive'];
 
 export default function AdminEVs() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [scooties, setScooties] = useState([]);
+  const [selectedScooty, setSelectedScooty] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        setLoading(true);
-        const data = await adminService.getVehicles();
-        
-        // Map backend format to frontend format
-        const mappedVehicles = data.map(v => ({
-          id: v._id,
-          plate: v.registrationNumber || 'Pending',
-          model: v.name,
-          battery: v.batteryLevel || 100,
-          category: v.category?.name || 'Standard',
-          zone: v.zone?.name || 'Unassigned',
-          status: v.status.charAt(0).toUpperCase() + v.status.slice(1).toLowerCase(), // e.g. "Available"
-        }));
-        
-        setScooties(mappedVehicles);
-      } catch (error) {
-        console.error("Failed to load vehicles", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchVehicles();
   }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true);
+      const data = await adminService.getVehicles();
+      
+      // Map backend format to frontend format
+      const mappedVehicles = (data || []).map(v => ({
+        id: v._id,
+        rawId: v._id,
+        plate: v.plateNumber || 'Pending',
+        model: v.model || v.name,
+        brand: v.brand,
+        battery: v.batteryPercent ?? 100,
+        category: v.category?.name || 'Standard',
+        zone: v.zone?.name || 'Unassigned',
+        location: v.location || 'N/A',
+        pricePerDay: v.pricePerDay || 0,
+        pricePerHour: v.pricePerHour || 0,
+        status: v.status ? (v.status.charAt(0).toUpperCase() + v.status.slice(1).toLowerCase()) : 'Available',
+      }));
+      
+      setScooties(mappedVehicles);
+    } catch (error) {
+      console.error("Failed to load vehicles", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteVehicle = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this EV from fleet?")) return;
+    try {
+      await adminService.deleteVehicle(id);
+      setScooties(prev => prev.filter(s => s.id !== id));
+      if (selectedScooty?.id === id) setSelectedScooty(null);
+    } catch (error) {
+      console.error("Failed to delete vehicle", error);
+      alert(error.response?.data?.message || "Failed to delete vehicle");
+    }
+  };
 
   // Filter the scooties based on search and active tab
   const filteredScooties = scooties.filter(scooty => {
@@ -62,7 +83,10 @@ export default function AdminEVs() {
         title="All Scooties" 
         description="Manage your entire fleet of EVs from here."
         actions={
-          <Button className="flex items-center gap-2 bg-[#ea580c] hover:bg-[#c2410c] text-white border-none shadow-sm">
+          <Button 
+            onClick={() => navigate('/admin/evs/new')}
+            className="flex items-center gap-2 bg-[#ea580c] hover:bg-[#c2410c] text-white border-none shadow-sm cursor-pointer"
+          >
             <Plus size={16} /> Add Scooty
           </Button>
         }
@@ -117,9 +141,27 @@ export default function AdminEVs() {
                 <p className="text-sm text-gray-500 mt-0.5">{scooty.model}</p>
               </div>
               <div className="flex items-center gap-2 text-black">
-                <button className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"><Eye size={16} strokeWidth={2.5} /></button>
-                <button className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"><Edit3 size={16} strokeWidth={2.5} /></button>
-                <button className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"><Trash2 size={16} strokeWidth={2.5} /></button>
+                <button 
+                  onClick={() => setSelectedScooty(scooty)}
+                  className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                  title="View Vehicle"
+                >
+                  <Eye size={16} strokeWidth={2.5} />
+                </button>
+                <button 
+                  onClick={() => navigate(`/admin/evs/${scooty.id}`)}
+                  className="p-1.5 hover:bg-blue-100 text-blue-600 rounded-md transition-colors"
+                  title="Edit Vehicle"
+                >
+                  <Edit3 size={16} strokeWidth={2.5} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteVehicle(scooty.id)}
+                  className="p-1.5 hover:bg-red-100 text-red-600 rounded-md transition-colors"
+                  title="Delete Vehicle"
+                >
+                  <Trash2 size={16} strokeWidth={2.5} />
+                </button>
               </div>
             </div>
 
@@ -157,7 +199,7 @@ export default function AdminEVs() {
 
             {/* Card Footer (Status) */}
             <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-500 font-medium">ID: {scooty.id}</span>
+              <span className="text-xs text-gray-500 font-medium">ID: {scooty.id.substring(0, 8).toUpperCase()}</span>
               <StatusBadge status={scooty.status} />
             </div>
             
@@ -171,6 +213,58 @@ export default function AdminEVs() {
         )}
       </div>
       )}
+
+      {/* Overview Modal */}
+      <Modal
+        isOpen={!!selectedScooty}
+        onClose={() => setSelectedScooty(null)}
+        title="Vehicle Details"
+        size="md"
+        accent={false}
+      >
+        {selectedScooty && (
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{selectedScooty.plate}</h3>
+                <p className="text-sm text-gray-500">{selectedScooty.model}</p>
+              </div>
+              <StatusBadge status={selectedScooty.status} />
+            </div>
+
+            <div className="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Vehicle ID</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.id}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Category</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.category}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Zone</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.zone}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Location</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.location}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Daily Rate</span>
+                <span className="font-semibold text-gray-900">₹{selectedScooty.pricePerDay}/day</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 font-medium">Hourly Rate</span>
+                <span className="font-semibold text-gray-900">₹{selectedScooty.pricePerHour}/hr</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="primary" onClick={() => setSelectedScooty(null)}>Close</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
     </div>
   );
