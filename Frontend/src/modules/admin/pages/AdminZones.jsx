@@ -1,23 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import { MapPin, Map, Plus, Eye, Edit3, Trash2, Power, Search, Bike } from 'lucide-react';
-
-const mockZones = [
-  { id: 'Z-101', name: 'Kairana', subtitle: 'Kairana', unit: 'kilometer', status: 'Active', totalScooties: 6, availableScooties: 2 },
-  { id: 'Z-102', name: 'Kandhla', subtitle: 'Kandhla', unit: 'kilometer', status: 'Active', totalScooties: 8, availableScooties: 4 },
-  { id: 'Z-103', name: 'Sardhana', subtitle: 'Sardhana', unit: 'kilometer', status: 'Active', totalScooties: 21, availableScooties: 12 },
-  { id: 'Z-104', name: 'Indore testing', subtitle: 'Indore testing', unit: 'kilometer', status: 'Active', totalScooties: 4, availableScooties: 1 },
-  { id: 'Z-105', name: 'Lalitpur (Uttar Pradesh)', subtitle: 'Lalitpur (Uttar Pradesh)', unit: 'kilometer', status: 'Inactive', totalScooties: 6, availableScooties: 6 },
-  { id: 'Z-106', name: 'Khatauli (Muzaffarnagar)', subtitle: 'Khatauli', unit: 'kilometer', status: 'Inactive', totalScooties: 6, availableScooties: 6 },
-];
+import { adminService } from '../services/adminService';
 
 export default function AdminZones() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedZone, setSelectedZone] = useState(null);
+  const [zones, setZones] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        setLoading(true);
+        const data = await adminService.getZones();
+        
+        // Map backend data to frontend format
+        const mappedZones = data.map(z => ({
+          id: z._id,
+          name: z.name,
+          subtitle: z.city || 'Bengaluru',
+          unit: 'kilometer',
+          status: z.isActive ? 'Active' : 'Inactive',
+          totalScooties: z.vehicleCount || 0,
+          availableScooties: z.vehicleCount || 0, // Mock available until inventory merges
+        }));
+        setZones(mappedZones);
+      } catch (error) {
+        console.error("Failed to load zones", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchZones();
+  }, []);
+
+  const filteredZones = zones.filter(zone => 
+    zone.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 pb-8 max-w-7xl mx-auto">
@@ -61,8 +86,11 @@ export default function AdminZones() {
       </div>
 
       {/* Grid of Cards */}
+      {loading ? (
+        <div className="p-8 text-center text-gray-500">Loading zones...</div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockZones.map((zone) => (
+        {filteredZones.map((zone) => (
           <div key={zone.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
             
             {/* Card Header */}
@@ -124,6 +152,7 @@ export default function AdminZones() {
           </div>
         ))}
       </div>
+      )}
 
       {/* View Zone Modal */}
       <Modal 

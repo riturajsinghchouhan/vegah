@@ -1,15 +1,16 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   ActivityIcon as Bike, CheckCheckIcon as CheckCircle, ClockIcon as Clock, WrenchIcon as Wrench, UsersIcon as Users, CalendarDaysIcon as Calendar, 
   TrendingUpIcon as TrendingUp, SquareActivityIcon as Activity, BanIcon as XCircle
 } from "lucide-animated";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, ResponsiveContainer, Legend
+  Tooltip as RechartsTooltip, ResponsiveContainer
 } from "recharts";
 import StatCard from "../../../shared/components/admin/StatCard";
+import { adminService } from "../services/adminService";
 
-// Mock Data for Charts
+// Mock Data for Charts (Keep static for now since we don't have historical chart APIs)
 const revenueData = [
   { name: "Mon", revenue: 4000 },
   { name: "Tue", revenue: 3000 },
@@ -35,22 +36,54 @@ const bookingData = [
   { name: "Dec", bookings: 1650 },
 ];
 
-// Mock Data for Tables
-const recentBookings = [
-  { id: "B-1001", user: "Alice Smith", scooty: "Ola S1 Pro", status: "Active", amount: "₹450" },
-  { id: "B-1002", user: "Bob Johnson", scooty: "Ather 450X", status: "Completed", amount: "₹320" },
-  { id: "B-1003", user: "Charlie Davis", scooty: "TVS iQube", status: "Cancelled", amount: "₹0" },
-  { id: "B-1004", user: "Diana Evans", scooty: "Hero Vida", status: "Pending", amount: "₹500" },
-];
-
-const recentUsers = [
-  { id: "U-501", name: "Alice Smith", joinDate: "2023-10-01", status: "Verified" },
-  { id: "U-502", name: "Bob Johnson", joinDate: "2023-10-02", status: "Verified" },
-  { id: "U-503", name: "Charlie Davis", joinDate: "2023-10-03", status: "Pending" },
-  { id: "U-504", name: "Diana Evans", joinDate: "2023-10-03", status: "Verified" },
-];
-
 export default function AdminDashboard() {
+  const [summary, setSummary] = useState(null);
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [invSummary, bookings, users] = await Promise.all([
+          adminService.getInventorySummary(),
+          adminService.getBookings({ limit: 5 }),
+          adminService.getUsers({ limit: 5 })
+        ]);
+        
+        setSummary(invSummary);
+        
+        // Map backend data to frontend table structure
+        setRecentBookings(bookings.slice(0, 5).map(b => ({
+          id: b._id.substring(0, 8).toUpperCase(),
+          user: b.user?.fullName || "Unknown",
+          scooty: b.vehicle?.name || "Unknown",
+          status: b.status,
+          amount: `₹${b.pricing?.total || 0}`
+        })));
+
+        setRecentUsers(users.slice(0, 5).map(u => ({
+          id: u._id.substring(0, 8).toUpperCase(),
+          name: u.fullName,
+          joinDate: new Date(u.createdAt).toLocaleDateString(),
+          status: u.isActive ? "Verified" : "Pending"
+        })));
+        
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading || !summary) {
+    return <div className="p-8 text-center text-gray-500">Loading dashboard...</div>;
+  }
+
   return (
     <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between">
@@ -60,18 +93,18 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {/* Scooties Stats */}
-        <StatCard title="Total Scooties" value="156" icon={<Bike />} trend="+12%" trendDirection="up" className="bg-indigo-50 border-indigo-100" />
-        <StatCard title="Available" value="89" icon={<CheckCircle />} helper="Ready to ride" className="bg-emerald-50 border-emerald-100" />
-        <StatCard title="Currently Booked" value="54" icon={<Activity />} className="bg-blue-50 border-blue-100" />
-        <StatCard title="Under Maintenance" value="13" icon={<Wrench />} trend="-2" trendDirection="down" className="bg-orange-50 border-orange-100" />
+        <StatCard title="Total Scooties" value={summary.totalVehicles} icon={<Bike />} trend="+12%" trendDirection="up" className="bg-indigo-50 border-indigo-100" />
+        <StatCard title="Available" value={summary.available} icon={<CheckCircle />} helper="Ready to ride" className="bg-emerald-50 border-emerald-100" />
+        <StatCard title="Currently Booked" value={summary.booked} icon={<Activity />} className="bg-blue-50 border-blue-100" />
+        <StatCard title="Under Maintenance" value={summary.maintenance} icon={<Wrench />} trend="-2" trendDirection="down" className="bg-orange-50 border-orange-100" />
         
         {/* User & Bookings Stats */}
-        <StatCard title="Total Users" value="4,821" icon={<Users />} trend="+156 this week" trendDirection="up" className="bg-purple-50 border-purple-100" />
-        <StatCard title="Total Bookings" value="12,450" icon={<Calendar />} className="bg-cyan-50 border-cyan-100" />
-        <StatCard title="Today's Bookings" value="142" icon={<Clock />} trend="+14%" trendDirection="up" className="bg-teal-50 border-teal-100" />
-        <StatCard title="Pending Approvals" value="8" icon={<Clock />} helper="Requires action" className="bg-amber-50 border-amber-100" />
-        <StatCard title="Cancelled Bookings" value="24" icon={<XCircle />} trend="-5%" trendDirection="down" className="bg-rose-50 border-rose-100" />
-        <StatCard title="Today's Revenue" value="₹42,500" icon={<TrendingUp />} trend="+18%" trendDirection="up" className="bg-green-50 border-green-100" />
+        <StatCard title="Total Users" value="--" icon={<Users />} trend="+156 this week" trendDirection="up" className="bg-purple-50 border-purple-100" />
+        <StatCard title="Total Bookings" value="--" icon={<Calendar />} className="bg-cyan-50 border-cyan-100" />
+        <StatCard title="Today's Bookings" value="--" icon={<Clock />} trend="+14%" trendDirection="up" className="bg-teal-50 border-teal-100" />
+        <StatCard title="Pending Approvals" value="--" icon={<Clock />} helper="Requires action" className="bg-amber-50 border-amber-100" />
+        <StatCard title="Cancelled Bookings" value="--" icon={<XCircle />} trend="-5%" trendDirection="down" className="bg-rose-50 border-rose-100" />
+        <StatCard title="Today's Revenue" value="--" icon={<TrendingUp />} trend="+18%" trendDirection="up" className="bg-green-50 border-green-100" />
       </div>
 
       {/* Charts Section */}

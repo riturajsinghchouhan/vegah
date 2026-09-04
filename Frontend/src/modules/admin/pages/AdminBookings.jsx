@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
@@ -6,74 +6,7 @@ import { Eye, Phone, Clock, StopCircle, Search, Filter, CheckCircle, XCircle } f
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import { cn } from '@/lib/utils';
-
-// --- MOCK DATA ---
-
-const mockLiveRentals = [
-  {
-    id: 'BK-10042',
-    user: { name: 'Rahul Sharma', phone: '+91 9876543210' },
-    scooty: { name: 'Ather 450X', reg: 'MH-12-AB-1234' },
-    pickup: { location: 'Downtown Core', time: '10:30 AM, Today' },
-    expectedReturn: '06:30 PM, Today',
-    actualReturn: '-',
-    duration: '8 Hours',
-    financials: { amount: '₹400', deposit: '₹1000', status: 'Paid' },
-    rentalStatus: 'Active',
-    timeRemaining: '2h 15m'
-  },
-  {
-    id: 'BK-10043',
-    user: { name: 'Sneha Patel', phone: '+91 9123456780' },
-    scooty: { name: 'Ola S1 Pro', reg: 'MH-12-AB-1235' },
-    pickup: { location: 'University Campus', time: '09:00 AM, Today' },
-    expectedReturn: '09:00 PM, Today',
-    actualReturn: '-',
-    duration: '12 Hours',
-    financials: { amount: '₹600', deposit: '₹1000', status: 'Pending' },
-    rentalStatus: 'Active',
-    timeRemaining: '4h 45m'
-  },
-  {
-    id: 'BK-10044',
-    user: { name: 'Amit Kumar', phone: '+91 9988776655' },
-    scooty: { name: 'Hero Optima', reg: 'MH-12-AB-1236' },
-    pickup: { location: 'Tech Park', time: '02:00 PM, Yesterday' },
-    expectedReturn: '02:00 PM, Today',
-    actualReturn: '-',
-    duration: '24 Hours',
-    financials: { amount: '₹800', deposit: '₹500', status: 'Paid' },
-    rentalStatus: 'Overdue',
-    timeRemaining: '-1h 30m'
-  }
-];
-
-const mockPickups = [
-  {
-    id: 'BK-10050',
-    user: { name: 'Vikram Singh', phone: '+91 9876500001' },
-    scooty: { name: 'Ather 450X', reg: 'Unassigned' },
-    pickup: { date: 'Today', time: '04:00 PM', location: 'Downtown Core' },
-    financials: { amount: '₹500', depositStatus: 'Pending', paymentStatus: 'Paid' },
-    bookingStatus: 'Confirmed'
-  },
-  {
-    id: 'BK-10051',
-    user: { name: 'Priya Desai', phone: '+91 9876500002' },
-    scooty: { name: 'Ola S1 Pro', reg: 'Unassigned' },
-    pickup: { date: 'Tomorrow', time: '10:00 AM', location: 'University Campus' },
-    financials: { amount: '₹1200', depositStatus: 'Paid', paymentStatus: 'Paid' },
-    bookingStatus: 'Pending'
-  },
-  {
-    id: 'BK-10052',
-    user: { name: 'Rajesh Kumar', phone: '+91 9876500003' },
-    scooty: { name: 'Hero Optima', reg: 'MH-12-AB-1299' },
-    pickup: { date: 'This Week', time: '08:00 AM', location: 'Tech Park' },
-    financials: { amount: '₹800', depositStatus: 'Paid', paymentStatus: 'Pending' },
-    bookingStatus: 'Confirmed'
-  }
-];
+import { adminService } from '../services/adminService';
 
 // --- COMPONENTS ---
 
@@ -87,6 +20,24 @@ export default function AdminBookings() {
   
   // Default to live if no ops or invalid ops
   const activeTab = isPickups ? 'pickups' : 'live';
+
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAllBookings = async () => {
+      try {
+        setLoading(true);
+        const data = await adminService.getBookings();
+        setBookings(data);
+      } catch (error) {
+        console.error("Failed to fetch bookings", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllBookings();
+  }, []);
 
   return (
     <div className="space-y-6 pb-8 max-w-[1600px] mx-auto">
@@ -105,16 +56,44 @@ export default function AdminBookings() {
       />
       
       {/* Conditionally render the correct table */}
-      {activeTab === 'live' && <LiveRentalsTable navigate={navigate} />}
-      {activeTab === 'pickups' && <UpcomingPickupsTable navigate={navigate} />}
+      {loading ? (
+        <div className="p-8 text-center text-gray-500">Loading bookings...</div>
+      ) : activeTab === 'live' ? (
+        <LiveRentalsTable navigate={navigate} allBookings={bookings} />
+      ) : (
+        <UpcomingPickupsTable navigate={navigate} allBookings={bookings} />
+      )}
       
     </div>
   );
 }
 
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ navigate }) {
+function LiveRentalsTable({ navigate, allBookings }) {
   const [selectedRental, setSelectedRental] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter only 'ACTIVE' or 'OVERDUE' bookings for live rentals
+  const liveBookings = allBookings.filter(b => 
+    b.status === 'ACTIVE' || b.status === 'OVERDUE'
+  ).map(b => ({
+    id: b._id.substring(0, 8).toUpperCase(),
+    user: { name: b.user?.fullName || 'Unknown', phone: b.user?.phone || 'Unknown' },
+    scooty: { name: b.vehicle?.name || 'Unknown', reg: b.vehicle?.registrationNumber || 'Unknown' },
+    pickup: { location: b.zone?.name || 'Unknown', time: new Date(b.startTime).toLocaleString() },
+    expectedReturn: new Date(b.endTime).toLocaleString(),
+    actualReturn: b.actualEndTime ? new Date(b.actualEndTime).toLocaleString() : '-',
+    duration: `${Math.round((new Date(b.endTime) - new Date(b.startTime)) / 3600000)} Hours`,
+    financials: { amount: `₹${b.pricing?.total || 0}`, deposit: `₹${b.pricing?.securityDeposit || 0}`, status: b.paymentStatus || 'Pending' },
+    rentalStatus: b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase(),
+    timeRemaining: 'N/A' // Need advanced time calc here
+  }));
+
+  const searchFiltered = liveBookings.filter(r => 
+    r.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    r.user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    r.user.phone.includes(searchTerm)
+  );
 
   return (
     <div className="space-y-4">
@@ -125,6 +104,8 @@ function LiveRentalsTable({ navigate }) {
           type="text" 
           placeholder="Search by Booking ID, User Name, or Phone..." 
           className="w-full bg-transparent border-none outline-none text-gray-700 py-2"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
@@ -141,7 +122,7 @@ function LiveRentalsTable({ navigate }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {mockLiveRentals.map((rental) => (
+            {searchFiltered.map((rental) => (
               <tr key={rental.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
                 {/* Booking Info */}
                 <td className="px-6 py-4">
@@ -235,12 +216,33 @@ function LiveRentalsTable({ navigate }) {
 }
 
 // --- UPCOMING PICKUPS TABLE ---
-function UpcomingPickupsTable({ navigate }) {
-  const [activeFilter, setActiveFilter] = useState('Today');
+function UpcomingPickupsTable({ navigate, allBookings }) {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedPickup, setSelectedPickup] = useState(null);
-  const filters = ['Today', 'Tomorrow', 'This Week'];
+  const filters = ['All', 'Today', 'Tomorrow', 'This Week'];
 
-  const filteredPickups = mockPickups.filter(p => p.pickup.date === activeFilter);
+  // Filter only 'PENDING' or 'CONFIRMED' bookings
+  const upcomingBookings = allBookings.filter(b => 
+    b.status === 'PENDING' || b.status === 'CONFIRMED'
+  ).map(b => ({
+    id: b._id.substring(0, 8).toUpperCase(),
+    user: { name: b.user?.fullName || 'Unknown', phone: b.user?.phone || 'Unknown' },
+    scooty: { name: b.vehicle?.name || 'Unassigned', reg: b.vehicle?.registrationNumber || 'Unassigned' },
+    pickup: { date: new Date(b.startTime).toLocaleDateString(), time: new Date(b.startTime).toLocaleTimeString(), location: b.zone?.name || 'Unknown' },
+    financials: { amount: `₹${b.pricing?.total || 0}`, depositStatus: b.paymentStatus || 'Pending', paymentStatus: b.paymentStatus || 'Pending' },
+    bookingStatus: b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase()
+  }));
+
+  const filteredPickups = upcomingBookings.filter(p => {
+    const matchesSearch = p.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          p.user.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Simple filter logic for mock tabs - you'd need proper date comparison here for production
+    const matchesFilter = activeFilter === 'All' ? true : true; // Keep true for now since real dates won't match strings like "Today"
+
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="space-y-4">
@@ -252,6 +254,8 @@ function UpcomingPickupsTable({ navigate }) {
             type="text" 
             placeholder="Search by Booking ID, User..." 
             className="w-full bg-transparent border-none outline-none text-gray-700"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 

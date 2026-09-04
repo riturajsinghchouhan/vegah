@@ -1,72 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import { Search, ChevronRight, Ban, CheckCircle, Eye, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import AdminCustomerDetails from './AdminCustomerDetails';
-// Mock Customer Data
-const mockCustomers = [
-  {
-    id: 'CUST-1001',
-    name: 'Rahul Sharma',
-    email: 'rahul.sharma@example.com',
-    phone: '+91 9876543210',
-    totalBookings: 12,
-    activeRental: true,
-    totalSpent: '₹ 8,400',
-    walletBalance: '₹ 450',
-    regDate: '12 Jan 2024',
-    status: 'Active',
-    avatar: '' // Mock empty
-  },
-  {
-    id: 'CUST-1002',
-    name: 'Priya Verma',
-    email: 'priya.v@example.com',
-    phone: '+91 9123456780',
-    totalBookings: 3,
-    activeRental: false,
-    totalSpent: '₹ 2,100',
-    walletBalance: '₹ 0',
-    regDate: '05 Mar 2024',
-    status: 'Active',
-    avatar: ''
-  },
-  {
-    id: 'CUST-1003',
-    name: 'Amit Patel',
-    email: 'amit.patel@example.com',
-    phone: '+91 9988776655',
-    totalBookings: 0,
-    activeRental: false,
-    totalSpent: '₹ 0',
-    walletBalance: '₹ 1000',
-    regDate: '20 May 2024',
-    status: 'Blocked',
-    avatar: ''
-  },
-  {
-    id: 'CUST-1004',
-    name: 'Neha Singh',
-    email: 'neha.s@example.com',
-    phone: '+91 8877665544',
-    totalBookings: 24,
-    activeRental: true,
-    totalSpent: '₹ 18,600',
-    walletBalance: '₹ 1,200',
-    regDate: '10 Nov 2023',
-    status: 'Active',
-    avatar: ''
-  },
-];
+import { adminService } from '../services/adminService';
 
 export default function AdminCustomers() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = mockCustomers.filter(c => 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const data = await adminService.getUsers();
+        
+        const mappedUsers = data.map(u => ({
+          id: u._id,
+          name: u.fullName,
+          email: u.email,
+          phone: u.phone,
+          totalBookings: u.stats?.totalBookings || 0,
+          activeRental: u.stats?.activeBookings > 0,
+          totalSpent: `₹ ${u.stats?.totalSpent || 0}`,
+          walletBalance: `₹ ${u.walletBalance || 0}`,
+          regDate: new Date(u.createdAt).toLocaleDateString(),
+          status: u.isActive ? 'Active' : 'Blocked',
+          avatar: u.avatarUrl || ''
+        }));
+        
+        setCustomers(mappedUsers);
+      } catch (error) {
+        console.error("Failed to load customers", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+
+  const filtered = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.phone.includes(searchTerm) ||
@@ -107,6 +86,9 @@ export default function AdminCustomers() {
       </div>
 
       {/* Customers Table */}
+      {loading ? (
+        <div className="p-8 text-center text-gray-500">Loading customers...</div>
+      ) : (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap">
@@ -213,6 +195,7 @@ export default function AdminCustomers() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Customer Details Modal */}
       <Modal 

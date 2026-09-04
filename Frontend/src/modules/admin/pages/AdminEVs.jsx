@@ -1,37 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import { PlusIcon as Plus, EyeIcon as Eye, SquarePenIcon as Edit3, ArchiveIcon as Trash2, SearchIcon as Search, BatteryIcon as Battery, MapPinIcon as MapPin, BookmarkIcon as Tag } from 'lucide-animated';
 import { cn } from '@/lib/utils';
-
-const mockScooties = [
-  { id: 'EV-1001', plate: 'MH-12-AB-1234', model: 'Ather 450X', battery: 85, category: 'Premium', zone: 'Downtown Core', status: 'Available' },
-  { id: 'EV-1002', plate: 'MH-12-AB-1235', model: 'Ola S1 Pro', battery: 42, category: 'Premium', zone: 'University Campus', status: 'Booked' },
-  { id: 'EV-1003', plate: 'MH-12-AB-1236', model: 'Hero Optima', battery: 15, category: 'Standard', zone: 'Tech Park', status: 'Maintenance' },
-  { id: 'EV-1004', plate: 'MH-12-AB-1237', model: 'Bajaj Chetak', battery: 0, category: 'Electric Scooty', zone: 'City Mall', status: 'Inactive' },
-  { id: 'EV-1005', plate: 'MH-12-AB-1238', model: 'Ather 450X', battery: 98, category: 'Premium', zone: 'Downtown Core', status: 'Available' },
-  { id: 'EV-1006', plate: 'MH-12-AB-1239', model: 'Hero Optima', battery: 100, category: 'Standard', zone: 'Tech Park', status: 'Available' },
-];
+import { adminService } from '../services/adminService';
 
 const FILTERS = ['All', 'Available', 'Booked', 'Maintenance', 'Inactive'];
 
 export default function AdminEVs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [scooties, setScooties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true);
+        const data = await adminService.getVehicles();
+        
+        // Map backend format to frontend format
+        const mappedVehicles = data.map(v => ({
+          id: v._id,
+          plate: v.registrationNumber || 'Pending',
+          model: v.name,
+          battery: v.batteryLevel || 100,
+          category: v.category?.name || 'Standard',
+          zone: v.zone?.name || 'Unassigned',
+          status: v.status.charAt(0).toUpperCase() + v.status.slice(1).toLowerCase(), // e.g. "Available"
+        }));
+        
+        setScooties(mappedVehicles);
+      } catch (error) {
+        console.error("Failed to load vehicles", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchVehicles();
+  }, []);
 
   // Filter the scooties based on search and active tab
-  const filteredScooties = mockScooties.filter(scooty => {
+  const filteredScooties = scooties.filter(scooty => {
     const matchesSearch = scooty.plate.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           scooty.model.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = activeFilter === 'All' || scooty.status === activeFilter;
+    const matchesFilter = activeFilter === 'All' || scooty.status.toLowerCase() === activeFilter.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
   // Calculate counts for the tabs
   const getCount = (status) => {
-    if (status === 'All') return mockScooties.length;
-    return mockScooties.filter(s => s.status === status).length;
+    if (status === 'All') return scooties.length;
+    return scooties.filter(s => s.status.toLowerCase() === status.toLowerCase()).length;
   };
 
   return (
@@ -81,6 +103,9 @@ export default function AdminEVs() {
       </div>
 
       {/* Grid of EV Cards */}
+      {loading ? (
+        <div className="p-8 text-center text-gray-500">Loading fleet...</div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredScooties.map((scooty) => (
           <div key={scooty.id} className="bg-indigo-50/30 rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col">
@@ -145,6 +170,7 @@ export default function AdminEVs() {
           </div>
         )}
       </div>
+      )}
 
     </div>
   );
