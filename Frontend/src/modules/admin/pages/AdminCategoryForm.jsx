@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Tag, Layers, IndianRupee } from 'lucide-react';
+import { ArrowLeft, Tag, Layers } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { adminService } from '../services/adminService';
 
 export default function AdminCategoryForm() {
   const navigate = useNavigate();
@@ -13,30 +14,62 @@ export default function AdminCategoryForm() {
   const [categoryName, setCategoryName] = useState('');
   const [vehicleType, setVehicleType] = useState('Two-Wheeler');
   const [status, setStatus] = useState('Active');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    if (!categoryName) return; // simple validation
-
-    const saved = localStorage.getItem('vegah_categories');
-    let categories = saved ? JSON.parse(saved) : [];
-
-    const newCategory = {
-      id: isEditing ? id : `C-00${categories.length + 1}`,
-      name: categoryName,
-      type: vehicleType,
-      pricing: 'Pricing not configured', // Since pricing fields were removed
-      status: status
-    };
-
+  useEffect(() => {
     if (isEditing) {
-      categories = categories.map(cat => cat.id === id ? newCategory : cat);
-    } else {
-      categories.push(newCategory);
+      const fetchCategory = async () => {
+        try {
+          setLoading(true);
+          const category = await adminService.getCategoryById(id);
+          setCategoryName(category.name || '');
+          setVehicleType(category.type || 'Two-Wheeler');
+          setStatus((category.status === 'ACTIVE' || category.status === 'Active') ? 'Active' : 'Inactive');
+        } catch (error) {
+          console.error("Failed to load category details", error);
+          alert("Failed to load category details");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCategory();
+    }
+  }, [id, isEditing]);
+
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
+    if (!categoryName.trim()) {
+      alert("Please enter a category name");
+      return;
     }
 
-    localStorage.setItem('vegah_categories', JSON.stringify(categories));
-    navigate('/admin/categories');
+    try {
+      setSaving(true);
+      const payload = {
+        name: categoryName.trim(),
+        type: vehicleType,
+        status: status === 'Active' ? 'ACTIVE' : 'INACTIVE',
+      };
+
+      if (isEditing) {
+        await adminService.updateCategory(id, payload);
+      } else {
+        await adminService.createCategory(payload);
+      }
+
+      navigate('/admin/categories');
+    } catch (error) {
+      console.error("Failed to save category", error);
+      alert(error.response?.data?.message || "Failed to save category");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500">Loading category details...</div>;
+  }
 
   return (
     <div className="space-y-6 pb-8 max-w-4xl mx-auto">
@@ -147,10 +180,11 @@ export default function AdminCategoryForm() {
               </Button>
               <Button 
                 variant="primary" 
-                className="bg-[#ea580c] hover:bg-[#c2410c] border-none text-white shadow-sm"
+                disabled={saving}
+                className="bg-[#ea580c] hover:bg-[#c2410c] border-none text-white shadow-sm disabled:opacity-50"
                 onClick={handleSave}
               >
-                {isEditing ? 'Save Changes' : 'Create Category'}
+                {saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Category')}
               </Button>
             </div>
         </div>

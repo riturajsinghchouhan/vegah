@@ -2,7 +2,7 @@ import Zone from '../../models/Zone.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 
 export const createZone = async (data) => {
-  const existingZone = await Zone.findOne({ name: data.name, deletedAt: null });
+  const existingZone = await Zone.findOne({ name: data.name });
   if (existingZone) {
     throw new ConflictError('Zone with this name already exists');
   }
@@ -13,14 +13,14 @@ export const createZone = async (data) => {
 
 export const updateZone = async (id, data) => {
   if (data.name) {
-    const existingZone = await Zone.findOne({ name: data.name, _id: { $ne: id }, deletedAt: null });
+    const existingZone = await Zone.findOne({ name: data.name, _id: { $ne: id } });
     if (existingZone) {
       throw new ConflictError('Zone with this name already exists');
     }
   }
 
-  const zone = await Zone.findOneAndUpdate(
-    { _id: id, deletedAt: null },
+  const zone = await Zone.findByIdAndUpdate(
+    id,
     { $set: data },
     { new: true }
   );
@@ -33,7 +33,7 @@ export const updateZone = async (id, data) => {
 };
 
 export const getZoneById = async (id) => {
-  const zone = await Zone.findOne({ _id: id, deletedAt: null });
+  const zone = await Zone.findById(id);
   if (!zone) {
     throw new NotFoundError('Zone not found');
   }
@@ -43,7 +43,7 @@ export const getZoneById = async (id) => {
 export const listZones = async (query) => {
   const { page = 1, limit = 20, status, search } = query;
   
-  const filter = { deletedAt: null };
+  const filter = {};
   
   if (status) {
     filter.status = status;
@@ -72,11 +72,7 @@ export const listZones = async (query) => {
 };
 
 export const deleteZone = async (id) => {
-  const zone = await Zone.findOneAndUpdate(
-    { _id: id, deletedAt: null },
-    { $set: { deletedAt: new Date(), status: 'INACTIVE' } },
-    { new: true }
-  );
+  const zone = await Zone.findByIdAndDelete(id);
 
   if (!zone) {
     throw new NotFoundError('Zone not found');

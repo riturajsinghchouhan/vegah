@@ -10,6 +10,11 @@ const router = express.Router();
 // Admin only routes for inventory management
 router.use(authenticate, authorize('ADMIN', 'SUPER_ADMIN'));
 
+router.get(
+  '/summary',
+  inventoryController.getInventorySummary
+);
+
 router.patch(
   '/vehicles/:id/status',
   validate(inventoryValidation.updateStatusSchema),

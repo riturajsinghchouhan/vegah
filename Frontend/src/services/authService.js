@@ -17,10 +17,12 @@ export const authService = {
     if (!rawSession) return null;
 
     try {
-      // Validate session with backend
-      const response = await api.get('/users/me');
+      const session = JSON.parse(rawSession);
+      const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN';
+      const endpoint = isAdmin ? '/admin/profile' : '/users/me';
+
+      const response = await api.get(endpoint);
       if (response.data.success) {
-        const session = JSON.parse(rawSession);
         // Update user data from server
         session.user = response.data.data;
         window.localStorage.setItem("evora-session", JSON.stringify(session));
@@ -30,6 +32,7 @@ export const authService = {
     } catch (err) {
       console.error("Session restore failed", err);
       window.localStorage.removeItem("evora-session");
+      window.localStorage.removeItem("admin_token");
       return null;
     }
   },

@@ -23,7 +23,12 @@ const validate = (schema) => (req, res, next) => {
         })),
       ];
     } else {
-      req[key] = value;
+      Object.defineProperty(req, key, {
+        value: value,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
     }
   });
 

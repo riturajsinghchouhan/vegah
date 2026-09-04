@@ -2,7 +2,7 @@ import Category from '../../models/Category.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 
 export const createCategory = async (data) => {
-  const existingCategory = await Category.findOne({ name: data.name, deletedAt: null });
+  const existingCategory = await Category.findOne({ name: data.name });
   if (existingCategory) {
     throw new ConflictError('Category with this name already exists');
   }
@@ -13,14 +13,14 @@ export const createCategory = async (data) => {
 
 export const updateCategory = async (id, data) => {
   if (data.name) {
-    const existingCategory = await Category.findOne({ name: data.name, _id: { $ne: id }, deletedAt: null });
+    const existingCategory = await Category.findOne({ name: data.name, _id: { $ne: id } });
     if (existingCategory) {
       throw new ConflictError('Category with this name already exists');
     }
   }
 
-  const category = await Category.findOneAndUpdate(
-    { _id: id, deletedAt: null },
+  const category = await Category.findByIdAndUpdate(
+    id,
     { $set: data },
     { new: true }
   );
@@ -33,7 +33,7 @@ export const updateCategory = async (id, data) => {
 };
 
 export const getCategoryById = async (id) => {
-  const category = await Category.findOne({ _id: id, deletedAt: null });
+  const category = await Category.findById(id);
   if (!category) {
     throw new NotFoundError('Category not found');
   }
@@ -43,7 +43,7 @@ export const getCategoryById = async (id) => {
 export const listCategories = async (query) => {
   const { page = 1, limit = 20, status, search } = query;
   
-  const filter = { deletedAt: null };
+  const filter = {};
   
   if (status) {
     filter.status = status;
@@ -72,11 +72,7 @@ export const listCategories = async (query) => {
 };
 
 export const deleteCategory = async (id) => {
-  const category = await Category.findOneAndUpdate(
-    { _id: id, deletedAt: null },
-    { $set: { deletedAt: new Date(), status: 'INACTIVE' } },
-    { new: true }
-  );
+  const category = await Category.findByIdAndDelete(id);
 
   if (!category) {
     throw new NotFoundError('Category not found');

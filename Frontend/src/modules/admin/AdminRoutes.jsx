@@ -8,6 +8,7 @@ import AdminZoneForm from "./pages/AdminZoneForm";
 import AdminCategories from "./pages/AdminCategories";
 import AdminCategoryForm from "./pages/AdminCategoryForm";
 import AdminEVs from "./pages/AdminEVs";
+import AdminEVForm from "./pages/AdminEVForm";
 import AdminBookings from "./pages/AdminBookings";
 import AdminBookingDetails from "./pages/AdminBookingDetails";
 import AdminFleetTimeline from "./pages/AdminFleetTimeline";
@@ -52,6 +53,8 @@ export default function AdminRoutes() {
 
         {/* EV Management route */}
         <Route path="evs" element={<AdminEVs />} />
+        <Route path="evs/new" element={<AdminEVForm />} />
+        <Route path="evs/:id" element={<AdminEVForm />} />
 
         {/* Bookings route */}
         <Route path="bookings" element={<AdminBookings />} />

@@ -3,6 +3,7 @@ import adminAuthRoutes from './adminAuth.routes.js';
 import authenticate from '../../middleware/authenticate.js';
 import authorize from '../../middleware/authorize.js';
 import { sendSuccess } from '../../utils/response.js';
+import * as adminController from './admin.controller.js';
 
 const router = express.Router();
 
@@ -11,6 +12,9 @@ router.use('/auth', adminAuthRoutes);
 
 // Protect all following admin routes
 router.use(authenticate, authorize('ADMIN', 'SUPER_ADMIN'));
+
+// Fleet timeline route
+router.get('/fleet-timeline', adminController.getFleetTimeline);
 
 // Example Admin Profile
 router.get('/profile', (req, res) => {

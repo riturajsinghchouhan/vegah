@@ -27,3 +27,12 @@ export const getAllZonesAvailability = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getInventorySummary = async (req, res, next) => {
+  try {
+    const result = await inventoryService.getInventorySummary();
+    sendSuccess(res, 200, 'Inventory summary fetched', result);
+  } catch (error) {
+    next(error);
+  }
+};

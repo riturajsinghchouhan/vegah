@@ -12,14 +12,14 @@ export const listUsers = async (req, res, next) => {
 
 export const getUserById = async (req, res, next) => {
   try {
-    // If it's a regular user, they can only get their own profile
     let userId = req.params.id;
-    if (req.user.role === 'USER' && userId !== req.user.id) {
-      // Return their own profile anyway or throw error. Let's return their own if 'me' is used
-      userId = req.user.id;
-    }
     
     if (req.params.id === 'me') {
+      if (req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN') {
+        return sendSuccess(res, 200, 'Admin profile fetched successfully', req.user);
+      }
+      userId = req.user.id;
+    } else if (req.user.role === 'USER' && userId !== req.user.id) {
       userId = req.user.id;
     }
 

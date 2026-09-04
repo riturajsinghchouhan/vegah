@@ -6,7 +6,7 @@ export const createZoneSchema = {
     subtitle: Joi.string().allow(''),
     unit: Joi.string().default('kilometer'),
     status: Joi.string().valid('ACTIVE', 'INACTIVE').default('ACTIVE'),
-    boundary: Joi.object().allow(null),
+    boundary: Joi.alternatives().try(Joi.object(), Joi.array()).allow(null),
   }),
 };
 
@@ -19,7 +19,7 @@ export const updateZoneSchema = {
     subtitle: Joi.string().allow(''),
     unit: Joi.string(),
     status: Joi.string().valid('ACTIVE', 'INACTIVE'),
-    boundary: Joi.object().allow(null),
+    boundary: Joi.alternatives().try(Joi.object(), Joi.array()).allow(null),
   }).min(1), // At least one field must be provided
 };
 
