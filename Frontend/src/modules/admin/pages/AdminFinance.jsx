@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Download, Calendar, Filter, ArrowUpRight, ArrowDownRight, IndianRupee, CreditCard, Wallet, AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { adminService } from "../services/adminService";
+import { Download, Calendar, Filter, ArrowUpRight, ArrowDownRight, IndianRupee, CreditCard, Wallet, AlertCircle, Loader2 } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -14,7 +15,7 @@ import {
 } from "recharts";
 import StatCard from "../../../shared/components/admin/StatCard";
 
-// Mock Data
+// Fallback Mock Data
 const revenueData = [
   { date: "01 May", revenue: 25000 },
   { date: "05 May", revenue: 42000 },
@@ -25,23 +26,30 @@ const revenueData = [
   { date: "31 May", revenue: 95000 },
 ];
 
-const paymentMethodsData = [
-  { name: "UPI", value: 65, color: "#3b82f6" }, // blue-500
-  { name: "Credit Card", value: 20, color: "#10b981" }, // green-500
-  { name: "Debit Card", value: 10, color: "#f59e0b" }, // amber-500
-  { name: "Wallet", value: 5, color: "#8b5cf6" }, // violet-500
-];
-
-const recentTransactions = [
-  { id: "TXN10293", bookingId: "BK1025", customer: "Rahul Sharma", amount: "₹1,280", method: "UPI", status: "Success", date: "20 May 2025, 10:05 AM" },
-  { id: "TXN10292", bookingId: "BK1024", customer: "Priya Verma", amount: "₹980", method: "Credit Card", status: "Success", date: "20 May 2025, 09:15 AM" },
-  { id: "TXN10291", bookingId: "BK1023", customer: "Amit Patel", amount: "₹1,150", method: "Wallet", status: "Pending", date: "19 May 2025, 02:10 PM" },
-  { id: "TXN10290", bookingId: "BK1022", customer: "Neha Singh", amount: "₹760", method: "UPI", status: "Refunded", date: "18 May 2025, 11:30 AM" },
-  { id: "TXN10289", bookingId: "BK1021", customer: "Rohan Gupta", amount: "₹1,220", method: "Debit Card", status: "Failed", date: "17 May 2025, 04:05 PM" },
-];
-
 export default function AdminFinance() {
   const [dateFilter, setDateFilter] = useState("This Month");
+  const [financeData, setFinanceData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFinance = async () => {
+      try {
+        setLoading(true);
+        const res = await adminService.getFinanceSummary();
+        setFinanceData(res);
+      } catch (err) {
+        console.error("Error fetching finance:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFinance();
+  }, [dateFilter]);
+
+  const summary = financeData?.summary || {};
+  const transactionsList = financeData?.recentTransactions?.length > 0
+    ? financeData.recentTransactions
+    : [];
 
   const getStatusBadge = (status) => {
     switch (status) {

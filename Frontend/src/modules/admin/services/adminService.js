@@ -110,4 +110,82 @@ export const adminService = {
     const res = await api.patch(`/bookings/${id}/status`, { status });
     return res.data.data;
   },
+
+  // --- Coupons ---
+  async getCoupons(params = {}) {
+    const res = await api.get('/coupons/admin', { params });
+    return res.data.data;
+  },
+  async createCoupon(data) {
+    const res = await api.post('/coupons/admin', data);
+    return res.data.data;
+  },
+  async updateCoupon(id, data) {
+    const res = await api.put(`/coupons/admin/${id}`, data);
+    return res.data.data;
+  },
+  async deleteCoupon(id) {
+    const res = await api.delete(`/coupons/admin/${id}`);
+    return res.data.data;
+  },
+  async toggleCouponStatus(id) {
+    const res = await api.patch(`/coupons/admin/${id}/status`);
+    return res.data.data;
+  },
+  async validateCoupon(code, amount) {
+    const res = await api.post('/coupons/validate', { code, amount });
+    return res.data.data;
+  },
+
+  // --- Wallet & Refunds ---
+  async getAdminWalletSummary(params = {}) {
+    const res = await api.get('/wallet/admin/summary', { params });
+    return res.data.data;
+  },
+  async getRefunds(params = {}) {
+    const res = await api.get('/wallet/admin/refunds', { params });
+    return res.data.data;
+  },
+  async updateRefundStatus(id, status) {
+    const res = await api.patch(`/wallet/admin/refunds/${id}/status`, { status });
+    return res.data.data;
+  },
+  async getUserWallet() {
+    const res = await api.get('/wallet/user');
+    return res.data.data;
+  },
+  async addWalletFunds(amount, description) {
+    const res = await api.post('/wallet/user/add-funds', { amount, description });
+    return res.data.data;
+  },
+
+  // --- Reports ---
+  async getReportsData(params = {}) {
+    const res = await api.get('/admin/reports/analytics', { params });
+    return res.data.data;
+  },
+
+  // --- Finance, Settlements & Tax Billing ---
+  async getFinanceSummary(params = {}) {
+    const res = await api.get('/admin/finance/summary', { params });
+    return res.data.data;
+  },
+  async getSettlements(params = {}) {
+    const res = await api.get('/admin/finance/settlements', { params });
+    return res.data.data;
+  },
+  async getTaxBilling(params = {}) {
+    const res = await api.get('/admin/finance/tax-billing', { params });
+    return res.data.data;
+  },
+
+  // --- Settings ---
+  async getSettings(params = {}) {
+    const res = await api.get('/admin/settings', { params });
+    return res.data.data;
+  },
+  async updateSettings(data) {
+    const res = await api.put('/admin/settings', data);
+    return res.data.data;
+  },
 };

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { adminService } from "../services/adminService";
 import {
   Calendar as CalendarIcon,
   CheckCircle,
@@ -76,6 +77,32 @@ export default function AdminReports() {
   const [dateFilter, setDateFilter] = useState("This Month");
   const [activeTab, setActiveTab] = useState("Overview");
   const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [reportsData, setReportsData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        let range = '30d';
+        if (dateFilter === '7 Days') range = '7d';
+        if (dateFilter === 'Today') range = '7d';
+        if (dateFilter === 'Custom Date') range = '365d';
+        const data = await adminService.getReportsData({ range });
+        setReportsData(data);
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, [dateFilter]);
+
+  const summary = reportsData?.summary || {};
+  const dailyRevenue = reportsData?.dailyRevenueChart?.length > 0 
+    ? reportsData.dailyRevenueChart 
+    : revenueData;
 
   const tabs = ["Overview", "Bookings", "Revenue", "Customers", "Scooties", "Payments", "Refunds"];
   const dateOptions = ["Today", "7 Days", "This Month", "Custom Date"];

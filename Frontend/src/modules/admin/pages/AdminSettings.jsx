@@ -1,8 +1,58 @@
-import React, { useState } from "react";
-import { Save, Building, Calendar, DollarSign, Bell, Shield, User } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Save, Building, Calendar, DollarSign, Bell, Shield, User, Loader2 } from "lucide-react";
+import { adminService } from "../services/adminService";
 
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState("General");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [settings, setSettings] = useState({
+    appName: "Vegah Rentals",
+    supportEmail: "support@vegah.com",
+    supportPhone: "+91 98765 43210",
+    address: "Koramangala, Bangalore",
+    minDurationHours: "2",
+    maxDurationDays: "30",
+    advanceBookingDays: "15",
+    freeCancellationHours: "24",
+    securityDeposit: "1000",
+    lateFeePerHour: "150",
+    weekendSurgePercent: "10",
+    emailNotifications: true,
+    smsAlerts: true,
+    pushNotifications: false,
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setLoading(true);
+        const data = await adminService.getSettings();
+        if (data && Object.keys(data).length > 0) {
+          setSettings((prev) => ({ ...prev, ...data }));
+        }
+      } catch (err) {
+        console.error("Error loading settings:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      await adminService.updateSettings(settings);
+      alert("Settings updated successfully!");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const tabs = [
     { id: "General", icon: Building },
@@ -48,209 +98,234 @@ export default function AdminSettings() {
         {/* Content Area */}
         <div className="flex-1">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            
-            {/* General Settings */}
-            {activeTab === "General" && (
-              <div>
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900">General Settings</h3>
-                  <p className="text-sm text-gray-500 mt-1">Manage your application's basic information.</p>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Application Name</label>
-                      <input type="text" defaultValue="Evora Rentals" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Support Email</label>
-                      <input type="email" defaultValue="support@evora.com" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Support Phone</label>
-                      <input type="text" defaultValue="+91 98765 43210" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                      <input type="text" defaultValue="123, Koramangala, Bangalore" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                    <Save className="w-4 h-4" />
-                    Save Changes
-                  </button>
-                </div>
+            {loading ? (
+              <div className="flex items-center justify-center p-12 text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading settings...
               </div>
-            )}
-
-            {/* Booking Settings */}
-            {activeTab === "Booking" && (
-              <div>
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900">Booking Rules</h3>
-                  <p className="text-sm text-gray-500 mt-1">Configure rental limits and cancellation policies.</p>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Min Rental Duration (Hours)</label>
-                      <input type="number" defaultValue="2" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+            ) : (
+              <form onSubmit={handleSave}>
+                {/* General Settings */}
+                {activeTab === "General" && (
+                  <div>
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">General Settings</h3>
+                      <p className="text-sm text-gray-500 mt-1">Manage your application's basic information.</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Max Rental Duration (Days)</label>
-                      <input type="number" defaultValue="30" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Advance Booking Limit (Days)</label>
-                      <input type="number" defaultValue="15" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Free Cancellation Window (Hours)</label>
-                      <input type="number" defaultValue="24" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                    <Save className="w-4 h-4" />
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Pricing Settings */}
-            {activeTab === "Pricing" && (
-              <div>
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900">Default Pricing & Fees</h3>
-                  <p className="text-sm text-gray-500 mt-1">Set global base prices and late fee penalties.</p>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Default Security Deposit (₹)</label>
-                      <input type="number" defaultValue="1000" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Late Return Fee (per hour)</label>
-                      <input type="number" defaultValue="150" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Weekend Surge (%)</label>
-                      <input type="number" defaultValue="10" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                    <Save className="w-4 h-4" />
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Notifications Settings */}
-            {activeTab === "Notifications" && (
-              <div>
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900">Communication Alerts</h3>
-                  <p className="text-sm text-gray-500 mt-1">Manage which channels send automated alerts to users and admins.</p>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div className="space-y-4 max-w-md">
-                    {/* Toggles */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">Email Notifications</p>
-                        <p className="text-sm text-gray-500">Send invoices and booking updates via email.</p>
+                    <div className="p-6 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Application Name</label>
+                          <input 
+                            type="text" 
+                            value={settings.appName}
+                            onChange={(e) => setSettings({ ...settings, appName: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Support Email</label>
+                          <input 
+                            type="email" 
+                            value={settings.supportEmail}
+                            onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Support Phone</label>
+                          <input 
+                            type="text" 
+                            value={settings.supportPhone}
+                            onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                          <input 
+                            type="text" 
+                            value={settings.address}
+                            onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">SMS Alerts</p>
-                        <p className="text-sm text-gray-500">Send OTPs and urgent updates via SMS.</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">Push Notifications</p>
-                        <p className="text-sm text-gray-500">App notifications for offers and reminders.</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {/* Booking Settings */}
+                {activeTab === "Booking" && (
+                  <div>
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">Booking Rules</h3>
+                      <p className="text-sm text-gray-500 mt-1">Configure rental limits and cancellation policies.</p>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Min Rental Duration (Hours)</label>
+                          <input 
+                            type="number" 
+                            value={settings.minDurationHours}
+                            onChange={(e) => setSettings({ ...settings, minDurationHours: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Max Rental Duration (Days)</label>
+                          <input 
+                            type="number" 
+                            value={settings.maxDurationDays}
+                            onChange={(e) => setSettings({ ...settings, maxDurationDays: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Advance Booking Limit (Days)</label>
+                          <input 
+                            type="number" 
+                            value={settings.advanceBookingDays}
+                            onChange={(e) => setSettings({ ...settings, advanceBookingDays: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Free Cancellation Window (Hours)</label>
+                          <input 
+                            type="number" 
+                            value={settings.freeCancellationHours}
+                            onChange={(e) => setSettings({ ...settings, freeCancellationHours: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pricing Settings */}
+                {activeTab === "Pricing" && (
+                  <div>
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">Default Pricing & Fees</h3>
+                      <p className="text-sm text-gray-500 mt-1">Set global base prices and late fee penalties.</p>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Default Security Deposit (₹)</label>
+                          <input 
+                            type="number" 
+                            value={settings.securityDeposit}
+                            onChange={(e) => setSettings({ ...settings, securityDeposit: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Late Return Fee (per hour)</label>
+                          <input 
+                            type="number" 
+                            value={settings.lateFeePerHour}
+                            onChange={(e) => setSettings({ ...settings, lateFeePerHour: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Weekend Surge (%)</label>
+                          <input 
+                            type="number" 
+                            value={settings.weekendSurgePercent}
+                            onChange={(e) => setSettings({ ...settings, weekendSurgePercent: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notifications Settings */}
+                {activeTab === "Notifications" && (
+                  <div>
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">Communication Alerts</h3>
+                      <p className="text-sm text-gray-500 mt-1">Manage which channels send automated alerts to users and admins.</p>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      <div className="space-y-4 max-w-md">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">Email Notifications</p>
+                            <p className="text-sm text-gray-500">Send invoices and booking updates via email.</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={Boolean(settings.emailNotifications)}
+                            onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })}
+                            className="w-5 h-5 text-blue-600 rounded"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">SMS Alerts</p>
+                            <p className="text-sm text-gray-500">Send OTPs and urgent updates via SMS.</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={Boolean(settings.smsAlerts)}
+                            onChange={(e) => setSettings({ ...settings, smsAlerts: e.target.checked })}
+                            className="w-5 h-5 text-blue-600 rounded"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">Push Notifications</p>
+                            <p className="text-sm text-gray-500">App notifications for offers and reminders.</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={Boolean(settings.pushNotifications)}
+                            onChange={(e) => setSettings({ ...settings, pushNotifications: e.target.checked })}
+                            className="w-5 h-5 text-blue-600 rounded"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin Profile */}
+                {activeTab === "Admin" && (
+                  <div>
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">Admin Account</h3>
+                      <p className="text-sm text-gray-500 mt-1">Manage your admin configuration.</p>
+                    </div>
+                    <div className="p-6 space-y-6">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                          <User className="w-8 h-8" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                    <Save className="w-4 h-4" />
+                  <button 
+                    type="submit"
+                    disabled={saving}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Save Changes
                   </button>
                 </div>
-              </div>
+              </form>
             )}
-
-            {/* Admin Settings */}
-            {activeTab === "Admin" && (
-              <div>
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900">Admin Account</h3>
-                  <p className="text-sm text-gray-500 mt-1">Manage your personal profile and security.</p>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                      <User className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <button className="text-sm font-medium text-blue-600 hover:text-blue-700">Change Avatar</button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                      <input type="text" defaultValue="Admin User" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                      <input type="email" defaultValue="admin@evora.com" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                      <input type="password" placeholder="••••••••" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                      <input type="password" placeholder="Leave blank to keep same" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-                  <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                    <Save className="w-4 h-4" />
-                    Update Profile
-                  </button>
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
       </div>
