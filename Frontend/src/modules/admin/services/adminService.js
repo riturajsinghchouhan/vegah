@@ -93,10 +93,30 @@ export const adminService = {
     const res = await api.get(`/admin/inspections/${id}`);
     return res.data.data;
   },
+  async createInspection(data) {
+    const res = await api.post('/admin/inspections', data);
+    return res.data.data;
+  },
+  async updateInspection(id, data) {
+    const res = await api.put(`/admin/inspections/${id}`, data);
+    return res.data.data;
+  },
 
   // --- Users ---
   async getUsers(params = {}) {
     const res = await api.get('/users', { params });
+    return res.data.data;
+  },
+  async getUserById(id) {
+    const res = await api.get(`/users/${id}`);
+    return res.data.data;
+  },
+  async blockUser(id) {
+    const res = await api.patch(`/users/${id}/block`);
+    return res.data.data;
+  },
+  async unblockUser(id) {
+    const res = await api.patch(`/users/${id}/unblock`);
     return res.data.data;
   },
 
@@ -104,6 +124,10 @@ export const adminService = {
   async getBookings(params = {}) {
     // Calling GET /bookings as an Admin returns ALL bookings in our backend
     const res = await api.get('/bookings', { params });
+    return res.data.data;
+  },
+  async getBookingById(id) {
+    const res = await api.get(`/bookings/${id}`);
     return res.data.data;
   },
   async updateBookingStatus(id, status) {

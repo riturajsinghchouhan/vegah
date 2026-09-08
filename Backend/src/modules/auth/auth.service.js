@@ -21,6 +21,9 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+// In-memory store fallback for OTP when Redis is disabled
+const memoryOtpStore = new Map();
+
 export const requestOtp = async (phone) => {
   // Check rate limit in Redis manually if needed, but we have middleware for it
   let otp;
@@ -33,27 +36,35 @@ export const requestOtp = async (phone) => {
   // Hash OTP before storing (basic security measure)
   const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
 
-  // Store in Redis with TTL
+  // Store in Redis with TTL or use memory store fallback
   if (env.REDIS_ENABLED && redisClient) {
     const key = `otp:${phone}`;
     await redisClient.setex(key, env.OTP_EXPIRY_SECONDS, hashedOtp);
   } else {
-    throw new Error('Redis is required for OTP flow');
+    const key = `otp:${phone}`;
+    memoryOtpStore.set(key, hashedOtp);
+    setTimeout(() => {
+      memoryOtpStore.delete(key);
+    }, env.OTP_EXPIRY_SECONDS * 1000);
   }
 
   // Send OTP
-  await msg91.sendOTP(phone, otp);
+  if (!env.USE_DEFAULT_OTP) {
+    await msg91.sendOTP(phone, otp);
+  }
 
   return { message: 'OTP sent successfully' };
 };
 
 export const verifyOtp = async (phone, otp) => {
-  if (!env.REDIS_ENABLED || !redisClient) {
-    throw new Error('Redis is required for OTP flow');
-  }
-
   const key = `otp:${phone}`;
-  const storedHashedOtp = await redisClient.get(key);
+  let storedHashedOtp;
+
+  if (env.REDIS_ENABLED && redisClient) {
+    storedHashedOtp = await redisClient.get(key);
+  } else {
+    storedHashedOtp = memoryOtpStore.get(key);
+  }
 
   if (!storedHashedOtp) {
     throw new BadRequestError('OTP has expired or is invalid');
@@ -66,7 +77,11 @@ export const verifyOtp = async (phone, otp) => {
   }
 
   // Clear OTP
-  await redisClient.del(key);
+  if (env.REDIS_ENABLED && redisClient) {
+    await redisClient.del(key);
+  } else {
+    memoryOtpStore.delete(key);
+  }
 
   // Find or create user
   let user = await User.findOne({ phone });

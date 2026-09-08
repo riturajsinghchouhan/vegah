@@ -15,7 +15,7 @@ const app = express();
 // Security Middlewares
 app.use(helmet());
 app.use(cors({
-  origin: env.FRONTEND_URL || '*',
+  origin: true, // Allow all origins for dev
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));
