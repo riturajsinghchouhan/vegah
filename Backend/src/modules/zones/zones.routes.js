@@ -7,8 +7,12 @@ import authorize from '../../middleware/authorize.js';
 
 const router = express.Router();
 
-// All zone routes require authentication and admin role
+// Public route — authenticated users can view zones for booking
+router.get('/public', authenticate, zonesController.listZonesPublic);
+
+// All zone management routes require admin role
 router.use(authenticate, authorize('ADMIN', 'SUPER_ADMIN'));
+
 
 router.post(
   '/',

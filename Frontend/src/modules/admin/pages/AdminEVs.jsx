@@ -33,14 +33,21 @@ export default function AdminEVs() {
         rawId: v._id,
         plate: v.plateNumber || 'Pending',
         model: v.model || v.name,
+        name: v.name,
         brand: v.brand,
+        type: v.type,
         battery: v.batteryPercent ?? 100,
+        batteryCapacity: v.batteryCapacity || 'N/A',
+        rangeKm: v.rangeKm || 0,
         category: v.category?.name || 'Standard',
         zone: v.zone?.name || 'Unassigned',
         location: v.location || 'N/A',
         pricePerDay: v.pricePerDay || 0,
         pricePerHour: v.pricePerHour || 0,
+        securityDeposit: v.securityDeposit || 0,
         status: v.status ? (v.status.charAt(0).toUpperCase() + v.status.slice(1).toLowerCase()) : 'Available',
+        image: v.images && v.images.length > 0 ? (v.images.find(img => img.isPrimary)?.url || v.images[0].url) : null,
+        features: v.features || [],
       }));
       
       setScooties(mappedVehicles);
@@ -133,6 +140,21 @@ export default function AdminEVs() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredScooties.map((scooty) => (
           <div key={scooty.id} className="bg-indigo-50/30 rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col">
+            
+            {/* Image Section */}
+            <div className="h-36 w-full bg-white flex items-center justify-center p-2 border-b border-gray-100">
+              {scooty.image ? (
+                <img 
+                  src={scooty.image.startsWith('http') ? scooty.image : `http://localhost:5000${scooty.image}`} 
+                  alt={scooty.model} 
+                  className="h-full object-contain mix-blend-multiply" 
+                />
+              ) : (
+                <div className="text-gray-300 flex flex-col items-center">
+                  <span className="text-xs font-semibold">No Image</span>
+                </div>
+              )}
+            </div>
             
             {/* Card Header */}
             <div className="p-5 pb-4 border-b border-gray-100 flex justify-between items-start">
@@ -232,14 +254,22 @@ export default function AdminEVs() {
               <StatusBadge status={selectedScooty.status} />
             </div>
 
-            <div className="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm">
+            <div className="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm overflow-y-auto max-h-[60vh] no-scrollbar">
               <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Vehicle ID</span>
                 <span className="font-semibold text-gray-900">{selectedScooty.id}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Brand & Model</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.brand} {selectedScooty.model}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Category</span>
                 <span className="font-semibold text-gray-900">{selectedScooty.category}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Type</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.type}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Zone</span>
@@ -250,13 +280,31 @@ export default function AdminEVs() {
                 <span className="font-semibold text-gray-900">{selectedScooty.location}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Battery</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.batteryCapacity} ({selectedScooty.battery}%)</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Est. Range</span>
+                <span className="font-semibold text-gray-900">{selectedScooty.rangeKm} km</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Daily Rate</span>
                 <span className="font-semibold text-gray-900">₹{selectedScooty.pricePerDay}/day</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Hourly Rate</span>
                 <span className="font-semibold text-gray-900">₹{selectedScooty.pricePerHour}/hr</span>
               </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500 font-medium">Security Deposit</span>
+                <span className="font-semibold text-gray-900">₹{selectedScooty.securityDeposit}</span>
+              </div>
+              {selectedScooty.features?.length > 0 && (
+                <div className="flex justify-between pt-1">
+                  <span className="text-gray-500 font-medium">Features</span>
+                  <span className="font-semibold text-gray-900 text-right">{selectedScooty.features.join(', ')}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-2">

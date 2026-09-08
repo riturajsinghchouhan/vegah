@@ -65,3 +65,23 @@ export const getBookingById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getLiveStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.role === 'USER' ? req.user.id : null;
+    const data = await bookingsService.getLiveBookingStatus(req.params.id, userId);
+    sendSuccess(res, 200, 'Live booking status fetched', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const extendBooking = async (req, res, next) => {
+  try {
+    const { extraHours } = req.body;
+    const result = await bookingsService.extendBooking(req.params.id, req.user.id, extraHours);
+    sendSuccess(res, 200, `Booking extended by ${extraHours} hours`, result);
+  } catch (error) {
+    next(error);
+  }
+};

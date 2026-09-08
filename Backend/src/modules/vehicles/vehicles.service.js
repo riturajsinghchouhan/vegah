@@ -19,9 +19,14 @@ export const createVehicle = async (data, files) => {
   const images = [];
   if (files && files.length > 0) {
     files.forEach((file, index) => {
+      let url = file.path;
+      if (!url.startsWith('http')) {
+         // Local upload, use filename to construct relative URL
+         url = '/uploads/' + file.filename;
+      }
       images.push({
-        url: file.path, // Cloudinary URL
-        isPrimary: index === 0, // Make the first image primary by default
+        url,
+        isPrimary: index === 0,
       });
     });
   }
@@ -57,23 +62,27 @@ export const updateVehicle = async (id, data, files) => {
     throw new NotFoundError('Vehicle not found');
   }
 
+  let pushOperation = null;
   // Handle images if new ones are uploaded (append to existing for now, or replace depending on business logic)
   if (files && files.length > 0) {
-    const newImages = files.map(file => ({
-      url: file.path,
-      isPrimary: false,
-    }));
+    const newImages = files.map(file => {
+      let url = file.path;
+      if (!url.startsWith('http')) {
+         url = '/uploads/' + file.filename;
+      }
+      return { url, isPrimary: false };
+    });
     
     if (vehicleToUpdate.images.length === 0 && newImages.length > 0) {
       newImages[0].isPrimary = true;
     }
     
-    data.$push = { images: { $each: newImages } };
+    pushOperation = { images: { $each: newImages } };
   }
 
   const updatedVehicle = await Vehicle.findOneAndUpdate(
     { _id: id, deletedAt: null },
-    data.$push ? { $set: data, $push: data.$push } : { $set: data },
+    pushOperation ? { $set: data, $push: pushOperation } : { $set: data },
     { new: true }
   );
 

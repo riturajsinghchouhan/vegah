@@ -11,27 +11,40 @@ import QuickActions from "../../../../components/profile/QuickActions";
 import ReferEarnCard from "../../../../components/profile/ReferEarnCard";
 import SupportCard from "../../../../components/profile/SupportCard";
 import WalletSummary from "../../../../components/profile/WalletSummary";
-import { accountSettings, latestBooking, preferences, quickActions, userProfile } from "../../../../data/profileData";
+import { accountSettings, latestBooking, preferences, quickActions } from "../../../../data/profileData";
 import { useAuth } from "../../../../hooks/useAuth";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
   const handleLogout = async () => {
     setIsLogoutOpen(false);
     await logout();
-    navigate("/login", { replace: true });
+    navigate("/user/login", { replace: true });
+  };
+
+  const mappedUser = {
+    name: user?.fullName || "Guest",
+    membership: user?.membership === "premium" ? "Premium Member" : "Standard Member",
+    phone: user?.phone || "N/A",
+    email: user?.email || "No email added",
+    location: "Indore, Madhya Pradesh",
+    avatar: user?.avatarUrl || `https://ui-avatars.com/api/?name=${user?.fullName || "Guest"}&background=FF5A1F&color=fff`,
+    walletBalance: 0,
+    totalBookings: 0,
+    completedTrips: 0,
+    savedCars: 0,
   };
 
   return (
     <div className="bg-[#F8F9FA] min-h-screen pb-28 font-sans">
       <ProfileHeader />
       
-      <ProfileHero user={userProfile} />
+      <ProfileHero user={mappedUser} />
       
-      <WalletSummary user={userProfile} />
+      <WalletSummary user={mappedUser} />
       
       <BookingSummary latestBooking={latestBooking} />
       

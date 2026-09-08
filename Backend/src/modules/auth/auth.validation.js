@@ -11,7 +11,7 @@ export const requestOtpSchema = {
 export const verifyOtpSchema = {
   body: Joi.object({
     phone: Joi.string().pattern(/^\+91[0-9]{10}$/).required(),
-    otp: Joi.string().length(6).required(),
+    otp: Joi.string().length(4).required(),
   }),
 };
 

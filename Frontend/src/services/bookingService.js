@@ -16,14 +16,14 @@ export const bookingService = {
     // { vehicleId, rentalType, startDate, startTime, endDate, endTime, pickupLocation, batteryPackage, couponCode }
     const requestData = {
       vehicleId: payload.vehicleId || payload.vehicle?.id,
-      rentalType: payload.rentalType || (payload.duration > 24 ? 'DAILY' : 'HOURLY'), // simplistic mapping if needed
+      rentalType: payload.rentalType ? payload.rentalType.toUpperCase() : 'HOURLY',
       startDate: payload.startDate,
       startTime: payload.startTime,
       endDate: payload.endDate,
       endTime: payload.endTime,
       pickupLocation: payload.pickupLocation || 'Default Hub',
-      batteryPackage: payload.batteryPackage || 'SINGLE',
-      couponCode: payload.couponCode || '',
+      batteryPackage: payload.batteryPackage ? payload.batteryPackage.toUpperCase() : 'SINGLE',
+      couponCode: payload.couponCode || undefined,
     };
 
     const response = await api.post('/bookings', requestData);
@@ -36,5 +36,15 @@ export const bookingService = {
       id: booking._id,
       status: booking.status,
     };
+  },
+  
+  async initiatePayment(bookingId, method = 'UPI') {
+    const response = await api.post(`/payments/${bookingId}/initiate`, { method });
+    return response.data.data;
+  },
+  
+  async verifyPayment(verificationData) {
+    const response = await api.post(`/payments/verify`, verificationData);
+    return response.data.data;
   },
 };

@@ -7,24 +7,92 @@ import { useBooking } from "../../../../hooks/useBooking";
 import { bookingService } from "../../../../services/bookingService";
 import { formatCurrency } from "../../../../utils/formatters";
 
+import { useState } from "react";
+
 const paymentMethods = [
-  { title: "UPI", description: "Pay using any UPI app", icon: Wallet },
-  { title: "Cards", description: "Credit / Debit Card", icon: CreditCard },
-  { title: "Net Banking", description: "All major banks", icon: Landmark },
+  { id: "ONLINE", title: "Pay Online", description: "UPI, Credit/Debit Cards, Net Banking", icon: Landmark },
+  { id: "CASH", title: "Pay with Cash", description: "Pay when you pick up the vehicle", icon: Wallet },
 ];
 
 const PaymentPage = () => {
   const navigate = useNavigate();
   const { booking, pricing, setLatestBooking } = useBooking();
 
-  const handlePay = async () => {
-    const createdBooking = await bookingService.createBooking({
-      ...booking,
-      pricing,
-      amount: pricing.total,
+  const [paymentMode, setPaymentMode] = useState("ONLINE");
+  const [processing, setProcessing] = useState(false);
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
     });
-    setLatestBooking(createdBooking);
-    navigate("/user/booking/success");
+  };
+
+  const handlePay = async () => {
+    try {
+      setProcessing(true);
+      const createdBooking = await bookingService.createBooking({
+        ...booking,
+        pricing,
+        amount: pricing.total,
+        paymentMethod: paymentMode,
+      });
+
+      if (paymentMode === "CASH") {
+        setLatestBooking({ ...createdBooking, paymentMode: "CASH" });
+        navigate("/user/booking/success");
+        return;
+      }
+
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert("Razorpay SDK failed to load. Are you online?");
+        setProcessing(false);
+        return;
+      }
+
+      const paymentData = await bookingService.initiatePayment(createdBooking.id, 'ONLINE');
+      
+      const options = {
+        key: paymentData.razorpayKeyId || "rzp_test_dummy",
+        amount: paymentData.amount * 100,
+        currency: paymentData.currency || "INR",
+        name: "Vegah EVs",
+        description: "Booking Payment",
+        order_id: paymentData.razorpayOrderId,
+        handler: async function (response) {
+          try {
+            await bookingService.verifyPayment({
+              bookingId: createdBooking.id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+              method: 'ONLINE'
+            });
+            setLatestBooking({ ...createdBooking, paymentMode: "ONLINE" });
+            navigate("/user/booking/success");
+          } catch (err) {
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        theme: { color: "#ea580c" },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.on('payment.failed', function (response) {
+        alert("Payment failed! Please try again.");
+      });
+      paymentObject.open();
+
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to process payment");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -60,14 +128,17 @@ const PaymentPage = () => {
       <section className="mt-5 surface-card p-4">
         <h2 className="text-base font-semibold text-app-text">Recommended</h2>
         <div className="mt-4 space-y-3">
-          {paymentMethods.map(({ title, description, icon: Icon }, index) => (
+          {paymentMethods.map(({ id, title, description, icon: Icon }) => (
             <button
-              key={title}
-              className="flex w-full items-center justify-between rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary"
+              key={id}
+              onClick={() => setPaymentMode(id)}
+              className={`flex w-full items-center justify-between rounded-[18px] border p-4 text-left transition ${
+                paymentMode === id ? "border-app-primary bg-[#eff9f1]/30" : "border-app-border bg-white hover:border-app-primary/50"
+              }`}
               type="button"
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-[#eff9f1] p-3 text-app-primary">
+                <div className={`rounded-2xl p-3 ${paymentMode === id ? "bg-app-primary text-white" : "bg-[#eff9f1] text-app-primary"}`}>
                   <Icon size={18} />
                 </div>
                 <div>
@@ -75,7 +146,9 @@ const PaymentPage = () => {
                   <p className="text-xs text-app-subtle">{description}</p>
                 </div>
               </div>
-              <div className={`h-4 w-4 rounded-full border ${index === 0 ? "border-app-primary bg-[#eff9f1]" : "border-app-border bg-white"}`} />
+              <div className={`h-5 w-5 flex items-center justify-center rounded-full border-2 ${paymentMode === id ? "border-app-primary bg-app-primary" : "border-gray-300"}`}>
+                {paymentMode === id && <div className="h-2 w-2 rounded-full bg-white" />}
+              </div>
             </button>
           ))}
         </div>
@@ -85,8 +158,8 @@ const PaymentPage = () => {
         <PriceBreakdown pricing={pricing} />
       </div>
 
-      <Button className="mt-5 w-full" onClick={handlePay}>
-        Pay Now {formatCurrency(pricing.total)}
+      <Button className="mt-5 w-full" onClick={handlePay} disabled={processing}>
+        {processing ? "Processing..." : paymentMode === "ONLINE" ? `Pay Now ${formatCurrency(pricing.total)}` : "Confirm Booking"}
       </Button>
     </main>
   );

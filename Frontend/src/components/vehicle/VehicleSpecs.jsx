@@ -1,11 +1,11 @@
 import { BatteryCharging, CarFront, Clock3, Gauge, MapPin } from "lucide-react";
 
 const specs = (vehicle) => [
-  { icon: Gauge, label: "Range", value: `${vehicle.rangeKm} km` },
-  { icon: BatteryCharging, label: "Battery", value: vehicle.battery },
-  { icon: Clock3, label: "Charge time", value: vehicle.chargeTime },
-  { icon: CarFront, label: "Seats", value: `${vehicle.seats} seats` },
-  { icon: MapPin, label: "Pickup", value: vehicle.location },
+  { icon: Gauge, label: "Range", value: vehicle.rangeKm ? `${vehicle.rangeKm} km` : 'N/A' },
+  { icon: BatteryCharging, label: "Battery", value: vehicle.battery ? `${vehicle.battery}` : 'N/A' },
+  { icon: Clock3, label: "Charge time", value: vehicle.chargeTime || 'N/A' },
+  { icon: CarFront, label: "Seats", value: vehicle.seats ? `${vehicle.seats} seats` : '2 seats' },
+  { icon: MapPin, label: "Pickup", value: vehicle.location || 'N/A' },
 ];
 
 const VehicleSpecs = ({ vehicle }) => (

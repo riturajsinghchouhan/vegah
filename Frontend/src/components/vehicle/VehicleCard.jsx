@@ -14,12 +14,12 @@ const VehicleCard = ({ vehicle }) => (
     </div>
 
     <div>
-      <h3 className="text-xs font-bold text-gray-900 mb-1 truncate">{vehicle.name}</h3>
+      <h3 className="text-xs font-bold text-gray-900 mb-1 truncate">{vehicle.name || "Unknown Scoot"}</h3>
       <div className="flex items-center gap-1.5 text-[9px] text-gray-500 mb-2">
         <User size={10} />
-        <span>{vehicle.seats || 4} Seats</span>
+        <span>{vehicle.seats ? `${vehicle.seats} Seats` : '2 Seats'}</span>
         <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-        <span>{vehicle.transmission || 'Manual'}</span>
+        <span>{vehicle.transmission || 'Auto'}</span>
       </div>
       <p className="text-[14px] font-bold text-[#FF5500]">
         {formatCurrency(vehicle.prices.day).replace('.00', '')}

@@ -42,8 +42,17 @@ const OtpPage = () => {
     if (otpString.length < 4) return;
     
     setLoading(true);
-    await verifyOtp(otpString);
-    navigate("/user/home", { replace: true });
+    try {
+      const session = await verifyOtp(phoneNumber, otpString);
+      if (session?.isNewUser || session?.user?.fullName?.startsWith("User ")) {
+        navigate("/user/auth/name", { replace: true });
+      } else {
+        navigate("/user/home", { replace: true });
+      }
+    } catch (error) {
+      console.error("OTP verification failed", error);
+      setLoading(false);
+    }
   };
 
   const isOtpComplete = otp.every(digit => digit !== "");

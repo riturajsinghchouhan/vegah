@@ -7,14 +7,10 @@ import authorize from '../../middleware/authorize.js';
 
 const router = express.Router();
 
-router.use(authenticate, authorize('ADMIN', 'SUPER_ADMIN'));
+// Require authentication for all routes
+router.use(authenticate);
 
-router.post(
-  '/',
-  validate(categoriesValidation.createCategorySchema),
-  categoriesController.createCategory
-);
-
+// Publicly readable (by authenticated users)
 router.get(
   '/',
   validate(categoriesValidation.listCategoriesSchema),
@@ -26,6 +22,16 @@ router.get(
   validate(categoriesValidation.idParamSchema),
   categoriesController.getCategoryById
 );
+
+// Admin only routes
+router.use(authorize('ADMIN', 'SUPER_ADMIN'));
+
+router.post(
+  '/',
+  validate(categoriesValidation.createCategorySchema),
+  categoriesController.createCategory
+);
+
 
 router.put(
   '/:id',

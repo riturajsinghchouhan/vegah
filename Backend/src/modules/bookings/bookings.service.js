@@ -241,3 +241,78 @@ export const getBookingById = async (id) => {
   }
   return booking;
 };
+
+export const getLiveBookingStatus = async (id, userId) => {
+  const booking = await Booking.findById(id)
+    .populate('vehicle', 'name plateNumber images batteryLevel status')
+    .populate('user', 'fullName phone');
+
+  if (!booking) throw new NotFoundError('Booking not found');
+
+  // Users can only see their own booking
+  if (userId && booking.user._id.toString() !== userId) {
+    const { ForbiddenError } = await import('../../utils/errors.js');
+    throw new ForbiddenError('Not allowed to view this booking');
+  }
+
+  const now = new Date();
+  const startDate = new Date(booking.startDate);
+  const endDate = new Date(booking.endDate);
+  const totalDurationMs = endDate - startDate;
+  const elapsedMs = Math.max(0, now - startDate);
+  const remainingMs = Math.max(0, endDate - now);
+
+  const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+  const remainingMins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  return {
+    bookingId: booking.bookingId,
+    status: booking.status,
+    vehicle: booking.vehicle,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    pickupLocation: booking.pickupLocation,
+    timer: {
+      totalDurationMs,
+      elapsedMs,
+      remainingMs,
+      remainingFormatted: `${String(remainingHours).padStart(2, '0')}:${String(remainingMins).padStart(2, '0')}:00`,
+      isOverdue: now > endDate,
+    },
+    pricing: {
+      total: booking.total,
+      rentalBase: booking.rentalBase,
+      batteryPackagePrice: booking.batteryPackagePrice,
+      securityDeposit: booking.securityDeposit,
+    },
+  };
+};
+
+export const extendBooking = async (bookingId, userId, extraHours) => {
+  const booking = await Booking.findById(bookingId).populate('vehicle');
+  if (!booking) throw new NotFoundError('Booking not found');
+
+  if (booking.user.toString() !== userId) {
+    const { ForbiddenError } = await import('../../utils/errors.js');
+    throw new ForbiddenError('Not allowed to extend this booking');
+  }
+
+  if (booking.status !== BOOKING_STATUS.ACTIVE && booking.status !== BOOKING_STATUS.CONFIRMED) {
+    throw new BadRequestError(`Cannot extend a booking with status: ${booking.status}`);
+  }
+
+  if (!extraHours || extraHours < 1 || extraHours > 24) {
+    throw new BadRequestError('Extra hours must be between 1 and 24');
+  }
+
+  const newEndDate = new Date(booking.endDate);
+  newEndDate.setHours(newEndDate.getHours() + extraHours);
+
+  const extensionCost = (booking.vehicle.pricePerHour || 0) * extraHours;
+
+  booking.endDate = newEndDate;
+  booking.total = (booking.total || 0) + extensionCost;
+  await booking.save();
+
+  return { booking, extensionCost, newEndDate };
+};

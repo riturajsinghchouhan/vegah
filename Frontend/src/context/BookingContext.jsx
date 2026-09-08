@@ -1,13 +1,16 @@
 import { createContext, useMemo, useState } from "react";
 import { calculateBookingPricing } from "../utils/pricing";
 
+const today = new Date();
+const formattedToday = today.toISOString().split('T')[0];
+
 const initialState = {
   vehicle: null,
   rentalType: "hourly",
-  startDate: "2026-08-15",
-  startTime: "18:00",
-  endDate: "2026-08-15",
-  endTime: "22:00",
+  startDate: formattedToday,
+  startTime: "10:00",
+  endDate: formattedToday,
+  endTime: "14:00",
   pickupLocation: "HSR Layout Hub",
   aadharNumber: "",
   aadharFile: null,

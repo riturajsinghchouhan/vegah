@@ -16,9 +16,13 @@ const BookingSuccessPage = () => {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-app-success">
           <CheckCircle2 size={30} />
         </div>
-        <h2 className="mt-5 text-3xl font-semibold tracking-tight text-app-text">Your EV is reserved</h2>
+        <h2 className="mt-5 text-3xl font-semibold tracking-tight text-app-text">
+          {latestBooking?.paymentMode === "CASH" ? "Waiting for admin confirmation" : "Your EV is reserved"}
+        </h2>
         <p className="mt-3 text-sm leading-7 text-app-subtle">
-          Booking ID {latestBooking?.bookingId ?? "EVR-NEW"} has been created successfully. Pickup and payment details are ready in your bookings tab.
+          {latestBooking?.paymentMode === "CASH" 
+            ? `Booking ID ${latestBooking?.bookingId ?? "EVR-NEW"} created. You have chosen to pay with Cash. Please wait while an admin confirms your booking.`
+            : `Booking ID ${latestBooking?.bookingId ?? "EVR-NEW"} has been created successfully. Pickup and payment details are ready in your bookings tab.`}
         </p>
 
         <div className="mt-8 grid gap-4 rounded-[1.75rem] border border-app-border bg-app-card p-5 text-left sm:grid-cols-2">

@@ -40,7 +40,7 @@ export default function AdminTaxBilling() {
     e.preventDefault();
     try {
       setSaving(true);
-      await adminService.updateSettings(settings);
+      await adminService.updateSettings(settings, "pricing");
       alert("Tax & fee settings saved successfully");
     } catch (err) {
       alert(err.response?.data?.message || "Failed to save settings");

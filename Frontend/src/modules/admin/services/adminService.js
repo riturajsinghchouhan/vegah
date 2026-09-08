@@ -73,6 +73,10 @@ export const adminService = {
     const res = await api.delete(`/vehicles/${id}`);
     return res.data.data;
   },
+  async deleteVehicleImage(vehicleId, imageId) {
+    const res = await api.delete(`/vehicles/${vehicleId}/images/${imageId}`);
+    return res.data.data;
+  },
   async updateVehicleStatus(id, status) {
     const res = await api.patch(`/admin/inventory/${id}/status`, { status });
     return res.data.data;
@@ -208,8 +212,9 @@ export const adminService = {
     const res = await api.get('/admin/settings', { params });
     return res.data.data;
   },
-  async updateSettings(data) {
-    const res = await api.put('/admin/settings', data);
+  async updateSettings(data, category) {
+    const url = category ? `/admin/settings?category=${category}` : '/admin/settings';
+    const res = await api.put(url, data);
     return res.data.data;
   },
 };

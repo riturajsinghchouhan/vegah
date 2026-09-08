@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bike, Tag, MapPin, Save, Battery, IndianRupee } from 'lucide-react';
+import { ArrowLeft, Bike, Tag, MapPin, Save, Battery, IndianRupee, X } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { Button } from '@/shared/components/ui/Button';
 
@@ -14,6 +14,15 @@ export default function AdminEVForm() {
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [images, setImages] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
+
+  useEffect(() => {
+    const urls = images.map(file => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [images]);
 
   const [formData, setFormData] = useState({
     plateNumber: '',
@@ -88,6 +97,7 @@ export default function AdminEVForm() {
           location: vehicle.location || 'Bengaluru Hub',
           status: vehicle.status || 'AVAILABLE',
         });
+        setExistingImages(vehicle.images || []);
       }
     } catch (err) {
       console.error("Failed to load vehicle details", err);
@@ -102,6 +112,21 @@ export default function AdminEVForm() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleRemoveExistingImage = async (imageId) => {
+    if (!window.confirm("Are you sure you want to delete this saved image?")) return;
+    try {
+      await adminService.deleteVehicleImage(id, imageId);
+      setExistingImages(prev => prev.filter(img => img._id !== imageId));
+    } catch (error) {
+      console.error("Failed to delete image", error);
+      alert("Failed to delete image");
+    }
+  };
+
+  const handleRemoveNewImage = (index) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.plateNumber || !formData.name || !formData.category || !formData.zone) {
@@ -111,14 +136,28 @@ export default function AdminEVForm() {
 
     try {
       setSaving(true);
-      const payload = {
-        ...formData,
-        plateNumber: formData.plateNumber.trim().toUpperCase(),
-        name: formData.name.trim(),
-        brand: formData.brand.trim(),
-        model: formData.model.trim(),
-        coordinates: { lat: 12.9716, lng: 77.5946 }, // Default coordinates if unassigned
-      };
+      
+      const payload = new FormData();
+      payload.append('plateNumber', formData.plateNumber.trim().toUpperCase());
+      payload.append('name', formData.name.trim());
+      payload.append('brand', formData.brand.trim());
+      payload.append('model', formData.model.trim());
+      payload.append('type', formData.type);
+      payload.append('category', formData.category);
+      payload.append('zone', formData.zone);
+      payload.append('rangeKm', formData.rangeKm);
+      payload.append('batteryCapacity', formData.batteryCapacity);
+      payload.append('batteryPercent', formData.batteryPercent);
+      payload.append('pricePerHour', formData.pricePerHour);
+      payload.append('pricePerDay', formData.pricePerDay);
+      payload.append('securityDeposit', formData.securityDeposit);
+      payload.append('location', formData.location);
+      payload.append('status', formData.status);
+      payload.append('coordinates', JSON.stringify({ lat: 12.9716, lng: 77.5946 }));
+      
+      images.forEach(file => {
+        payload.append('images', file);
+      });
 
       if (isEditing) {
         await adminService.updateVehicle(id, payload);
@@ -357,6 +396,76 @@ export default function AdminEVForm() {
               <option value="MAINTENANCE">Maintenance</option>
               <option value="INACTIVE">Inactive</option>
             </select>
+          </div>
+
+          {/* Images Upload */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Vehicle Images (Max 5)
+            </label>
+            <input 
+              type="file"
+              multiple
+              accept="image/*"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 5) {
+                  alert('Maximum 5 images allowed');
+                  e.target.value = '';
+                } else {
+                  setImages(files);
+                }
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-1 mb-3">
+              {isEditing ? "Uploading new images will append to existing ones." : "Select up to 5 images for the vehicle gallery."}
+            </p>
+
+            {/* Image Preview Section */}
+            {(existingImages.length > 0 || previewUrls.length > 0) && (
+              <div className="flex flex-wrap gap-3">
+                {/* Existing Images */}
+                {existingImages.map((img, idx) => (
+                  <div key={img._id || idx} className="relative w-24 h-24 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center group">
+                    <img 
+                      src={img.url.startsWith('http') ? img.url : `http://localhost:5000${img.url}`} 
+                      className="w-full h-full object-contain mix-blend-multiply" 
+                      alt="EV" 
+                    />
+                    <div className="absolute top-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+                      Saved
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveExistingImage(img._id)}
+                      className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove Image"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                ))}
+                
+                {/* New Image Previews */}
+                {previewUrls.map((url, idx) => (
+                  <div key={url} className="relative w-24 h-24 rounded-lg border-2 border-blue-400 border-dashed overflow-hidden bg-blue-50/30 flex items-center justify-center shadow-sm group">
+                    <img src={url} className="w-full h-full object-contain mix-blend-multiply p-1" alt="Preview" />
+                    <div className="absolute top-1 right-1 bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm">
+                      New
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveNewImage(idx)}
+                      className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove File"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>

@@ -6,6 +6,7 @@ import AuthLayout from "./layouts/AuthLayout";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const OtpPage = lazy(() => import("./pages/auth/OtpPage"));
+const NamePage = lazy(() => import("./pages/auth/NamePage"));
 const HomePage = lazy(() => import("./pages/home/HomePage"));
 const VehiclesPage = lazy(() => import("./pages/vehicles/VehiclesPage"));
 const VehicleDetailsPage = lazy(() => import("./pages/vehicles/VehicleDetailsPage"));
@@ -55,6 +56,7 @@ const UserRoutes = () => (
     <Route element={<AuthLayout />}>
       <Route path="login" element={<LoginPage />} />
       <Route path="otp" element={<OtpPage />} />
+      <Route path="auth/name" element={<NamePage />} />
     </Route>
 
     <Route

@@ -32,4 +32,18 @@ router.patch(
   bookingsController.updateBookingStatus
 );
 
+// GET live status of an active booking
+router.get(
+  '/:id/live',
+  validate(bookingsValidation.idParamSchema),
+  bookingsController.getLiveStatus
+);
+
+// PATCH extend an active booking
+router.patch(
+  '/:id/extend',
+  validate(bookingsValidation.idParamSchema),
+  bookingsController.extendBooking
+);
+
 export default router;

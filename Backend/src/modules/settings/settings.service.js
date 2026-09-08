@@ -15,13 +15,17 @@ export const getSettings = async (category) => {
   return settingsMap;
 };
 
-export const updateSettings = async (settingsData, adminId) => {
+export const updateSettings = async (settingsData, adminId, category) => {
   const updatedSettings = {};
 
   for (const [key, value] of Object.entries(settingsData)) {
+    const updatePayload = { key, value, updatedBy: adminId };
+    if (category) {
+      updatePayload.category = category;
+    }
     const setting = await Setting.findOneAndUpdate(
       { key },
-      { key, value, updatedBy: adminId },
+      { $set: updatePayload },
       { new: true, upsert: true }
     );
     updatedSettings[setting.key] = setting.value;

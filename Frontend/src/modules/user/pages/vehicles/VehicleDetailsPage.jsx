@@ -2,7 +2,6 @@ import { Check, MapPin, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../../../components/common/Button";
-import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
 import PageHeader from "../../../../components/layout/PageHeader";
 import VehicleGallery from "../../../../components/vehicle/VehicleGallery";
 import VehicleSpecs from "../../../../components/vehicle/VehicleSpecs";
@@ -23,14 +22,6 @@ const VehicleDetailsPage = () => {
     return null;
   }
 
-  const previewPricing = {
-    rentalBase: vehicle.prices.hour * 4,
-    durationLabel: "4 hours",
-    securityDeposit: vehicle.deposit,
-    serviceFee: Math.round(vehicle.prices.hour * 4 * 0.05),
-    taxes: Math.round(vehicle.prices.hour * 4 * 0.18),
-    total: vehicle.prices.hour * 4 + vehicle.deposit + Math.round(vehicle.prices.hour * 4 * 0.23),
-  };
 
   const handleBookNow = () => {
     selectVehicle(vehicle);
@@ -113,8 +104,6 @@ const VehicleDetailsPage = () => {
               Book now
             </Button>
           </section>
-
-          <PriceBreakdown pricing={previewPricing} />
         </div>
       </div>
     </main>

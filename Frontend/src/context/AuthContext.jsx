@@ -28,6 +28,15 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+    const session = JSON.parse(window.localStorage.getItem("evora-session") || "{}");
+    if (session && session.accessToken) {
+      session.user = userData;
+      window.localStorage.setItem("evora-session", JSON.stringify(session));
+    }
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -36,6 +45,7 @@ export const AuthProvider = ({ children }) => {
       requestOtp,
       verifyOtp,
       logout,
+      updateUser,
     }),
     [sessionReady, user]
   );

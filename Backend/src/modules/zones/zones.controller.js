@@ -45,3 +45,14 @@ export const deleteZone = async (req, res, next) => {
     next(error);
   }
 };
+
+// Public version — returns only id, name, address for user booking form
+export const listZonesPublic = async (req, res, next) => {
+  try {
+    const result = await zonesService.listZones({ limit: 100 });
+    const publicZones = result.zones.map(z => ({ _id: z._id, name: z.name, address: z.address }));
+    sendSuccess(res, 200, 'Zones fetched successfully', publicZones);
+  } catch (error) {
+    next(error);
+  }
+};

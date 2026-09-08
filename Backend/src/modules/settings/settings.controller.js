@@ -12,7 +12,8 @@ export const getSettings = async (req, res, next) => {
 
 export const updateSettings = async (req, res, next) => {
   try {
-    const updated = await settingsService.updateSettings(req.body, req.user?._id);
+    const category = req.query.category;
+    const updated = await settingsService.updateSettings(req.body, req.user?._id, category);
     sendSuccess(res, 200, 'Settings updated successfully', updated);
   } catch (error) {
     next(error);

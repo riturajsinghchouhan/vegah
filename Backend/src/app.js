@@ -20,10 +20,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));
 
+import path from 'path';
+
 // Request parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Request ID & Logging
 app.use(requestId);
@@ -54,17 +59,50 @@ import vehiclesRoutes from './modules/vehicles/vehicles.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import inventoryRoutes from './modules/inventory/inventory.routes.js';
 import bookingsRoutes from './modules/bookings/bookings.routes.js';
+import walletsRoutes from './modules/wallet/wallet.routes.js';
+import couponsRoutes from './modules/coupons/coupons.routes.js';
+import financeRoutes from './modules/finance/finance.routes.js';
+import reportsRoutes from './modules/reports/reports.routes.js';
+import settingsRoutes from './modules/settings/settings.routes.js';
+import inspectionsRoutes from './modules/inspections/inspections.routes.js';
+import chargingStationsRoutes from './modules/charging-stations/chargingStations.routes.js';
+import paymentsRoutes from './modules/payments/payments.routes.js';
+import { BATTERY_PACKAGES } from './modules/bookings/bookings.constants.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/zones', zonesRoutes);
 app.use('/api/admin/categories', categoriesRoutes);
 app.use('/api/admin/inventory', inventoryRoutes);
+app.use('/api/admin/inspections', inspectionsRoutes);
+app.use('/api/admin/finance', financeRoutes);
+app.use('/api/admin/reports', reportsRoutes);
+app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bookings', bookingsRoutes);
+app.use('/api/wallet', walletsRoutes);
+app.use('/api/coupons', couponsRoutes);
+app.use('/api/charging-stations', chargingStationsRoutes);
+app.use('/api/payments', paymentsRoutes);
+
+// Battery Packages — static but served via API for frontend consistency
+app.get('/api/battery-packages', (req, res) => {
+  const packages = Object.values(BATTERY_PACKAGES).map(pkg => ({
+    id: pkg.id,
+    name: pkg.name,
+    price: pkg.price,
+    description: pkg.id === 'NONE' 
+      ? 'No charging package included'
+      : pkg.id === 'SINGLE' 
+        ? 'One full charge included during your rental'
+        : 'Unlimited battery swaps during your rental period',
+  }));
+  res.json({ success: true, message: 'Battery packages fetched', data: packages });
+});
 
 // Global Error Handler (must be the last middleware)
 app.use(errorHandler);
 
 export default app;
+

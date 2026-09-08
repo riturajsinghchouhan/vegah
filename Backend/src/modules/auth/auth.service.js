@@ -28,9 +28,9 @@ export const requestOtp = async (phone) => {
   // Check rate limit in Redis manually if needed, but we have middleware for it
   let otp;
   if (env.USE_DEFAULT_OTP) {
-    otp = '123456';
+    otp = '1234';
   } else {
-    otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otp = Math.floor(1000 + Math.random() * 9000).toString();
   }
 
   // Hash OTP before storing (basic security measure)
