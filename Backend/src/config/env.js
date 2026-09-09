@@ -66,6 +66,11 @@ const envSchema = Joi.object({
   PASSWORD_RESET_OTP_EXPIRY_MINUTES: Joi.number().default(10),
   PASSWORD_RESET_MAX_ATTEMPTS: Joi.number().default(5),
   PASSWORD_RESET_TOKEN_EXPIRY_MINUTES: Joi.number().default(30),
+
+  // Electica Partner API
+  ELECTICA_BASE_URL: Joi.string().uri().default('https://bss.electica.in/api/partner'),
+  ELECTICA_API_KEY: Joi.string().allow(''),
+  ELECTICA_STATION_ID: Joi.string().default('BLR001'),
 }).unknown(true);
 
 const { error, value: envVars } = envSchema.validate(process.env);

@@ -25,6 +25,7 @@ import AdminTaxBilling from "./pages/AdminTaxBilling";
 import AdminSettings from "./pages/AdminSettings";
 import AdminProfile from "./pages/AdminProfile";
 import AdminLogin from "./pages/AdminLogin";
+import AdminElecticaDashboard from "./pages/AdminElecticaDashboard";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 
 export default function AdminRoutes() {
@@ -55,6 +56,9 @@ export default function AdminRoutes() {
         <Route path="evs" element={<AdminEVs />} />
         <Route path="evs/new" element={<AdminEVForm />} />
         <Route path="evs/:id" element={<AdminEVForm />} />
+
+        {/* Electica BSS Partner route */}
+        <Route path="electica" element={<AdminElecticaDashboard />} />
 
         {/* Bookings route */}
         <Route path="bookings" element={<AdminBookings />} />

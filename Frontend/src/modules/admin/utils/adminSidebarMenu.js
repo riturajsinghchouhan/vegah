@@ -64,6 +64,13 @@ export const adminSidebarMenu = [
         path: "/admin/evs",
         permissionKey: "bikes",
       },
+      {
+        type: "link",
+        label: "Electica BSS",
+        icon: RefreshCw,
+        path: "/admin/electica",
+        permissionKey: "bikes",
+      },
     ],
   },
   {
