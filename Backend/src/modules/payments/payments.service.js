@@ -118,8 +118,8 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
   payment.paidAt = new Date();
   await payment.save();
 
-  // Confirm the booking
-  const confirmedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.CONFIRMED);
+  // Set booking to PENDING_VERIFICATION (Payment successful, awaiting Admin approval to confirm/start ride)
+  const updatedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);
 
-  return { payment, booking: confirmedBooking };
+  return { payment, booking: updatedBooking };
 };

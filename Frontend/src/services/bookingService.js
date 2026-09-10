@@ -55,4 +55,14 @@ export const bookingService = {
     const response = await api.post(`/payments/verify`, verificationData);
     return response.data.data;
   },
+
+  async updateBookingStatus(bookingId, status) {
+    const response = await api.patch(`/bookings/${bookingId}/status`, { status });
+    return response.data.data;
+  },
+
+  async startRide(bookingId) {
+    const response = await api.patch(`/bookings/${bookingId}/status`, { status: 'ACTIVE' });
+    return response.data.data;
+  },
 };

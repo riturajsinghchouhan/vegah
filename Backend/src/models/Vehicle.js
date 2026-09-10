@@ -26,6 +26,13 @@ const vehicleSchema = new Schema({
   pricePerHour: { type: Number, required: true },
   pricePerDay: { type: Number, required: true },
   securityDeposit: { type: Number, required: true },
+  totalStock: { type: Number, default: 1, min: 0 },
+  availableStock: { type: Number, default: 1, min: 0 },
+  stockStatus: { 
+    type: String, 
+    enum: ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'], 
+    default: 'IN_STOCK' 
+  },
   rating: { type: Number, default: 0, min: 0, max: 5 },
   reviewsCount: { type: Number, default: 0 },
   status: {

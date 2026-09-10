@@ -1,6 +1,6 @@
-import { CheckCircle2, Navigation, Clock, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Navigation, Clock, Sparkles, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Button from "../../../../components/common/Button";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { formatCurrency } from "../../../../utils/formatters";
@@ -10,8 +10,10 @@ import { initSocket } from "../../../../services/socketService";
 
 const BookingSuccessPage = () => {
   const { latestBooking, setLatestBooking } = useBooking();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [confirmedAlert, setConfirmedAlert] = useState(false);
+  const [startingRide, setStartingRide] = useState(false);
 
   const playCelebrationSound = () => {
     try {
@@ -35,24 +37,22 @@ const BookingSuccessPage = () => {
   };
 
   useEffect(() => {
-    // If latestBooking is missing or missing amount/totalAmount, fetch latest booking from backend
-    if (!latestBooking || (!latestBooking.amount && !latestBooking.totalAmount)) {
-      setLoading(true);
-      bookingService
-        .listBookings({ limit: 1 })
-        .then((bookings) => {
-          if (bookings && bookings.length > 0) {
-            const recent = bookings[0];
-            setLatestBooking(recent);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to fetch recent booking:", err);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
+    // Fetch latest booking from backend
+    setLoading(true);
+    bookingService
+      .listBookings({ limit: 1 })
+      .then((bookingsList) => {
+        if (bookingsList && bookingsList.length > 0) {
+          const recent = bookingsList[0];
+          setLatestBooking(recent);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch recent booking:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   // ⚡ Real-Time Socket Listener for Admin Status Update
@@ -86,6 +86,22 @@ const BookingSuccessPage = () => {
     };
   }, [latestBooking, setLatestBooking]);
 
+  const handleStartRide = async () => {
+    try {
+      setStartingRide(true);
+      const targetId = latestBooking?._id || latestBooking?.id;
+      if (targetId) {
+        await bookingService.startRide(targetId);
+      }
+      navigate("/user/rental/active");
+    } catch (err) {
+      console.error("Failed to start ride", err);
+      navigate("/user/rental/active");
+    } finally {
+      setStartingRide(false);
+    }
+  };
+
   const bookingAmount =
     latestBooking?.amount ??
     latestBooking?.totalAmount ??
@@ -102,11 +118,10 @@ const BookingSuccessPage = () => {
   const bookingStatus = (latestBooking?.status || "RESERVED").toUpperCase();
 
   const isConfirmed = bookingStatus === "CONFIRMED" || bookingStatus === "ACTIVE";
-  const isPending = !isConfirmed && (bookingStatus === "RESERVED" || bookingStatus === "PENDING_VERIFICATION" || latestBooking?.paymentMode === "CASH");
 
   return (
     <main className="page-padding">
-      <PageHeader subtitle="Step 3 of 3" title={isConfirmed ? "Booking Confirmed" : "Booking Processing"} />
+      <PageHeader subtitle="Step 3 of 3" title={isConfirmed ? "Booking Approved!" : "Booking Processing"} />
 
       <section className="surface-card mx-auto max-w-3xl p-6 text-center sm:p-8 relative">
         {/* Live Admin Approval Banner */}
@@ -115,9 +130,9 @@ const BookingSuccessPage = () => {
             <div className="flex items-center gap-3 text-left">
               <Sparkles className="h-6 w-6 text-yellow-300 shrink-0" />
               <div>
-                <p className="font-extrabold text-sm tracking-wide">🎉 BOOKING CONFIRMED BY ADMIN!</p>
+                <p className="font-extrabold text-sm tracking-wide">🎉 BOOKING APPROVED BY ADMIN!</p>
                 <p className="text-xs text-emerald-100 mt-0.5">
-                  Your booking <span className="font-mono font-bold">{bookingId}</span> has been approved and confirmed. Your vehicle is ready!
+                  Your booking <span className="font-mono font-bold">{bookingId}</span> has been approved by Admin. You can now start your ride!
                 </p>
               </div>
             </div>
@@ -138,14 +153,14 @@ const BookingSuccessPage = () => {
 
         <h2 className="mt-6 text-2xl sm:text-3xl font-bold tracking-tight text-app-text">
           {isConfirmed
-            ? "🎉 Your EV is Reserved & Confirmed!"
-            : "Booking is processed. Waiting for admin confirmation..."}
+            ? "🎉 Booking Approved Successfully!"
+            : "⏳ Waiting for Admin Approval..."}
         </h2>
 
         <p className="mt-3 text-sm leading-7 text-app-subtle max-w-xl mx-auto">
           {isConfirmed
-            ? `Booking ID ${bookingId} has been confirmed by Admin. Pickup and vehicle details are ready in your bookings tab.`
-            : `Booking ID ${bookingId} created. You are all set! Please wait a moment while an admin reviews and confirms your booking.`}
+            ? `Booking ID ${bookingId} has been approved by Admin! Click the button below to start your EV ride.`
+            : `Booking ID ${bookingId} created. Please wait a moment while Admin reviews and approves your booking.`}
         </p>
 
         <div className="mt-8 grid gap-4 rounded-[1.75rem] border border-app-border bg-app-card p-5 text-left sm:grid-cols-2">
@@ -169,16 +184,27 @@ const BookingSuccessPage = () => {
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                 isConfirmed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700 animate-pulse"
               }`}>
-                {isConfirmed ? "✓ CONFIRMED" : "⏳ WAITING ADMIN CONFIRMATION"}
+                {isConfirmed ? "✓ APPROVED BY ADMIN" : "⏳ WAITING ADMIN APPROVAL"}
               </span>
             </div>
           </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link to="/user/bookings">
-            <Button className="w-full sm:min-w-[180px]">View bookings</Button>
-          </Link>
+          {isConfirmed ? (
+            <Button 
+              onClick={handleStartRide} 
+              disabled={startingRide}
+              className="w-full sm:min-w-[220px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-base shadow-lg flex items-center justify-center gap-2"
+            >
+              <Zap size={20} />
+              {startingRide ? "Starting Ride..." : "Start Ride Now"}
+            </Button>
+          ) : (
+            <Link to="/user/bookings">
+              <Button className="w-full sm:min-w-[180px]">View My Bookings</Button>
+            </Link>
+          )}
           <Link to="/user/charging">
             <Button className="w-full sm:min-w-[180px]" variant="secondary">
               <Navigation className="mr-2" size={16} />

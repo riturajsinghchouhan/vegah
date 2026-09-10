@@ -4,7 +4,7 @@ import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
-import { PlusIcon as Plus, EyeIcon as Eye, SquarePenIcon as Edit3, ArchiveIcon as Trash2, SearchIcon as Search, BatteryIcon as Battery, MapPinIcon as MapPin, BookmarkIcon as Tag } from 'lucide-animated';
+import { PlusIcon as Plus, EyeIcon as Eye, SquarePenIcon as Edit3, ArchiveIcon as Trash2, SearchIcon as Search, BatteryIcon as Battery, MapPinIcon as MapPin, BookmarkIcon as Tag, LayersIcon as Layers } from 'lucide-animated';
 import { cn } from '@/lib/utils';
 import { adminService } from '../services/adminService';
 
@@ -27,7 +27,6 @@ export default function AdminEVs() {
       setLoading(true);
       const data = await adminService.getVehicles();
       
-      // Map backend format to frontend format
       const mappedVehicles = (data || []).map(v => ({
         id: v._id,
         rawId: v._id,
@@ -45,6 +44,9 @@ export default function AdminEVs() {
         pricePerDay: v.pricePerDay || 0,
         pricePerHour: v.pricePerHour || 0,
         securityDeposit: v.securityDeposit || 0,
+        totalStock: v.totalStock ?? 1,
+        availableStock: v.availableStock ?? 1,
+        stockStatus: v.stockStatus || (v.availableStock === 0 ? 'OUT_OF_STOCK' : 'IN_STOCK'),
         status: v.status ? (v.status.charAt(0).toUpperCase() + v.status.slice(1).toLowerCase()) : 'Available',
         image: v.images && v.images.length > 0 ? (v.images.find(img => img.isPrimary)?.url || v.images[0].url) : null,
         features: v.features || [],
@@ -70,7 +72,6 @@ export default function AdminEVs() {
     }
   };
 
-  // Filter the scooties based on search and active tab
   const filteredScooties = scooties.filter(scooty => {
     const matchesSearch = scooty.plate.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           scooty.model.toLowerCase().includes(searchTerm.toLowerCase());
@@ -78,7 +79,6 @@ export default function AdminEVs() {
     return matchesSearch && matchesFilter;
   });
 
-  // Calculate counts for the tabs
   const getCount = (status) => {
     if (status === 'All') return scooties.length;
     return scooties.filter(s => s.status.toLowerCase() === status.toLowerCase()).length;
@@ -88,7 +88,7 @@ export default function AdminEVs() {
     <div className="space-y-6 pb-8 max-w-7xl mx-auto">
       <PageHeader 
         title="All Scooties" 
-        description="Manage your entire fleet of EVs from here."
+        description="Manage your entire fleet of EVs, stock counts, and zone allocations."
         actions={
           <Button 
             onClick={() => navigate('/admin/evs/new')}
@@ -101,8 +101,6 @@ export default function AdminEVs() {
       
       {/* Search and Filters */}
       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
-        
-        {/* Search Bar */}
         <div className="flex items-center bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
           <Search className="text-gray-400 mr-3" size={20} />
           <input 
@@ -114,7 +112,6 @@ export default function AdminEVs() {
           />
         </div>
 
-        {/* Filter Tabs */}
         <div className="flex flex-wrap gap-2">
           {FILTERS.map(filter => (
             <button
@@ -142,7 +139,7 @@ export default function AdminEVs() {
           <div key={scooty.id} className="bg-indigo-50/30 rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col">
             
             {/* Image Section */}
-            <div className="h-36 w-full bg-white flex items-center justify-center p-2 border-b border-gray-100">
+            <div className="h-36 w-full bg-white flex items-center justify-center p-2 border-b border-gray-100 relative">
               {scooty.image ? (
                 <img 
                   src={scooty.image.startsWith('http') ? scooty.image : `http://localhost:5000${scooty.image}`} 
@@ -154,6 +151,19 @@ export default function AdminEVs() {
                   <span className="text-xs font-semibold">No Image</span>
                 </div>
               )}
+
+              {/* Stock Badge Overlay */}
+              <div className="absolute top-2 right-2">
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-sm border ${
+                  scooty.availableStock === 0
+                    ? 'bg-red-500 text-white border-red-600'
+                    : scooty.availableStock < 3
+                    ? 'bg-amber-500 text-white border-amber-600'
+                    : 'bg-emerald-600 text-white border-emerald-700'
+                }`}>
+                  {scooty.availableStock === 0 ? 'Out of Stock' : `Stock: ${scooty.availableStock} Available`}
+                </span>
+              </div>
             </div>
             
             {/* Card Header */}
@@ -173,7 +183,7 @@ export default function AdminEVs() {
                 <button 
                   onClick={() => navigate(`/admin/evs/${scooty.id}`)}
                   className="p-1.5 hover:bg-blue-100 text-blue-600 rounded-md transition-colors"
-                  title="Edit Vehicle"
+                  title="Edit Vehicle & Stock"
                 >
                   <Edit3 size={16} strokeWidth={2.5} />
                 </button>
@@ -188,7 +198,14 @@ export default function AdminEVs() {
             </div>
 
             {/* Card Body - Details */}
-            <div className="p-5 space-y-4 flex-1">
+            <div className="p-5 space-y-3 flex-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-gray-500 text-sm gap-2">
+                  <Layers size={16} className="text-orange-500" /> Fleet Stock
+                </div>
+                <span className="font-bold text-gray-900 text-sm">{scooty.availableStock} / {scooty.totalStock} Units</span>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-gray-500 text-sm gap-2">
                   <Tag size={16} /> Category
@@ -255,6 +272,14 @@ export default function AdminEVs() {
             </div>
 
             <div className="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm overflow-y-auto max-h-[60vh] no-scrollbar">
+              <div className="flex justify-between border-b pb-2 bg-orange-50/50 p-2 rounded-lg">
+                <span className="text-orange-900 font-bold">📦 Total Stock Units</span>
+                <span className="font-black text-orange-900">{selectedScooty.totalStock} Units</span>
+              </div>
+              <div className="flex justify-between border-b pb-2 bg-emerald-50/50 p-2 rounded-lg">
+                <span className="text-emerald-900 font-bold">📦 Available Stock Units</span>
+                <span className="font-black text-emerald-900">{selectedScooty.availableStock} Units</span>
+              </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Vehicle ID</span>
                 <span className="font-semibold text-gray-900">{selectedScooty.id}</span>
@@ -268,24 +293,12 @@ export default function AdminEVs() {
                 <span className="font-semibold text-gray-900">{selectedScooty.category}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-500 font-medium">Type</span>
-                <span className="font-semibold text-gray-900">{selectedScooty.type}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Zone</span>
                 <span className="font-semibold text-gray-900">{selectedScooty.zone}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Location</span>
                 <span className="font-semibold text-gray-900">{selectedScooty.location}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-500 font-medium">Battery</span>
-                <span className="font-semibold text-gray-900">{selectedScooty.batteryCapacity} ({selectedScooty.battery}%)</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-500 font-medium">Est. Range</span>
-                <span className="font-semibold text-gray-900">{selectedScooty.rangeKm} km</span>
               </div>
               <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500 font-medium">Daily Rate</span>
@@ -295,19 +308,14 @@ export default function AdminEVs() {
                 <span className="text-gray-500 font-medium">Hourly Rate</span>
                 <span className="font-semibold text-gray-900">₹{selectedScooty.pricePerHour}/hr</span>
               </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-500 font-medium">Security Deposit</span>
-                <span className="font-semibold text-gray-900">₹{selectedScooty.securityDeposit}</span>
-              </div>
-              {selectedScooty.features?.length > 0 && (
-                <div className="flex justify-between pt-1">
-                  <span className="text-gray-500 font-medium">Features</span>
-                  <span className="font-semibold text-gray-900 text-right">{selectedScooty.features.join(', ')}</span>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => {
+                const sId = selectedScooty.id;
+                setSelectedScooty(null);
+                navigate(`/admin/evs/${sId}`);
+              }}>Edit Stock & Details</Button>
               <Button variant="primary" onClick={() => setSelectedScooty(null)}>Close</Button>
             </div>
           </div>

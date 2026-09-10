@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bike, Tag, MapPin, Save, Battery, IndianRupee, X } from 'lucide-react';
+import { ArrowLeft, Bike, Save, X, Layers } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { Button } from '@/shared/components/ui/Button';
 
@@ -38,6 +38,9 @@ export default function AdminEVForm() {
     pricePerHour: 40,
     pricePerDay: 350,
     securityDeposit: 1000,
+    totalStock: 1,
+    availableStock: 1,
+    stockStatus: 'IN_STOCK',
     location: 'Bengaluru Hub',
     status: 'AVAILABLE',
   });
@@ -62,7 +65,6 @@ export default function AdminEVForm() {
       setCategories(cats);
       setZones(zonesList);
 
-      // Auto select first option if creating
       if (!isEditing) {
         setFormData(prev => ({
           ...prev,
@@ -94,6 +96,9 @@ export default function AdminEVForm() {
           pricePerHour: vehicle.pricePerHour || 40,
           pricePerDay: vehicle.pricePerDay || 350,
           securityDeposit: vehicle.securityDeposit || 1000,
+          totalStock: vehicle.totalStock ?? 1,
+          availableStock: vehicle.availableStock ?? 1,
+          stockStatus: vehicle.stockStatus || (vehicle.availableStock === 0 ? 'OUT_OF_STOCK' : 'IN_STOCK'),
           location: vehicle.location || 'Bengaluru Hub',
           status: vehicle.status || 'AVAILABLE',
         });
@@ -109,7 +114,16 @@ export default function AdminEVForm() {
   };
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      if (field === 'availableStock') {
+        const avail = Number(value);
+        if (avail === 0) updated.stockStatus = 'OUT_OF_STOCK';
+        else if (avail < 3) updated.stockStatus = 'LOW_STOCK';
+        else updated.stockStatus = 'IN_STOCK';
+      }
+      return updated;
+    });
   };
 
   const handleRemoveExistingImage = async (imageId) => {
@@ -151,6 +165,9 @@ export default function AdminEVForm() {
       payload.append('pricePerHour', formData.pricePerHour);
       payload.append('pricePerDay', formData.pricePerDay);
       payload.append('securityDeposit', formData.securityDeposit);
+      payload.append('totalStock', formData.totalStock);
+      payload.append('availableStock', formData.availableStock);
+      payload.append('stockStatus', formData.stockStatus);
       payload.append('location', formData.location);
       payload.append('status', formData.status);
       payload.append('coordinates', JSON.stringify({ lat: 12.9716, lng: 77.5946 }));
@@ -165,6 +182,7 @@ export default function AdminEVForm() {
         await adminService.createVehicle(payload);
       }
 
+      alert("EV details & Stock management updated successfully!");
       navigate('/admin/evs');
     } catch (error) {
       console.error("Failed to save vehicle", error);
@@ -195,7 +213,7 @@ export default function AdminEVForm() {
         
         <div>
           <h1 className="text-xl font-bold text-gray-900 leading-tight">{title}</h1>
-          <p className="text-sm text-gray-500">Manage vehicle details, pricing and zone assignment</p>
+          <p className="text-sm text-gray-500">Manage vehicle details, stock quantity, pricing and zone assignment</p>
         </div>
       </div>
 
@@ -211,7 +229,7 @@ export default function AdminEVForm() {
               type="text"
               placeholder="e.g. KA 01 EV 1234"
               required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
               value={formData.plateNumber}
               onChange={(e) => handleChange('plateNumber', e.target.value)}
             />
@@ -230,6 +248,97 @@ export default function AdminEVForm() {
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
             />
+          </div>
+
+          {/* Stock Management Section */}
+          <div className="md:col-span-2 bg-gradient-to-r from-orange-50/60 via-amber-50/40 to-orange-50/60 p-5 rounded-xl border border-orange-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-orange-200/80 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-orange-500 text-white rounded-lg shadow-sm">
+                  <Layers size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">📦 Fleet Stock Management (Stock Level)</h3>
+                  <p className="text-xs text-gray-600">Track physical inventory count and available units for booking</p>
+                </div>
+              </div>
+              
+              {/* Live Stock Indicator Badge */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock Status:</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm border ${
+                  Number(formData.availableStock) === 0
+                    ? 'bg-red-100 text-red-700 border-red-300'
+                    : Number(formData.availableStock) < 3
+                    ? 'bg-amber-100 text-amber-700 border-amber-300'
+                    : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${
+                    Number(formData.availableStock) === 0 ? 'bg-red-500 animate-ping' : Number(formData.availableStock) < 3 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`} />
+                  {Number(formData.availableStock) === 0 
+                    ? 'Out of Stock' 
+                    : Number(formData.availableStock) < 3 
+                    ? `Low Stock (${formData.availableStock} units)` 
+                    : `In Stock (${formData.availableStock} / ${formData.totalStock} units)`}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Total Fleet Stock (Total Units) <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="number"
+                  min="0"
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white font-bold text-gray-900"
+                  value={formData.totalStock}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    handleChange('totalStock', val);
+                    if (formData.availableStock > val) {
+                      handleChange('availableStock', val);
+                    }
+                  }}
+                />
+                <p className="text-[11px] text-gray-500 mt-1">Total EV units present in fleet</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Available Stock (Available for Booking) <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="number"
+                  min="0"
+                  max={formData.totalStock}
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white font-bold text-gray-900"
+                  value={formData.availableStock}
+                  onChange={(e) => handleChange('availableStock', Number(e.target.value))}
+                />
+                <p className="text-[11px] text-gray-500 mt-1">Currently ready for instant booking</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Stock Condition Status
+                </label>
+                <select 
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white font-semibold"
+                  value={formData.stockStatus}
+                  onChange={(e) => handleChange('stockStatus', e.target.value)}
+                >
+                  <option value="IN_STOCK">In Stock (Available)</option>
+                  <option value="LOW_STOCK">Low Stock (Alert)</option>
+                  <option value="OUT_OF_STOCK">Out of Stock (Disabled)</option>
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1">Manual status override if needed</p>
+              </div>
+            </div>
           </div>
 
           {/* Brand */}
@@ -278,11 +387,6 @@ export default function AdminEVForm() {
                 <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
               ))}
             </select>
-            {categories.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                No categories found. <a href="/admin/categories/new" target="_blank" className="underline font-semibold">Create a Category</a> first.
-              </p>
-            )}
           </div>
 
           {/* Zone Dropdown */}
@@ -301,11 +405,6 @@ export default function AdminEVForm() {
                 <option key={z._id || z.id} value={z._id || z.id}>{z.name}</option>
               ))}
             </select>
-            {zones.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                No zones found. <a href="/admin/zones/new" target="_blank" className="underline font-semibold">Create a Zone</a> first.
-              </p>
-            )}
           </div>
 
           {/* Daily Price */}
@@ -385,7 +484,7 @@ export default function AdminEVForm() {
           {/* Status */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Status <span className="text-red-500">*</span>
+              Operational Status <span className="text-red-500">*</span>
             </label>
             <select 
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -486,7 +585,7 @@ export default function AdminEVForm() {
             className="bg-[#ea580c] hover:bg-[#c2410c] border-none text-white shadow-sm disabled:opacity-50 flex items-center gap-2"
           >
             <Save size={16} />
-            {saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create EV')}
+            {saving ? 'Saving...' : (isEditing ? 'Save Changes & Stock' : 'Create EV')}
           </Button>
         </div>
       </form>

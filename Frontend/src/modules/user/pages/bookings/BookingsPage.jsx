@@ -1,45 +1,119 @@
 import { Calendar, MapPin, ArrowRight, Zap, CheckCircle2, Clock, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import Button from "../../../../components/common/Button";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import EmptyState from "../../../../components/common/EmptyState";
 import { bookingTabs } from "../../../../constants/options";
-import { bookings } from "../../../../data/bookings";
 import { formatCurrency } from "../../../../utils/formatters";
+import { bookingService } from "../../../../services/bookingService";
+import { initSocket } from "../../../../services/socketService";
 
 const BookingsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Upcoming");
+  const [userBookings, setUserBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const data = await bookingService.listBookings();
+      setUserBookings(data || []);
+    } catch (err) {
+      console.error("Failed to fetch user bookings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+
+    const socket = initSocket();
+    const handleStatusUpdated = (updatedBooking) => {
+      const targetId = updatedBooking._id || updatedBooking.id;
+      setUserBookings((prev) =>
+        prev.map((b) => ((b._id || b.id) === targetId ? { ...b, ...updatedBooking } : b))
+      );
+    };
+
+    socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+    return () => {
+      socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+    };
+  }, []);
+
+  const formattedList = useMemo(() => {
+    return userBookings.map((b) => {
+      const st = (b.status || 'RESERVED').toUpperCase();
+      let tabCategory = 'Upcoming';
+      if (st === 'ACTIVE' || st === 'OVERDUE') tabCategory = 'Active';
+      else if (st === 'COMPLETED') tabCategory = 'Completed';
+      else if (st.includes('CANCELLED')) tabCategory = 'Cancelled';
+
+      return {
+        raw: b,
+        id: b.bookingId || (typeof b._id === 'string' ? b._id.substring(0, 10).toUpperCase() : 'EVR-NEW'),
+        vehicleName: b.vehicle?.name || 'EV Scooter',
+        status: st,
+        tabCategory,
+        amount: b.totalAmount ?? b.amount ?? 0,
+        dateRange: b.startDate ? `${new Date(b.startDate).toLocaleDateString()} at ${b.startTime || '10:00'}` : 'Today',
+        location: b.pickupLocation || 'Main Hub',
+      };
+    });
+  }, [userBookings]);
 
   const filteredBookings = useMemo(
-    () => bookings.filter((booking) => booking.status.toLowerCase() === activeTab.toLowerCase()),
-    [activeTab]
+    () => formattedList.filter((b) => b.tabCategory.toLowerCase() === activeTab.toLowerCase()),
+    [formattedList, activeTab]
   );
 
+  const handleStartRide = async (bookingId) => {
+    try {
+      await bookingService.startRide(bookingId);
+      navigate("/user/rental/active");
+    } catch (err) {
+      console.error("Failed to start ride:", err);
+      navigate("/user/rental/active");
+    }
+  };
+
   const getStatusIcon = (status) => {
-    switch(status.toLowerCase()) {
-      case "active": return <Zap size={14} className="text-blue-500" />;
-      case "completed": return <CheckCircle2 size={14} className="text-green-500" />;
-      case "cancelled": return <XCircle size={14} className="text-red-500" />;
-      default: return <Clock size={14} className="text-orange-500" />;
+    switch (status) {
+      case "ACTIVE": return <Zap size={14} className="text-blue-500" />;
+      case "CONFIRMED": return <CheckCircle2 size={14} className="text-emerald-500" />;
+      case "COMPLETED": return <CheckCircle2 size={14} className="text-green-500" />;
+      case "CANCELLED_BY_USER":
+      case "CANCELLED_BY_ADMIN":
+      case "CANCELLED": return <XCircle size={14} className="text-red-500" />;
+      default: return <Clock size={14} className="text-amber-500" />;
     }
   };
 
   const getStatusBadgeColor = (status) => {
-    switch(status.toLowerCase()) {
-      case "active": return "bg-blue-50 text-blue-600 border-blue-100";
-      case "completed": return "bg-green-50 text-green-600 border-green-100";
-      case "cancelled": return "bg-red-50 text-red-600 border-red-100";
-      default: return "bg-orange-50 text-orange-600 border-orange-100";
+    switch (status) {
+      case "ACTIVE": return "bg-blue-50 text-blue-600 border-blue-100";
+      case "CONFIRMED": return "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold";
+      case "COMPLETED": return "bg-green-50 text-green-600 border-green-100";
+      case "CANCELLED_BY_USER":
+      case "CANCELLED_BY_ADMIN":
+      case "CANCELLED": return "bg-red-50 text-red-600 border-red-100";
+      default: return "bg-amber-50 text-amber-600 border-amber-100";
     }
+  };
+
+  const formatStatusLabel = (status) => {
+    if (status === 'CONFIRMED') return 'Approved by Admin';
+    if (status === 'PENDING_VERIFICATION' || status === 'RESERVED') return 'Waiting Approval';
+    return status.replace(/_/g, ' ');
   };
 
   return (
     <div className="bg-[#FAFAFA] min-h-screen pb-24 font-sans relative">
-      
       {/* Header Section */}
       <div className="bg-white px-5 pt-8 pb-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative z-10">
         <h1 className="text-[24px] font-bold text-gray-900 leading-tight">My Bookings</h1>
-        <p className="text-[13px] text-gray-500 mt-1">Track your upcoming and past rides</p>
+        <p className="text-[13px] text-gray-500 mt-1">Track your upcoming and past EV rides</p>
 
         {/* Tabs */}
         <div className="flex gap-3 overflow-x-auto no-scrollbar mt-6">
@@ -61,7 +135,9 @@ const BookingsPage = () => {
 
       {/* Bookings List */}
       <div className="p-4">
-        {filteredBookings.length ? (
+        {loading ? (
+          <div className="py-12 text-center text-gray-500 font-semibold">Loading your bookings...</div>
+        ) : filteredBookings.length ? (
           <div className="space-y-4 mt-2">
             {filteredBookings.map((booking) => (
               <div 
@@ -78,7 +154,7 @@ const BookingsPage = () => {
                   </div>
                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold ${getStatusBadgeColor(booking.status)}`}>
                     {getStatusIcon(booking.status)}
-                    {booking.status}
+                    {formatStatusLabel(booking.status)}
                   </div>
                 </div>
 
@@ -113,10 +189,15 @@ const BookingsPage = () => {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="px-4 py-2 text-[12px] font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
-                      Details
-                    </button>
-                    {booking.status === "Active" && (
+                    {booking.status === "CONFIRMED" && (
+                      <button 
+                        onClick={() => handleStartRide(booking.raw._id || booking.raw.id)}
+                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-md animate-pulse"
+                      >
+                        <Zap size={14} /> Start Ride
+                      </button>
+                    )}
+                    {booking.status === "ACTIVE" && (
                       <Link 
                         to="/user/rental/active" 
                         className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#FF5A1F] rounded-xl hover:bg-[#E54D15] transition-colors shadow-sm"

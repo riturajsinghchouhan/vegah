@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
-import { Eye, Phone, Clock, StopCircle, Search, Filter, CheckCircle, XCircle, Zap, X, Calendar, Layers } from 'lucide-react';
+import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
-import { cn } from '@/lib/utils';
 import { adminService } from '../services/adminService';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
@@ -15,7 +14,6 @@ export default function AdminBookings() {
   const navigate = useNavigate();
   const ops = searchParams.get('ops');
   
-  // Default to 'all' if no ops or unknown ops
   const activeTab = ops === 'live' ? 'live' : ops === 'pickups' ? 'pickups' : 'all';
 
   const [bookings, setBookings] = useState([]);
@@ -42,19 +40,20 @@ export default function AdminBookings() {
     }
   };
 
+  const fetchAllBookings = async () => {
+    try {
+      setLoading(true);
+      const data = await adminService.getBookings();
+      const bookingList = Array.isArray(data) ? data : (data?.bookings || []);
+      setBookings(bookingList);
+    } catch (error) {
+      console.error("Failed to fetch bookings", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAllBookings = async () => {
-      try {
-        setLoading(true);
-        const data = await adminService.getBookings();
-        const bookingList = Array.isArray(data) ? data : (data?.bookings || []);
-        setBookings(bookingList);
-      } catch (error) {
-        console.error("Failed to fetch bookings", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAllBookings();
 
     // ⚡ Socket.IO Real-time Listener
@@ -71,21 +70,10 @@ export default function AdminBookings() {
         if (exists) return prev;
         return [newBooking, ...prev];
       });
-
-      // Browser Notification
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const vName = newBooking.vehicle?.name || 'EV Scooter';
-        const bId = newBooking.bookingId || newBooking._id || 'EVR-NEW';
-        new Notification('🚀 New EV Booking Received!', {
-          body: `Booking ID: ${bId} for ${vName}`,
-          icon: '/vite.svg',
-        });
-      }
     };
 
     socket.on('NEW_BOOKING', handleNewBooking);
 
-    // Listen for status updates from other sessions/admins
     const handleStatusUpdated = (updatedBooking) => {
       const targetId = updatedBooking._id || updatedBooking.id;
       setBookings((prev) =>
@@ -94,7 +82,6 @@ export default function AdminBookings() {
     };
     socket.on('BOOKING_STATUS_UPDATED', handleStatusUpdated);
 
-    // 🔥 Firebase Push Notifications Permission & Listener
     requestNotificationPermission();
     const unsubscribeFcm = onForegroundMessage((payload) => {
       console.log("🔥 [FCM] Foreground notification:", payload);
@@ -108,7 +95,7 @@ export default function AdminBookings() {
     };
   }, []);
 
-  const handleConfirmBooking = async (bookingId) => {
+  const handleApproveBooking = async (bookingId) => {
     try {
       setActionLoading(bookingId);
       const updated = await adminService.updateBookingStatus(bookingId, 'CONFIRMED');
@@ -122,10 +109,10 @@ export default function AdminBookings() {
           return b;
         })
       );
-      alert(`Booking ${updated?.bookingId || bookingId} has been confirmed successfully!`);
+      alert(`✅ Booking ${updated?.bookingId || bookingId} Approved Successfully! User can now start ride.`);
     } catch (error) {
-      console.error("Failed to confirm booking", error);
-      alert(error.response?.data?.message || "Failed to confirm booking.");
+      console.error("Failed to approve booking", error);
+      alert(error.response?.data?.message || "Failed to approve booking.");
     } finally {
       setActionLoading(null);
     }
@@ -139,7 +126,6 @@ export default function AdminBookings() {
     }
   };
 
-  // Counts for tabs
   const allCount = bookings.length;
   const liveCount = bookings.filter(b => b.status === 'ACTIVE' || b.status === 'OVERDUE').length;
   const pickupsCount = bookings.filter(b => !b.status || b.status === 'PENDING' || b.status === 'CONFIRMED' || b.status === 'RESERVED' || b.status === 'PENDING_VERIFICATION').length;
@@ -148,11 +134,11 @@ export default function AdminBookings() {
     <div className="space-y-6 pb-8 max-w-[1600px] mx-auto">
       <PageHeader 
         title="Bookings & Reservations"
-        description="Monitor live rentals, upcoming customer pickups, and newly created reservations in real-time."
+        description="Review incoming customer bookings and click Approve to allow customers to start their EV ride."
         actions={
           <div className="flex gap-3">
-            <Button variant="outline" className="flex items-center gap-2 bg-white text-gray-700">
-              <Filter size={16} /> Filters
+            <Button variant="outline" onClick={fetchAllBookings} className="flex items-center gap-2 bg-white text-gray-700">
+              Refresh List
             </Button>
           </div>
         }
@@ -166,7 +152,7 @@ export default function AdminBookings() {
               <Zap className="h-6 w-6 text-yellow-300 fill-yellow-300" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-wide">⚡ NEW LIVE BOOKING CREATED!</p>
+              <p className="font-bold text-sm tracking-wide">⚡ NEW BOOKING RECEIVED FOR APPROVAL!</p>
               <p className="text-xs text-emerald-100 mt-0.5">
                 Booking ID: <span className="font-mono font-bold bg-emerald-700 px-1.5 py-0.5 rounded">{newBookingAlert.bookingId || newBookingAlert._id}</span> | Vehicle: <span className="font-semibold">{newBookingAlert.vehicle?.name || 'EV Scooter'}</span> | User: <span className="font-semibold">{newBookingAlert.user?.fullName || 'Customer'}</span>
               </p>
@@ -220,15 +206,15 @@ export default function AdminBookings() {
         </button>
       </div>
 
-      {/* Conditionally render table */}
+      {/* Render tables */}
       {loading ? (
         <div className="p-12 text-center text-gray-500 font-medium">Loading bookings...</div>
       ) : activeTab === 'all' ? (
-        <AllBookingsTable navigate={navigate} allBookings={bookings} onConfirm={handleConfirmBooking} actionLoading={actionLoading} />
+        <AllBookingsTable allBookings={bookings} onApprove={handleApproveBooking} actionLoading={actionLoading} />
       ) : activeTab === 'live' ? (
-        <LiveRentalsTable navigate={navigate} allBookings={bookings} />
+        <LiveRentalsTable allBookings={bookings} />
       ) : (
-        <UpcomingPickupsTable navigate={navigate} allBookings={bookings} onConfirm={handleConfirmBooking} actionLoading={actionLoading} />
+        <UpcomingPickupsTable allBookings={bookings} onApprove={handleApproveBooking} actionLoading={actionLoading} />
       )}
       
     </div>
@@ -236,7 +222,7 @@ export default function AdminBookings() {
 }
 
 // --- ALL BOOKINGS TABLE ---
-function AllBookingsTable({ navigate, allBookings, onConfirm, actionLoading }) {
+function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -287,63 +273,75 @@ function AllBookingsTable({ navigate, allBookings, onConfirm, actionLoading }) {
               <th className="px-6 py-4">Vehicle Details</th>
               <th className="px-6 py-4">Pickup Timing & Location</th>
               <th className="px-6 py-4">Financials</th>
-              <th className="px-6 py-4 text-center">Actions</th>
+              <th className="px-6 py-4 text-center">Admin Approval</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {searchFiltered.map((item) => (
-              <tr key={item.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-gray-900 font-mono">{item.id}</div>
-                  <div className="mt-1">
-                    <StatusBadge status={item.status} />
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-gray-900">{item.user.name}</div>
-                  <div className="text-sm text-gray-500">{item.user.phone}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-gray-900">{item.scooty.name}</div>
-                  <div className="text-sm text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1 font-mono">{item.scooty.reg}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm">
-                    <span className="font-semibold text-gray-900 block">{item.pickup.date} at {item.pickup.time}</span>
-                    <span className="text-gray-500 block mt-1">{item.pickup.location}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">Total: <span className="font-bold">{item.financials.amount}</span></div>
-                  <div className="text-xs text-gray-500">Deposit: {item.financials.deposit}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    {item.status !== 'CONFIRMED' && item.status !== 'ACTIVE' && item.status !== 'COMPLETED' && (
+            {searchFiltered.map((item) => {
+              const bId = item.raw._id || item.raw.id;
+              const isNeedsApproval = item.status === 'RESERVED' || item.status === 'PENDING_VERIFICATION' || item.status === 'PAYMENT_INITIATED';
+              const isApproved = item.status === 'CONFIRMED' || item.status === 'ACTIVE' || item.status === 'COMPLETED';
+              const isLoadingThis = actionLoading === bId;
+
+              return (
+                <tr key={item.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-gray-900 font-mono">{item.id}</div>
+                    <div className="mt-1">
+                      <StatusBadge status={item.status} />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-gray-900">{item.user.name}</div>
+                    <div className="text-sm text-gray-500">{item.user.phone}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-gray-900">{item.scooty.name}</div>
+                    <div className="text-sm text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1 font-mono">{item.scooty.reg}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm">
+                      <span className="font-semibold text-gray-900 block">{item.pickup.date} at {item.pickup.time}</span>
+                      <span className="text-gray-500 block mt-1">{item.pickup.location}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">Total: <span className="font-bold">{item.financials.amount}</span></div>
+                    <div className="text-xs text-gray-500">Deposit: {item.financials.deposit}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      {isNeedsApproval ? (
+                        <button 
+                          title="Approve Booking" 
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                          onClick={() => onApprove(bId)}
+                          disabled={isLoadingThis}
+                        >
+                          <CheckCircle size={16} />
+                          {isLoadingThis ? 'Approving...' : 'Approve Booking'}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold">
+                          <CheckCircle size={14} /> Approved
+                        </span>
+                      )}
+
                       <button 
-                        title="Approve & Confirm Booking" 
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50"
-                        onClick={() => onConfirm(item.raw._id || item.raw.id)}
-                        disabled={actionLoading === (item.raw._id || item.raw.id)}
+                        title="View Details" 
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => setSelectedBooking(item)}
                       >
-                        <CheckCircle size={15} />
-                        {actionLoading === (item.raw._id || item.raw.id) ? 'Confirming...' : 'Approve'}
+                        <Eye size={18} />
                       </button>
-                    )}
-                    <button 
-                      title="View Details" 
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      onClick={() => setSelectedBooking(item)}
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button title="Contact User" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                      <Phone size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      <button title="Contact User" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                        <Phone size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {searchFiltered.length === 0 && (
               <tr>
                 <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
@@ -375,15 +373,16 @@ function AllBookingsTable({ navigate, allBookings, onConfirm, actionLoading }) {
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedBooking.financials.amount}</span></div>
               <div className="text-right"><strong className="text-gray-900 block">Deposit</strong> {selectedBooking.financials.deposit}</div>
             </div>
-            {selectedBooking.status !== 'CONFIRMED' && selectedBooking.status !== 'ACTIVE' && (
+
+            {(selectedBooking.status === 'RESERVED' || selectedBooking.status === 'PENDING_VERIFICATION' || selectedBooking.status === 'PAYMENT_INITIATED') && (
               <Button 
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-base shadow-lg"
                 onClick={() => {
-                  onConfirm(selectedBooking.raw._id || selectedBooking.raw.id);
+                  onApprove(selectedBooking.raw._id || selectedBooking.raw.id);
                   setSelectedBooking(null);
                 }}
               >
-                Approve & Confirm Booking
+                <CheckCircle className="mr-2" size={20} /> Approve Booking Now
               </Button>
             )}
           </div>
@@ -394,13 +393,14 @@ function AllBookingsTable({ navigate, allBookings, onConfirm, actionLoading }) {
 }
 
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ navigate, allBookings }) {
+function LiveRentalsTable({ allBookings }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const liveBookings = allBookings.filter(b => 
     b.status === 'ACTIVE' || b.status === 'OVERDUE'
   ).map(b => ({
+    raw: b,
     id: b.bookingId || (typeof b._id === 'string' ? b._id.substring(0, 12).toUpperCase() : 'EVR-NEW'),
     user: { name: b.user?.fullName || 'Unknown', phone: b.user?.phone || 'Unknown' },
     scooty: { name: b.vehicle?.name || 'Unknown', reg: b.vehicle?.registrationNumber || b.vehicle?.plateNumber || 'Unknown' },
@@ -410,7 +410,6 @@ function LiveRentalsTable({ navigate, allBookings }) {
     duration: b.startDate && b.endDate ? `${Math.round((new Date(b.endDate) - new Date(b.startDate)) / 3600000)} Hours` : 'N/A',
     financials: { amount: `₹${b.totalAmount || b.amount || b.pricing?.total || 0}`, deposit: `₹${b.securityDeposit || b.pricing?.securityDeposit || 0}`, status: b.paymentStatus || 'Pending' },
     rentalStatus: (b.status || 'ACTIVE').replace(/_/g, ' '),
-    timeRemaining: 'N/A'
   }));
 
   const searchFiltered = liveBookings.filter(r => 
@@ -526,7 +525,7 @@ function LiveRentalsTable({ navigate, allBookings }) {
 }
 
 // --- UPCOMING PICKUPS TABLE ---
-function UpcomingPickupsTable({ navigate, allBookings, onConfirm, actionLoading }) {
+function UpcomingPickupsTable({ allBookings, onApprove, actionLoading }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPickup, setSelectedPickup] = useState(null);
 
@@ -579,59 +578,70 @@ function UpcomingPickupsTable({ navigate, allBookings, onConfirm, actionLoading 
               <th className="px-6 py-4">Vehicle Details</th>
               <th className="px-6 py-4">Pickup Timing & Location</th>
               <th className="px-6 py-4">Financials</th>
-              <th className="px-6 py-4 text-center">Actions</th>
+              <th className="px-6 py-4 text-center">Admin Approval</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredPickups.map((pickup) => (
-              <tr key={pickup.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-gray-900 font-mono">{pickup.id}</div>
-                  <div className="mt-1">
-                    <StatusBadge status={pickup.bookingStatus} />
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-gray-900">{pickup.user.name}</div>
-                  <div className="text-sm text-gray-500">{pickup.user.phone}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-gray-900">{pickup.scooty.name}</div>
-                  <div className="text-sm text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1 font-mono">{pickup.scooty.reg}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm">
-                    <span className="font-semibold text-gray-900 block">{pickup.pickup.date} at {pickup.pickup.time}</span>
-                    <span className="text-gray-500 block mt-1">{pickup.pickup.location}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">Amt: <span className="font-semibold">{pickup.financials.amount}</span></div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    {pickup.raw.status !== 'CONFIRMED' && pickup.raw.status !== 'ACTIVE' && (
+            {filteredPickups.map((pickup) => {
+              const bId = pickup.raw._id || pickup.raw.id;
+              const isNeedsApproval = pickup.raw.status === 'RESERVED' || pickup.raw.status === 'PENDING_VERIFICATION' || pickup.raw.status === 'PAYMENT_INITIATED';
+              const isLoadingThis = actionLoading === bId;
+
+              return (
+                <tr key={pickup.id} className="hover:bg-blue-50/30 transition-colors divide-x divide-gray-200">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-gray-900 font-mono">{pickup.id}</div>
+                    <div className="mt-1">
+                      <StatusBadge status={pickup.bookingStatus} />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-gray-900">{pickup.user.name}</div>
+                    <div className="text-sm text-gray-500">{pickup.user.phone}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-gray-900">{pickup.scooty.name}</div>
+                    <div className="text-sm text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1 font-mono">{pickup.scooty.reg}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm">
+                      <span className="font-semibold text-gray-900 block">{pickup.pickup.date} at {pickup.pickup.time}</span>
+                      <span className="text-gray-500 block mt-1">{pickup.pickup.location}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">Amt: <span className="font-semibold">{pickup.financials.amount}</span></div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      {isNeedsApproval ? (
+                        <button 
+                          title="Approve Booking" 
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                          onClick={() => onApprove(bId)}
+                          disabled={isLoadingThis}
+                        >
+                          <CheckCircle size={16} />
+                          {isLoadingThis ? 'Approving...' : 'Approve Booking'}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold">
+                          <CheckCircle size={14} /> Approved
+                        </span>
+                      )}
+
                       <button 
-                        title="Approve & Confirm Booking" 
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50"
-                        onClick={() => onConfirm(pickup.raw._id || pickup.raw.id)}
-                        disabled={actionLoading === (pickup.raw._id || pickup.raw.id)}
+                        title="View Details" 
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => setSelectedPickup(pickup)}
                       >
-                        <CheckCircle size={15} />
-                        {actionLoading === (pickup.raw._id || pickup.raw.id) ? 'Confirming...' : 'Approve'}
+                        <Eye size={18} />
                       </button>
-                    )}
-                    <button 
-                      title="View Details" 
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      onClick={() => setSelectedPickup(pickup)}
-                    >
-                      <Eye size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {filteredPickups.length === 0 && (
               <tr>
                 <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
@@ -662,15 +672,16 @@ function UpcomingPickupsTable({ navigate, allBookings, onConfirm, actionLoading 
             <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedPickup.financials.amount}</span></div>
             </div>
-            {selectedPickup.raw.status !== 'CONFIRMED' && selectedPickup.raw.status !== 'ACTIVE' && (
+            
+            {(selectedPickup.raw.status === 'RESERVED' || selectedPickup.raw.status === 'PENDING_VERIFICATION' || selectedPickup.raw.status === 'PAYMENT_INITIATED') && (
               <Button 
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-base shadow-lg"
                 onClick={() => {
-                  onConfirm(selectedPickup.raw._id || selectedPickup.raw.id);
+                  onApprove(selectedPickup.raw._id || selectedPickup.raw.id);
                   setSelectedPickup(null);
                 }}
               >
-                Approve & Confirm Booking
+                <CheckCircle className="mr-2" size={20} /> Approve Booking Now
               </Button>
             )}
           </div>

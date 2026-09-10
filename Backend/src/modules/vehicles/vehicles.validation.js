@@ -25,6 +25,9 @@ export const createVehicleSchema = {
     pricePerHour: Joi.number().required(),
     pricePerDay: Joi.number().required(),
     securityDeposit: Joi.number().required(),
+    totalStock: Joi.number().min(0).default(1),
+    availableStock: Joi.number().min(0).default(1),
+    stockStatus: Joi.string().valid('IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK').default('IN_STOCK'),
     status: Joi.string().valid('AVAILABLE', 'BOOKED', 'RESERVED', 'MAINTENANCE', 'INACTIVE').default('AVAILABLE'),
   }),
 };
@@ -57,6 +60,9 @@ export const updateVehicleSchema = {
     pricePerHour: Joi.number(),
     pricePerDay: Joi.number(),
     securityDeposit: Joi.number(),
+    totalStock: Joi.number().min(0),
+    availableStock: Joi.number().min(0),
+    stockStatus: Joi.string().valid('IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK'),
     status: Joi.string().valid('AVAILABLE', 'BOOKED', 'RESERVED', 'MAINTENANCE', 'INACTIVE'),
   }).min(1),
 };
