@@ -1,5 +1,6 @@
 import { Suspense, useEffect } from "react";
 import AppRoutes from "./routes/AppRoutes";
+import { ChunkErrorBoundary } from "./components/common/ChunkErrorBoundary";
 import Lenis from "lenis";
 
 const App = () => {
@@ -29,17 +30,19 @@ const App = () => {
   }, []);
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-app">
-          <div className="rounded-full border border-app-border bg-app-surface px-5 py-2 text-sm text-app-subtle shadow-soft">
-            Loading Vegah...
+    <ChunkErrorBoundary>
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-app">
+            <div className="rounded-full border border-app-border bg-app-surface px-5 py-2 text-sm text-app-subtle shadow-soft">
+              Loading Vegah...
+            </div>
           </div>
-        </div>
-      }
-    >
-      <AppRoutes />
-    </Suspense>
+        }
+      >
+        <AppRoutes />
+      </Suspense>
+    </ChunkErrorBoundary>
   );
 };
 
