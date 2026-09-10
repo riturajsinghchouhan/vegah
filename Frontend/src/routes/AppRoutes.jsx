@@ -1,11 +1,11 @@
-import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { safeLazy } from "../utils/safeLazy";
 
 // Admin Modules
-const AdminRoutes = lazy(() => import("../modules/admin/AdminRoutes"));
+const AdminRoutes = safeLazy(() => import("../modules/admin/AdminRoutes"));
 
 // User Module
-const UserRoutes = lazy(() => import("../modules/user/UserRoutes"));
+const UserRoutes = safeLazy(() => import("../modules/user/UserRoutes"));
 
 const AppRoutes = () => (
   <Routes>

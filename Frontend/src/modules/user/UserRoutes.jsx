@@ -1,27 +1,27 @@
-import { lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { safeLazy } from "../../utils/safeLazy";
 import AppShell from "./layouts/AppShell";
 import AuthLayout from "./layouts/AuthLayout";
 
-const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
-const OtpPage = lazy(() => import("./pages/auth/OtpPage"));
-const NamePage = lazy(() => import("./pages/auth/NamePage"));
-const HomePage = lazy(() => import("./pages/home/HomePage"));
-const VehiclesPage = lazy(() => import("./pages/vehicles/VehiclesPage"));
-const VehicleDetailsPage = lazy(() => import("./pages/vehicles/VehicleDetailsPage"));
-const BookingPage = lazy(() => import("./pages/booking/BookingPage"));
-const AadharDetailsPage = lazy(() => import("./pages/booking/AadharDetailsPage"));
-const LicenseDetailsPage = lazy(() => import("./pages/booking/LicenseDetailsPage"));
-const BatteryPackagePage = lazy(() => import("./pages/booking/BatteryPackagePage"));
-const UserPhotoPage = lazy(() => import("./pages/booking/UserPhotoPage"));
-const PaymentPage = lazy(() => import("./pages/booking/PaymentPage"));
-const BookingSuccessPage = lazy(() => import("./pages/booking/BookingSuccessPage"));
-const BookingsPage = lazy(() => import("./pages/bookings/BookingsPage"));
-const ActiveRentalPage = lazy(() => import("./pages/bookings/ActiveRentalPage"));
-const ChargingPage = lazy(() => import("./pages/charging/ChargingPage"));
-const StationDetailsPage = lazy(() => import("./pages/charging/StationDetailsPage"));
-const ProfilePage = lazy(() => import("./pages/profile/ProfilePage"));
+const LoginPage = safeLazy(() => import("./pages/auth/LoginPage"));
+const OtpPage = safeLazy(() => import("./pages/auth/OtpPage"));
+const NamePage = safeLazy(() => import("./pages/auth/NamePage"));
+const HomePage = safeLazy(() => import("./pages/home/HomePage"));
+const VehiclesPage = safeLazy(() => import("./pages/vehicles/VehiclesPage"));
+const VehicleDetailsPage = safeLazy(() => import("./pages/vehicles/VehicleDetailsPage"));
+const BookingPage = safeLazy(() => import("./pages/booking/BookingPage"));
+const AadharDetailsPage = safeLazy(() => import("./pages/booking/AadharDetailsPage"));
+const LicenseDetailsPage = safeLazy(() => import("./pages/booking/LicenseDetailsPage"));
+const BatteryPackagePage = safeLazy(() => import("./pages/booking/BatteryPackagePage"));
+const UserPhotoPage = safeLazy(() => import("./pages/booking/UserPhotoPage"));
+const PaymentPage = safeLazy(() => import("./pages/booking/PaymentPage"));
+const BookingSuccessPage = safeLazy(() => import("./pages/booking/BookingSuccessPage"));
+const BookingsPage = safeLazy(() => import("./pages/bookings/BookingsPage"));
+const ActiveRentalPage = safeLazy(() => import("./pages/bookings/ActiveRentalPage"));
+const ChargingPage = safeLazy(() => import("./pages/charging/ChargingPage"));
+const StationDetailsPage = safeLazy(() => import("./pages/charging/StationDetailsPage"));
+const ProfilePage = safeLazy(() => import("./pages/profile/ProfilePage"));
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, sessionReady } = useAuth();
