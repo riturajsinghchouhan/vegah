@@ -26,11 +26,6 @@ import {
 } from "recharts";
 import electicaService from "../../../services/electicaService";
 
-<<<<<<< HEAD
-=======
-const POLLING_INTERVAL_MS = 10000; // 10 seconds polling
-
->>>>>>> 5937acaa78e77983575168d100c25ae80559ff1b
 const formatIST = (dateStr) => {
   if (!dateStr) return "N/A";
   try {
@@ -77,17 +72,6 @@ const getStatusBadge = (status) => {
       </span>
     );
   }
-<<<<<<< HEAD
-  if (s === "failed" || s === "error" || s === "offline" || s === "fault") {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-        {status}
-      </span>
-    );
-  }
-=======
->>>>>>> 5937acaa78e77983575168d100c25ae80559ff1b
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
       <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
@@ -105,10 +89,6 @@ export default function AdminElecticaDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-<<<<<<< HEAD
-=======
-  const [isAutoPolling, setIsAutoPolling] = useState(true);
->>>>>>> 5937acaa78e77983575168d100c25ae80559ff1b
 
   // Selected battery telemetry modal state
   const [selectedBatteryId, setSelectedBatteryId] = useState(null);
@@ -154,27 +134,10 @@ export default function AdminElecticaDashboard() {
     }
   }, []);
 
-<<<<<<< HEAD
   // Fetch initial data
   useEffect(() => {
     fetchAllData(true);
   }, [fetchAllData]);
-=======
-  // Set up polling with interval cleanup
-  useEffect(() => {
-    fetchAllData(true);
-
-    if (!isAutoPolling) return;
-
-    const timer = setInterval(() => {
-      fetchAllData(false);
-    }, POLLING_INTERVAL_MS);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [fetchAllData, isAutoPolling]);
->>>>>>> 5937acaa78e77983575168d100c25ae80559ff1b
 
   // Handle viewing battery telemetry detail
   const handleOpenTelemetry = async (batteryId) => {
@@ -246,20 +209,6 @@ export default function AdminElecticaDashboard() {
 
         <div className="flex items-center gap-3">
           <button
-<<<<<<< HEAD
-=======
-            onClick={() => setIsAutoPolling(!isAutoPolling)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              isAutoPolling
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            {isAutoPolling ? "Auto Sync (10s) ON" : "Auto Sync PAUSED"}
-          </button>
-
-          <button
->>>>>>> 5937acaa78e77983575168d100c25ae80559ff1b
             onClick={() => fetchAllData(false)}
             disabled={refreshing}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-sm font-semibold rounded-xl transition-all shadow-sm disabled:opacity-50"
@@ -530,7 +479,6 @@ export default function AdminElecticaDashboard() {
                       </td>
                       <td className="py-3 px-4 text-xs text-gray-600">{s.stationId || stationId}</td>
                       <td className="py-3 px-4 font-mono text-xs text-rose-700 font-medium">
-<<<<<<< HEAD
                         {s.batteryOut || s.batteryOutId || s.oldBatteryId || "—"}
                       </td>
                       <td className="py-3 px-4 font-mono text-xs text-emerald-700 font-medium">
@@ -538,15 +486,6 @@ export default function AdminElecticaDashboard() {
                       </td>
                       <td className="py-3 px-4 text-xs font-semibold text-gray-700">
                         {s.podNumber ?? s.podId ?? s.pod ?? "—"}
-=======
-                        {s.batteryOutId || s.oldBatteryId || s.dischargedBatteryId || "—"}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-xs text-emerald-700 font-medium">
-                        {s.batteryInId || s.newBatteryId || s.chargedBatteryId || "—"}
-                      </td>
-                      <td className="py-3 px-4 text-xs font-semibold text-gray-700">
-                        {s.podNumber ?? s.podId ?? "—"}
->>>>>>> 5937acaa78e77983575168d100c25ae80559ff1b
                       </td>
                       <td className="py-3 px-4">{getStatusBadge(s.status || "Completed")}</td>
                       <td className="py-3 px-4 text-xs text-gray-500">
