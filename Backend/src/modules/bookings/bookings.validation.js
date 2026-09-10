@@ -5,7 +5,7 @@ export const createBookingSchema = {
   body: Joi.object({
     vehicleId: Joi.string().hex().length(24).required(),
     rentalType: Joi.string().valid(RENTAL_TYPES.HOURLY, RENTAL_TYPES.DAILY).required(),
-    startDate: Joi.date().iso().min('now').required(),
+    startDate: Joi.date().iso().min(new Date(new Date().setHours(0,0,0,0))).required(),
     startTime: Joi.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).required(),
     endDate: Joi.date().iso().min(Joi.ref('startDate')).required(),
     endTime: Joi.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).required(),

@@ -3,9 +3,14 @@ import api from "./api";
 export const bookingService = {
   async listBookings(params = {}) {
     const response = await api.get('/bookings', { params });
-    // Assuming backend returns { data: [...bookings] } 
-    // Mapped appropriately or used directly if UI handles it
-    return response.data.data;
+    const rawData = response.data.data;
+    const bookingsList = Array.isArray(rawData) ? rawData : (rawData?.bookings || []);
+    return bookingsList.map((b) => ({
+      ...b,
+      id: b._id || b.id || b.bookingId,
+      amount: b.totalAmount ?? b.amount ?? 0,
+      totalAmount: b.totalAmount ?? b.amount ?? 0,
+    }));
   },
   
   async createBooking(payload) {
@@ -29,12 +34,15 @@ export const bookingService = {
     const response = await api.post('/bookings', requestData);
     
     // The backend returns the created booking in response.data.data
-    // Map backend `bookingId` or `_id` to `id` for frontend if required
     const booking = response.data.data;
+    const bookingAmt = booking.totalAmount ?? booking.amount ?? payload.pricing?.total ?? payload.amount ?? 0;
     return {
       ...booking,
-      id: booking._id,
+      id: booking._id || booking.id,
       status: booking.status,
+      amount: bookingAmt,
+      totalAmount: bookingAmt,
+      vehicle: payload.vehicle || booking.vehicle,
     };
   },
   

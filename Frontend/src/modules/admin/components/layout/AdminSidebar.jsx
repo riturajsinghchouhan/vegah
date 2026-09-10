@@ -16,11 +16,11 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[#6D28D9] border-r border-violet-800 transition-all duration-300 ${
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-black border-r border-gray-800 transition-all duration-300 ${
         isOpen ? "w-72" : "w-20"
       }`}
     >
-      <div className="flex h-16 items-center justify-between px-4 border-b border-violet-800/60 shadow-sm">
+      <div className="flex h-16 items-center justify-between px-4 border-b border-gray-800 shadow-sm">
         <h1
           className={`font-black tracking-tight text-xl text-white transition-opacity duration-300 ${
             isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
@@ -30,7 +30,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
         </h1>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-1 rounded-md hover:bg-white/10 text-violet-200 hover:text-white transition-colors"
+          className="p-1 rounded-md hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
         >
           {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </button>
@@ -40,7 +40,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
         {adminSidebarMenu.map((section, idx) => (
           <div key={idx} className="mb-8">
             {isOpen && (
-              <h2 className="px-6 mb-3 text-[11px] font-bold text-violet-300/80 uppercase tracking-widest">
+              <h2 className="px-6 mb-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
                 {section.title}
               </h2>
             )}
@@ -58,7 +58,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                         className={`w-full flex items-center justify-between px-6 py-2.5 mx-2 rounded-xl transition-all duration-200 ${
                           isChildActive && !isExpanded
                             ? "bg-white/15 text-white font-bold shadow-sm backdrop-blur-sm"
-                            : "text-violet-100 hover:bg-white/10 hover:text-white font-medium"
+                            : "text-gray-300 hover:bg-white/10 hover:text-white font-medium"
                         }`}
                         title={!isOpen ? item.label : ""}
                       >
@@ -66,7 +66,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                           <item.icon
                             size={20}
                             className={`shrink-0 transition-colors ${
-                              isChildActive && !isExpanded ? "text-white drop-shadow-sm" : "text-violet-300"
+                              isChildActive && !isExpanded ? "text-white drop-shadow-sm" : "text-gray-400"
                             }`}
                           />
                           <span
@@ -78,7 +78,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                           </span>
                         </div>
                         {isOpen && (
-                          <span className={`text-violet-300 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
+                          <span className={`text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}>
                             <ChevronRight size={16} />
                           </span>
                         )}
@@ -100,10 +100,10 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                                   className={`flex items-center pl-14 pr-6 py-2 mx-2 rounded-lg transition-all duration-200 text-sm ${
                                     isSubActive
                                       ? "bg-white/15 text-white font-bold shadow-sm"
-                                      : "text-violet-200/90 hover:text-white hover:bg-white/10 font-medium"
+                                      : "text-gray-400 hover:text-white hover:bg-white/10 font-medium"
                                   }`}
                                 >
-                                  <span className={`mr-2.5 text-xs ${isSubActive ? "text-white" : "text-violet-400"}`}>•</span>
+                                  <span className={`mr-2.5 text-xs ${isSubActive ? "text-white" : "text-gray-500"}`}>•</span>
                                   <span className="whitespace-nowrap">{subItem.label}</span>
                                 </Link>
                               </li>
@@ -124,14 +124,14 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
                       className={`flex items-center px-6 py-2.5 mx-2 rounded-xl transition-all duration-200 ${
                         isActive
                           ? "bg-white/15 text-white font-bold shadow-sm backdrop-blur-sm"
-                          : "text-violet-100 hover:bg-white/10 hover:text-white font-medium"
+                          : "text-gray-300 hover:bg-white/10 hover:text-white font-medium"
                       }`}
                       title={!isOpen ? item.label : ""}
                     >
                       <item.icon
                         size={20}
                         className={`shrink-0 transition-colors ${
-                          isActive ? "text-white drop-shadow-sm" : "text-violet-300"
+                          isActive ? "text-white drop-shadow-sm" : "text-gray-400"
                         }`}
                       />
                       <span

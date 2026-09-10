@@ -7,8 +7,8 @@ const router = express.Router();
 // All payment routes require user authentication
 router.use(authenticate);
 
-// POST /api/payments/initiate — Create payment order for a booking
-router.post('/initiate', paymentsController.initiatePayment);
+// POST /api/payments/:bookingId/initiate — Create payment order for a booking
+router.post('/:bookingId/initiate', paymentsController.initiatePayment);
 
 // POST /api/payments/verify — Verify payment signature and confirm booking
 router.post('/verify', paymentsController.verifyPayment);

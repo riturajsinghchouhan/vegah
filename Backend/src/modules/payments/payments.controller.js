@@ -3,7 +3,8 @@ import { sendSuccess } from '../../utils/response.js';
 
 export const initiatePayment = async (req, res, next) => {
   try {
-    const { bookingId, method } = req.body;
+    const { bookingId } = req.params;
+    const { method } = req.body;
     const result = await paymentsService.initiatePayment(bookingId, req.user.id, method);
     sendSuccess(res, 200, 'Payment initiated successfully', result);
   } catch (error) {

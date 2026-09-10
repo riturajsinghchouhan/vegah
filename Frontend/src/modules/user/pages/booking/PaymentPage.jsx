@@ -41,8 +41,16 @@ const PaymentPage = () => {
         paymentMethod: paymentMode,
       });
 
+      const fullBookingInfo = {
+        ...createdBooking,
+        vehicle: booking.vehicle || createdBooking.vehicle,
+        amount: createdBooking.totalAmount ?? createdBooking.amount ?? pricing.total,
+        totalAmount: createdBooking.totalAmount ?? createdBooking.amount ?? pricing.total,
+        paymentMode: paymentMode,
+      };
+
       if (paymentMode === "CASH") {
-        setLatestBooking({ ...createdBooking, paymentMode: "CASH" });
+        setLatestBooking(fullBookingInfo);
         navigate("/user/booking/success");
         return;
       }
@@ -72,7 +80,7 @@ const PaymentPage = () => {
               razorpaySignature: response.razorpay_signature,
               method: 'ONLINE'
             });
-            setLatestBooking({ ...createdBooking, paymentMode: "ONLINE" });
+            setLatestBooking(fullBookingInfo);
             navigate("/user/booking/success");
           } catch (err) {
             alert("Payment verification failed. Please contact support.");

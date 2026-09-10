@@ -26,8 +26,6 @@ import {
 } from "recharts";
 import electicaService from "../../../services/electicaService";
 
-const POLLING_INTERVAL_MS = 10000; // 10 seconds polling
-
 const formatIST = (dateStr) => {
   if (!dateStr) return "N/A";
   try {
@@ -74,6 +72,14 @@ const getStatusBadge = (status) => {
       </span>
     );
   }
+  if (s === "failed" || s === "error" || s === "offline" || s === "fault") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+        {status}
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
       <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
@@ -91,7 +97,6 @@ export default function AdminElecticaDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [isAutoPolling, setIsAutoPolling] = useState(true);
 
   // Selected battery telemetry modal state
   const [selectedBatteryId, setSelectedBatteryId] = useState(null);
@@ -137,20 +142,10 @@ export default function AdminElecticaDashboard() {
     }
   }, []);
 
-  // Set up polling with interval cleanup
+  // Fetch initial data
   useEffect(() => {
     fetchAllData(true);
-
-    if (!isAutoPolling) return;
-
-    const timer = setInterval(() => {
-      fetchAllData(false);
-    }, POLLING_INTERVAL_MS);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [fetchAllData, isAutoPolling]);
+  }, [fetchAllData]);
 
   // Handle viewing battery telemetry detail
   const handleOpenTelemetry = async (batteryId) => {
@@ -221,17 +216,6 @@ export default function AdminElecticaDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsAutoPolling(!isAutoPolling)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              isAutoPolling
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            {isAutoPolling ? "Auto Sync (10s) ON" : "Auto Sync PAUSED"}
-          </button>
-
           <button
             onClick={() => fetchAllData(false)}
             disabled={refreshing}
@@ -503,13 +487,13 @@ export default function AdminElecticaDashboard() {
                       </td>
                       <td className="py-3 px-4 text-xs text-gray-600">{s.stationId || stationId}</td>
                       <td className="py-3 px-4 font-mono text-xs text-rose-700 font-medium">
-                        {s.batteryOutId || s.oldBatteryId || s.dischargedBatteryId || "—"}
+                        {s.batteryOut || s.batteryOutId || s.oldBatteryId || "—"}
                       </td>
                       <td className="py-3 px-4 font-mono text-xs text-emerald-700 font-medium">
-                        {s.batteryInId || s.newBatteryId || s.chargedBatteryId || "—"}
+                        {s.batteryIn || s.batteryInId || s.newBatteryId || "—"}
                       </td>
                       <td className="py-3 px-4 text-xs font-semibold text-gray-700">
-                        {s.podNumber ?? s.podId ?? "—"}
+                        {s.podNumber ?? s.podId ?? s.pod ?? "—"}
                       </td>
                       <td className="py-3 px-4">{getStatusBadge(s.status || "Completed")}</td>
                       <td className="py-3 px-4 text-xs text-gray-500">

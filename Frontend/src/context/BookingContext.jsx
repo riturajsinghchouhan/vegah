@@ -24,7 +24,27 @@ export const BookingContext = createContext(null);
 
 export const BookingProvider = ({ children }) => {
   const [booking, setBooking] = useState(initialState);
-  const [latestBooking, setLatestBooking] = useState(null);
+  const [latestBooking, setLatestBookingState] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vegah_latest_booking");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setLatestBooking = (data) => {
+    setLatestBookingState(data);
+    try {
+      if (data) {
+        localStorage.setItem("vegah_latest_booking", JSON.stringify(data));
+      } else {
+        localStorage.removeItem("vegah_latest_booking");
+      }
+    } catch (e) {
+      console.error("Failed to save latest booking to localStorage", e);
+    }
+  };
 
   const updateBookingField = (field, value) => {
     setBooking((current) => ({ ...current, [field]: value }));

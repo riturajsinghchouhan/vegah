@@ -42,7 +42,7 @@ const BookingCard = ({ booking }) => {
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-[16px] font-bold text-gray-900 truncate pr-2">{booking.carName}</h3>
           <div className="text-right shrink-0">
-            <p className="text-[16px] font-bold text-gray-900 leading-none">₹{booking.amount.toLocaleString('en-IN')}</p>
+            <p className="text-[16px] font-bold text-gray-900 leading-none">₹{(booking.amount ?? booking.totalAmount ?? 0).toLocaleString('en-IN')}</p>
             <p className="text-[9px] text-gray-400 mt-0.5">Total Amount</p>
           </div>
         </div>

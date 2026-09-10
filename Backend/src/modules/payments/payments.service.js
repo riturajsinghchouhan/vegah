@@ -25,7 +25,12 @@ export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
     throw new BadRequestError('Unauthorized access to this booking');
   }
 
-  if (booking.status !== BOOKING_STATUS.RESERVED && booking.status !== BOOKING_STATUS.PENDING_VERIFICATION) {
+  if (
+    booking.status !== BOOKING_STATUS.RESERVED &&
+    booking.status !== BOOKING_STATUS.PENDING_VERIFICATION &&
+    booking.status !== BOOKING_STATUS.PAYMENT_INITIATED &&
+    booking.status !== BOOKING_STATUS.PAYMENT_FAILED
+  ) {
     throw new BadRequestError(`Cannot initiate payment for a booking with status: ${booking.status}`);
   }
 
@@ -37,7 +42,7 @@ export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
   if (razorpay) {
     // Create Razorpay Order
     const order = await razorpay.orders.create({
-      amount: Math.round(booking.total * 100), // Amount in paise
+      amount: Math.round(booking.totalAmount * 100), // Amount in paise
       currency: 'INR',
       receipt: booking.bookingId,
       notes: { bookingId: booking._id.toString(), userId },
@@ -49,7 +54,7 @@ export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
   // Create a Payment record
   const payment = await Payment.create({
     booking: booking._id,
-    amount: booking.total,
+    amount: booking.totalAmount,
     method,
     status: 'INITIATED',
     razorpayOrderId,
@@ -63,7 +68,7 @@ export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
     payment,
     razorpayOrderId,
     razorpayKeyId,
-    amount: booking.total,
+    amount: booking.totalAmount,
     currency: 'INR',
     bookingId: booking.bookingId,
   };
@@ -73,7 +78,12 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
   const booking = await Booking.findById(bookingId);
   if (!booking) throw new NotFoundError('Booking not found');
 
-  const payment = await Payment.findOne({ booking: bookingId }).select('+razorpaySignature');
+  // Find the exact payment record for this Razorpay order, or the latest payment attempt if not using Razorpay
+  const paymentQuery = razorpayOrderId 
+    ? { booking: bookingId, razorpayOrderId }
+    : { booking: bookingId };
+    
+  const payment = await Payment.findOne(paymentQuery).sort({ createdAt: -1 }).select('+razorpaySignature');
   if (!payment) throw new NotFoundError('Payment record not found');
 
   let signatureVerified = false;

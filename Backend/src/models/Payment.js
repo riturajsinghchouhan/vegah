@@ -5,7 +5,7 @@ const { Schema } = mongoose;
 const paymentSchema = new Schema({
   booking: { type: Schema.Types.ObjectId, ref: 'Booking', required: true, index: true },
   amount: { type: Number, required: true },
-  method: { type: String, enum: ['UPI', 'CARD', 'NET_BANKING', 'WALLET', null], default: null },
+  method: { type: String, enum: ['UPI', 'CARD', 'NET_BANKING', 'WALLET', 'ONLINE', 'CASH', null], default: null },
   status: {
     type: String,
     enum: ['INITIATED', 'PENDING', 'SUCCESS', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED'],

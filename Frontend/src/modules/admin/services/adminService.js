@@ -127,7 +127,7 @@ export const adminService = {
   // --- Bookings ---
   async getBookings(params = {}) {
     // Calling GET /bookings as an Admin returns ALL bookings in our backend
-    const res = await api.get('/bookings', { params });
+    const res = await api.get('/bookings', { params: { limit: 100, ...params } });
     return res.data.data;
   },
   async getBookingById(id) {

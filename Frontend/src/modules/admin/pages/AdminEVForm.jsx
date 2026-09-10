@@ -393,6 +393,8 @@ export default function AdminEVForm() {
               onChange={(e) => handleChange('status', e.target.value)}
             >
               <option value="AVAILABLE">Available</option>
+              <option value="RESERVED">Reserved</option>
+              <option value="BOOKED">Booked</option>
               <option value="MAINTENANCE">Maintenance</option>
               <option value="INACTIVE">Inactive</option>
             </select>

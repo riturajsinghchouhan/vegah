@@ -9,6 +9,8 @@ import { BOOKING_STATUS, BATTERY_PACKAGES, RESERVATION_TTL_MS } from './bookings
 import { calculateRentalCost, calculateTotalAmount } from '../../utils/pricing.js';
 import { NotFoundError, BadRequestError, ConflictError } from '../../utils/errors.js';
 import env from '../../config/env.js';
+import { getIO } from '../../config/socket.js';
+import { sendAdminBookingNotification } from '../../services/notification.service.js';
 
 const generateBookingId = () => {
   return `EVR-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -19,7 +21,22 @@ export const reserveVehicle = async (userId, data) => {
   session.startTransaction();
 
   try {
-    // 1. Fetch Vehicle with Optimistic Locking Check
+    const startDateFormatted = new Date(data.startDate).toISOString().split('T')[0];
+    const endDateFormatted = new Date(data.endDate).toISOString().split('T')[0];
+    const startDateTimeStr = `${startDateFormatted}T${data.startTime}:00`;
+    const endDateTimeStr = `${endDateFormatted}T${data.endTime}:00`;
+
+    const idempotencyKey = `${userId}:${data.vehicleId}:${startDateTimeStr}`;
+
+    // 1. Check idempotency first (did they just click twice or retry payment?)
+    const existingBooking = await Booking.findOne({ idempotencyKey }).session(session);
+    if (existingBooking) {
+      await session.abortTransaction();
+      session.endSession();
+      return existingBooking;
+    }
+
+    // 2. Fetch Vehicle with Optimistic Locking Check
     const vehicle = await Vehicle.findOneAndUpdate(
       { _id: data.vehicleId, status: 'AVAILABLE' },
       { $set: { status: 'RESERVED' }, $inc: { __v_lock: 1 } },
@@ -30,7 +47,7 @@ export const reserveVehicle = async (userId, data) => {
       throw new ConflictError('Vehicle is no longer available');
     }
 
-    // 2. Validate Coupon if provided
+    // 3. Validate Coupon if provided
     let discountAmount = 0;
     let couponObj = null;
     if (data.couponCode) {
@@ -38,16 +55,10 @@ export const reserveVehicle = async (userId, data) => {
       if (!couponObj || couponObj.expiryDate < new Date() || couponObj.startDate > new Date()) {
         throw new BadRequestError('Invalid or expired coupon');
       }
-      // Note: Full coupon logic (min amount, percentage vs flat) should be applied here. 
-      // Simplified for brevity, assume flat 50 discount
       discountAmount = couponObj.type === 'FLAT' ? couponObj.value : 50; 
     }
 
-    // 3. Calculate Pricing Server-Side
-    // We combine the date and time strings properly
-    const startDateTimeStr = `${data.startDate.split('T')[0]}T${data.startTime}:00`;
-    const endDateTimeStr = `${data.endDate.split('T')[0]}T${data.endTime}:00`;
-
+    // 4. Calculate Pricing Server-Side
     const rentalBase = calculateRentalCost(
       vehicle.pricePerHour, 
       vehicle.pricePerDay, 
@@ -64,16 +75,6 @@ export const reserveVehicle = async (userId, data) => {
       securityDeposit: vehicle.securityDeposit,
       discountAmount
     });
-
-    const idempotencyKey = `${userId}:${vehicle._id}:${startDateTimeStr}`;
-
-    // Check idempotency (did they just click twice?)
-    const existingBooking = await Booking.findOne({ idempotencyKey }).session(session);
-    if (existingBooking) {
-      await session.abortTransaction();
-      session.endSession();
-      return existingBooking;
-    }
 
     // 4. Create Reservation
     const reservationExpiresAt = new Date(Date.now() + RESERVATION_TTL_MS);
@@ -102,6 +103,29 @@ export const reserveVehicle = async (userId, data) => {
 
     await session.commitTransaction();
     
+    // Populate booking for socket event and push notification
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate('vehicle', 'name registrationNumber plateNumber images pricePerHour pricePerDay')
+      .populate('user', 'fullName phone email');
+
+    // Emit Socket.IO event to admin_room
+    try {
+      const io = getIO();
+      if (io) {
+        io.to('admin_room').emit('NEW_BOOKING', populatedBooking || booking);
+      }
+    } catch (err) {
+      // Socket emission error should not fail booking transaction
+      console.error('Socket emission error:', err.message);
+    }
+
+    // Trigger Firebase FCM Push Notification
+    try {
+      sendAdminBookingNotification(populatedBooking || booking);
+    } catch (err) {
+      console.error('Push notification error:', err.message);
+    }
+
     // 5. Enqueue Expiry Job (Fire and forget, out of transaction)
     if (env.BULLMQ_ENABLED && bookingQueue) {
       await bookingQueue.add(
@@ -126,7 +150,7 @@ export const reserveVehicle = async (userId, data) => {
       }, RESERVATION_TTL_MS);
     }
 
-    return booking;
+    return populatedBooking || booking;
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -190,7 +214,42 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
 
     await booking.save({ session });
     await session.commitTransaction();
-    return booking;
+
+    // Populate updated booking for notifications
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate('vehicle', 'name registrationNumber plateNumber images')
+      .populate('user', 'fullName phone email');
+
+    // Emit Socket.IO event to User and Admin rooms
+    try {
+      const io = getIO();
+      if (io) {
+        const userIdStr = booking.user._id ? booking.user._id.toString() : booking.user.toString();
+        io.to(`user_${userIdStr}`).emit('BOOKING_STATUS_UPDATED', updatedBooking || booking);
+        io.to('admin_room').emit('BOOKING_STATUS_UPDATED', updatedBooking || booking);
+      }
+    } catch (err) {
+      console.error('Socket emission error on status update:', err.message);
+    }
+
+    // Trigger Push Notification when Admin confirms booking
+    try {
+      if (newStatus === BOOKING_STATUS.CONFIRMED) {
+        sendPushNotification({
+          topic: 'user_bookings',
+          title: '🎉 Booking Confirmed!',
+          body: `Your booking ${booking.bookingId} has been approved and confirmed by Admin!`,
+          data: {
+            bookingId: String(booking.bookingId),
+            status: 'CONFIRMED',
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Push notification error on status update:', err.message);
+    }
+
+    return updatedBooking || booking;
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -280,7 +339,7 @@ export const getLiveBookingStatus = async (id, userId) => {
       isOverdue: now > endDate,
     },
     pricing: {
-      total: booking.total,
+      total: booking.totalAmount,
       rentalBase: booking.rentalBase,
       batteryPackagePrice: booking.batteryPackagePrice,
       securityDeposit: booking.securityDeposit,
@@ -311,7 +370,7 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
   const extensionCost = (booking.vehicle.pricePerHour || 0) * extraHours;
 
   booking.endDate = newEndDate;
-  booking.total = (booking.total || 0) + extensionCost;
+  booking.totalAmount = (booking.totalAmount || 0) + extensionCost;
   await booking.save();
 
   return { booking, extensionCost, newEndDate };
