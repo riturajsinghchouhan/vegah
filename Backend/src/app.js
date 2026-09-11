@@ -71,14 +71,15 @@ import electicaRoutes from './modules/electica/electica.routes.js';
 import { BATTERY_PACKAGES } from './modules/bookings/bookings.constants.js';
 
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin/zones', zonesRoutes);
+app.use('/api/categories', categoriesRoutes);
 app.use('/api/admin/categories', categoriesRoutes);
+app.use('/api/admin/zones', zonesRoutes);
 app.use('/api/admin/inventory', inventoryRoutes);
 app.use('/api/admin/inspections', inspectionsRoutes);
 app.use('/api/admin/finance', financeRoutes);
 app.use('/api/admin/reports', reportsRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/bookings', bookingsRoutes);

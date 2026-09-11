@@ -2,10 +2,13 @@ import { Heart, Settings2, User } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const ExploreCarCard = ({ car }) => {
+  const categoryName = typeof car?.category === 'object' ? (car?.category?.name || "Scooter") : (car?.category || "Scooter");
+  const displayPrice = car?.prices?.day || car?.price || car?.prices?.hour || 0;
+
   return (
     <Link
       to={`/user/vehicles/${car.id}`}
-      className="block w-[180px] bg-white rounded-[20px] border border-gray-100 shadow-sm p-3.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative group"
+      className="block w-full bg-white rounded-[20px] border border-gray-100 shadow-sm p-3.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative group"
     >
       <button
         onClick={(e) => {
@@ -17,33 +20,36 @@ const ExploreCarCard = ({ car }) => {
         <Heart size={14} className="text-gray-300 hover:text-[#FF5A1F] transition-colors" />
       </button>
 
-      <div className="h-[90px] mb-4 flex items-center justify-center pt-2">
+      <div className="h-[100px] mb-3 flex items-center justify-center pt-2">
         <img
-          src={car.image}
+          src={car.image || "/assets/category/image.png"}
           alt={car.name}
           className="h-full object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            e.currentTarget.src = "/assets/category/image.png";
+          }}
         />
       </div>
 
       <div>
         <h3 className="text-[13px] font-bold text-gray-900 mb-0.5 truncate">{car.name}</h3>
-        <p className="text-[10px] text-gray-400 mb-3">{car.category}</p>
+        <p className="text-[10px] text-gray-400 mb-3">{categoryName}</p>
 
         <div className="flex items-center gap-3 text-[10px] text-gray-500 mb-4">
           <div className="flex items-center gap-1">
             <User size={12} className="text-gray-400" />
-            <span>{car.seats} Seats</span>
+            <span>{car.seats || 2} Seats</span>
           </div>
           <div className="flex items-center gap-1">
             <Settings2 size={12} className="text-gray-400" />
-            <span>{car.transmission}</span>
+            <span>{car.transmission || "Twist & Go"}</span>
           </div>
         </div>
 
         <div className="flex items-end justify-between">
           <div>
             <p className="text-[15px] font-bold text-[#FF5A1F] leading-none">
-              ₹{car.price.toLocaleString("en-IN")}
+              ₹{Number(displayPrice).toLocaleString("en-IN")}
               <span className="text-[10px] text-gray-400 font-medium ml-0.5">/ day</span>
             </p>
           </div>

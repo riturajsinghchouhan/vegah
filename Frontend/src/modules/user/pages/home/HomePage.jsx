@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import VehicleCard from "../../../../components/vehicle/VehicleCard";
 import { useAuth } from "../../../../hooks/useAuth";
+import { useUserLocation } from "../../../../hooks/useLocation";
 import { userService } from "../../../../services/userService";
 import { vehicleService } from "../../../../services/vehicleService";
 
@@ -39,6 +40,7 @@ const VehicleSkeleton = () => (
 const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { location } = useUserLocation();
 
   const [vehicles, setVehicles] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -58,7 +60,7 @@ const HomePage = () => {
       try {
         setLoading(true);
         const [vehiclesData, categoriesData, couponsData, zonesData] = await Promise.allSettled([
-          vehicleService.listVehicles({ limit: 8 }),
+          vehicleService.listVehicles({ limit: 8, city: location?.city }),
           vehicleService.getCategories(),
           userService.getActiveCoupons(),
           userService.getPublicZones(),
@@ -76,7 +78,7 @@ const HomePage = () => {
     };
 
     fetchHomeData();
-  }, []);
+  }, [location?.city]);
 
   // Auto-rotate coupons
   useEffect(() => {
@@ -108,29 +110,32 @@ const HomePage = () => {
   return (
     <div className="bg-[#FAFAFA] min-h-screen pb-24 relative overflow-x-hidden font-sans">
       
-      {/* Header */}
+      {/* Header (Image 3) */}
       <div className="px-4 pt-5 pb-3 flex items-center justify-between">
-        <div className="flex items-start gap-2">
-          <MapPin size={22} className="text-[#FF5500] mt-0.5" />
+        <div 
+          onClick={() => navigate("/user/select-location")}
+          className="flex items-start gap-2.5 cursor-pointer group p-1 -ml-1 rounded-xl hover:bg-gray-100/60 transition-colors"
+        >
+          <MapPin size={22} className="text-[#FF5500] mt-0.5 shrink-0" />
           <div>
             <div className="flex items-center gap-1">
-              <h2 className="text-sm font-bold text-gray-900">
-                {zones.length > 0 ? zones[0].name : "Select Location"}
+              <h2 className="text-sm font-bold text-gray-900 group-hover:text-[#FF5500] transition-colors truncate max-w-[180px]">
+                {location?.title || location?.primaryAddress || "Select Location"}
               </h2>
-              <ChevronDown size={14} className="text-gray-900" />
+              <ChevronDown size={14} className="text-gray-900 group-hover:text-[#FF5500] transition-colors shrink-0" />
             </div>
-            <p className="text-[10px] text-gray-500">
-              {zones.length > 0 ? zones[0].address || "Madhya Pradesh, India" : "..."}
+            <p className="text-[10px] text-gray-500 truncate max-w-[200px]">
+              {location?.subtitle || (location?.city ? `${location.city}, ${location.state || "India"}` : "Madhya Pradesh, India")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="relative p-1">
+          <button className="relative p-1 hover:bg-gray-100 rounded-full transition-colors">
             <Bell size={22} className="text-gray-800" />
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#FF5500] border-2 border-white" />
           </button>
           <Link to="/user/profile">
-            <div className="h-8 w-8 rounded-full bg-[#FF5500] flex items-center justify-center text-white font-bold text-sm shadow-sm">
+            <div className="h-8 w-8 rounded-full bg-[#FF5500] flex items-center justify-center text-white font-bold text-sm shadow-sm hover:scale-105 transition-transform">
               {userInitial}
             </div>
           </Link>
@@ -210,18 +215,23 @@ const HomePage = () => {
 
       {/* Rent a Scoot — Booking Form with real Zones */}
       <div className="px-4 mb-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 relative">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Rent a Scoot</h2>
-          <div className="space-y-3">
-            
+        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-3.5 sm:p-4 relative">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900">Rent a Scoot</h2>
+            <span className="text-[10px] font-semibold text-[#FF5500] bg-[#FFF0EB] px-2.5 py-0.5 rounded-full">
+              Flexible Rentals
+            </span>
+          </div>
+          
+          <div className="space-y-2.5">
             {/* Zone Selector */}
-            <div className="border border-gray-200 rounded-xl p-3 relative">
-              <label className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
-                <MapPin size={12} className="text-[#FF5500]" /> City or Location
+            <div className="border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/50 focus-within:bg-white focus-within:border-[#FF5500] transition-colors relative">
+              <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
+                <MapPin size={11} className="text-[#FF5500]" /> Pickup Location
               </label>
               <div className="flex items-center justify-between relative">
                 <select
-                  className="w-full appearance-none bg-transparent text-sm font-semibold text-gray-800 outline-none pr-6 cursor-pointer"
+                  className="w-full appearance-none bg-transparent text-xs sm:text-sm font-semibold text-gray-800 outline-none pr-6 cursor-pointer"
                   value={selectedZone}
                   onChange={(e) => setSelectedZone(e.target.value)}
                 >
@@ -233,15 +243,16 @@ const HomePage = () => {
                       </option>
                     ))}
                 </select>
-                <ChevronDown size={16} className="text-gray-400 absolute right-0 pointer-events-none" />
+                <ChevronDown size={14} className="text-gray-400 absolute right-0 pointer-events-none" />
               </div>
             </div>
 
-            {/* Date Selectors */}
-            <div className="flex gap-2">
-              <div className="flex-1 border border-gray-200 rounded-xl p-3">
-                <label className="text-[10px] text-gray-500 mb-1 flex items-center gap-1 block">
-                  <Calendar size={12} className="text-gray-400" /> Pick-up
+            {/* Date Selectors — Compact & Auto-Adjusting Responsive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Pick-up */}
+              <div className="border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/50 focus-within:bg-white focus-within:border-[#FF5500] transition-colors">
+                <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
+                  <Calendar size={11} className="text-[#FF5500]" /> Pick-up Date & Time
                 </label>
                 <input
                   type="datetime-local"
@@ -250,9 +261,11 @@ const HomePage = () => {
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
-              <div className="flex-1 border border-gray-200 rounded-xl p-3">
-                <label className="text-[10px] text-gray-500 mb-1 flex items-center gap-1 block">
-                  <Calendar size={12} className="text-gray-400" /> Drop-off
+
+              {/* Drop-off */}
+              <div className="border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/50 focus-within:bg-white focus-within:border-[#FF5500] transition-colors">
+                <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
+                  <Calendar size={11} className="text-gray-400" /> Drop-off Date & Time
                 </label>
                 <input
                   type="datetime-local"
@@ -265,9 +278,9 @@ const HomePage = () => {
 
             <button
               onClick={handleSearchScoots}
-              className="bg-[#FF5500] text-white rounded-xl py-3.5 px-4 flex items-center justify-center gap-2 text-sm font-bold shadow-md w-full mt-2 hover:bg-[#E64D00] transition active:scale-[0.98]"
+              className="bg-[#FF5500] text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold shadow-md w-full mt-1.5 hover:bg-[#E64D00] transition active:scale-[0.98]"
             >
-              Search Scoots <ChevronRight size={16} />
+              Search Available Scoots <ChevronRight size={15} />
             </button>
           </div>
         </div>

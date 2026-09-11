@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useUserLocation } from "../../hooks/useLocation";
 import { safeLazy } from "../../utils/safeLazy";
 import AppShell from "./layouts/AppShell";
 import AuthLayout from "./layouts/AuthLayout";
@@ -22,6 +23,8 @@ const ActiveRentalPage = safeLazy(() => import("./pages/bookings/ActiveRentalPag
 const ChargingPage = safeLazy(() => import("./pages/charging/ChargingPage"));
 const StationDetailsPage = safeLazy(() => import("./pages/charging/StationDetailsPage"));
 const ProfilePage = safeLazy(() => import("./pages/profile/ProfilePage"));
+const SelectLocationPage = safeLazy(() => import("./pages/location/SelectLocationPage"));
+const AddLocationPage = safeLazy(() => import("./pages/location/AddLocationPage"));
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, sessionReady } = useAuth();
@@ -34,6 +37,25 @@ const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated) {
     // Redirect to the user login page
     return <Navigate to="/user/login" replace state={{ from: location.pathname }} />;
+  }
+
+  return children;
+};
+
+const LocationGuard = ({ children }) => {
+  const { location } = useUserLocation();
+  const routerLocation = useLocation();
+
+  const isLocationRoute =
+    routerLocation.pathname.includes("/select-location") ||
+    routerLocation.pathname.includes("/add-location");
+
+  const hasValidLocation = Boolean(
+    location && (location.title || location.primaryAddress || location.city)
+  );
+
+  if (!hasValidLocation && !isLocationRoute) {
+    return <Navigate to="/user/select-location" replace state={{ from: routerLocation.pathname }} />;
   }
 
   return children;
@@ -62,7 +84,9 @@ const UserRoutes = () => (
     <Route
       element={
         <ProtectedRoute>
-          <AppShell />
+          <LocationGuard>
+            <AppShell />
+          </LocationGuard>
         </ProtectedRoute>
       }
     >
@@ -81,6 +105,8 @@ const UserRoutes = () => (
       <Route path="charging" element={<ChargingPage />} />
       <Route path="charging/:stationId" element={<StationDetailsPage />} />
       <Route path="profile" element={<ProfilePage />} />
+      <Route path="select-location" element={<SelectLocationPage />} />
+      <Route path="add-location" element={<AddLocationPage />} />
     </Route>
 
     {/* Catch-all for unknown /user/* paths */}
