@@ -10,7 +10,7 @@ const ReferEarnCard = () => {
 
         <div className="relative z-10 w-[70%]">
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-6 h-6 rounded-full bg-[#FF5A1F]/10 flex items-center justify-center text-[#FF5A1F]">
+            <div className="w-6 h-6 rounded-full bg-[#272664]/10 flex items-center justify-center text-[#272664]">
               <Gift size={12} strokeWidth={2.5} />
             </div>
             <h3 className="text-[14px] font-bold text-gray-900 leading-tight">
@@ -18,9 +18,9 @@ const ReferEarnCard = () => {
             </h3>
           </div>
           <p className="text-[10px] text-gray-600 mb-3 leading-snug">
-            Invite friends and get <span className="font-bold text-[#FF5A1F]">₹200</span> in wallet credits.
+            Invite friends and get <span className="font-bold text-[#272664]">₹200</span> in wallet credits.
           </p>
-          <button className="bg-white text-[#FF5A1F] border border-gray-100 shadow-sm text-[11px] font-bold px-4 py-1.5 rounded-full active:scale-95 transition-all w-fit hover:border-[#FF5A1F]">
+          <button className="bg-white text-[#272664] border border-gray-100 shadow-sm text-[11px] font-bold px-4 py-1.5 rounded-full active:scale-95 transition-all w-fit hover:border-[#272664]">
             Invite Now
           </button>
         </div>

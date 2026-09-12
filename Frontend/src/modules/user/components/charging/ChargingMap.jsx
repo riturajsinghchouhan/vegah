@@ -45,7 +45,7 @@ const ChargingMap = ({ stations }) => {
       
       {/* Locate Me Floating Button */}
       <button 
-        className="absolute bottom-4 right-9 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 text-gray-700 hover:text-[#FF5A1F] active:scale-95 transition-all z-10"
+        className="absolute bottom-4 right-9 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 text-gray-700 hover:text-[#272664] active:scale-95 transition-all z-10"
       >
         <LocateFixed size={20} strokeWidth={2} />
       </button>

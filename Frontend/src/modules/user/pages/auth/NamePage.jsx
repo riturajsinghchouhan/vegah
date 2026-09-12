@@ -60,7 +60,7 @@ const NamePage = () => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your Full Name"
-              className="w-full h-[56px] pl-11 pr-4 rounded-[16px] border-2 border-gray-100 bg-[#F8F9FA] text-[16px] font-medium text-gray-900 outline-none focus:border-[#FF5A1F] focus:bg-white focus:ring-4 focus:ring-[#FF5A1F]/10 transition-all"
+              className="w-full h-[56px] pl-11 pr-4 rounded-[16px] border-2 border-gray-100 bg-[#F8F9FA] text-[16px] font-medium text-gray-900 outline-none focus:border-[#272664] focus:bg-white focus:ring-4 focus:ring-[#272664]/10 transition-all"
               autoFocus
             />
           </div>
@@ -69,7 +69,7 @@ const NamePage = () => {
           <button 
             type="submit"
             disabled={loading || fullName.trim().length < 2}
-            className="w-full h-[52px] bg-[#FF5A1F] hover:bg-[#E54D15] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
+            className="w-full h-[52px] bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Saving..." : "Continue"}
             {!loading && <ArrowRight size={18} className="ml-2" />}

@@ -12,8 +12,8 @@ export default {
           border: "#E5E7EB",
           text: "#111827",
           subtle: "#6B7280",
-          primary: "#FF5500",
-          primaryHover: "#E64D00",
+          primary: "#272664",
+          primaryHover: "#1e1d4d",
           secondary: "#F9FAFB",
           success: "#10B981",
           warning: "#F59E0B",
@@ -21,7 +21,7 @@ export default {
         },
       },
       boxShadow: {
-        glow: "0 4px 15px rgba(255, 85, 0, 0.2)",
+        glow: "0 4px 15px rgba(39, 38, 100, 0.2)",
         soft: "0 2px 10px rgba(0, 0, 0, 0.05)",
       },
       borderRadius: {

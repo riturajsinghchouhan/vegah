@@ -7,15 +7,16 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { requestOtp } = useAuth();
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!phone || phone.length < 10) return;
+    if (!phone || phone.length < 10 || !city) return;
     
     setLoading(true);
     await requestOtp(`+91${phone}`);
-    navigate("/user/otp", { state: { phone: `+91${phone}` } });
+    navigate("/user/otp", { state: { phone: `+91${phone}`, city } });
   };
 
   return (
@@ -36,12 +37,29 @@ const LoginPage = () => {
         
         <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
           
+          <label className="block text-[13px] font-bold text-gray-900 mb-2 mt-4">
+            City
+          </label>
+          <div className="flex items-center w-full h-[52px] border border-gray-200 rounded-[16px] overflow-hidden bg-white focus-within:border-[#272664] focus-within:ring-2 focus-within:ring-[#272664]/10 transition-all mb-4 px-3">
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="flex-1 h-full bg-transparent text-[15px] font-medium text-gray-900 focus:outline-none"
+            >
+              <option value="" disabled>Select your city</option>
+              <option value="Indore">Indore</option>
+              <option value="Bhopal">Bhopal</option>
+              <option value="Pune">Pune</option>
+              <option value="Bangalore">Bangalore</option>
+            </select>
+          </div>
+
           <label className="block text-[13px] font-bold text-gray-900 mb-2">
             Mobile Number
           </label>
           
           {/* Custom Input Field */}
-          <div className="flex items-center w-full h-[52px] border border-gray-200 rounded-[16px] overflow-hidden bg-white focus-within:border-[#FF5A1F] focus-within:ring-2 focus-within:ring-[#FF5A1F]/10 transition-all">
+          <div className="flex items-center w-full h-[52px] border border-gray-200 rounded-[16px] overflow-hidden bg-white focus-within:border-[#272664] focus-within:ring-2 focus-within:ring-[#272664]/10 transition-all">
             
             {/* Country Code Selector */}
             <div className="flex items-center h-full px-3 bg-white gap-2 cursor-pointer">
@@ -67,7 +85,7 @@ const LoginPage = () => {
           <button 
             type="submit"
             disabled={loading || phone.length < 10}
-            className="w-full h-[52px] mt-6 bg-[#FF5A1F] hover:bg-[#E54D15] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
+            className="w-full h-[52px] mt-6 bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Please wait..." : "Continue"}
             {!loading && <ArrowRight size={18} className="ml-2" />}

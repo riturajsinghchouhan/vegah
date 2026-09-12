@@ -10,7 +10,7 @@ const WalletSummary = ({ user }) => {
         
         {/* Decorative pattern (abstract wave using radial gradients) */}
         <div className="absolute inset-0 opacity-10 pointer-events-none" 
-             style={{ backgroundImage: 'radial-gradient(circle at 100% 50%, #FF5A1F 0%, transparent 50%), radial-gradient(circle at 80% 100%, #FF5A1F 0%, transparent 40%)' }} />
+             style={{ backgroundImage: 'radial-gradient(circle at 100% 50%, #272664 0%, transparent 50%), radial-gradient(circle at 80% 100%, #272664 0%, transparent 40%)' }} />
         <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none border-l border-white/5 skew-x-[-15deg] translate-x-4"></div>
 
         <div className="relative z-10 flex p-5 gap-5">
@@ -29,7 +29,7 @@ const WalletSummary = ({ user }) => {
                 {showBalance ? <Eye size={16} /> : <EyeOff size={16} />}
               </button>
             </div>
-            <button className="border border-[#FF5A1F] text-[#FF5A1F] hover:bg-[#FF5A1F] hover:text-white text-[10px] font-bold px-4 py-1.5 rounded-full transition-all active:scale-95">
+            <button className="border border-[#272664] text-[#272664] hover:bg-[#272664] hover:text-white text-[10px] font-bold px-4 py-1.5 rounded-full transition-all active:scale-95">
               Add Money
             </button>
           </div>
@@ -63,7 +63,7 @@ const WalletSummary = ({ user }) => {
             <div className="flex flex-col gap-2">
               <p className="text-[9px] text-gray-400">Saved Scoots</p>
               <p className="text-[18px] font-bold leading-none">{user.savedCars}</p>
-              <div className="w-6 h-6 rounded-full bg-[#FF5A1F]/10 border border-[#FF5A1F]/20 flex items-center justify-center text-[#FF5A1F]">
+              <div className="w-6 h-6 rounded-full bg-[#272664]/10 border border-[#272664]/20 flex items-center justify-center text-[#272664]">
                 <Heart size={11} strokeWidth={2} />
               </div>
             </div>

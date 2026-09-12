@@ -11,7 +11,7 @@ const PopularCarsSection = ({ cars }) => {
         <h2 className="text-[17px] font-bold text-gray-900">Popular Scoots</h2>
         <Link 
           to="/user/vehicles" 
-          className="text-[12px] font-bold text-[#FF5A1F] flex items-center gap-1 hover:text-[#E64D00] transition-colors"
+          className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
         >
           View All <ArrowRight size={14} />
         </Link>

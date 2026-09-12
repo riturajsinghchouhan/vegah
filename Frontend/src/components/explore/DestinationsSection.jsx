@@ -10,7 +10,7 @@ const DestinationsSection = ({ destinations }) => {
         <h2 className="text-[17px] font-bold text-gray-900">Top Destinations</h2>
         <Link 
           to="/explore-destinations" 
-          className="text-[12px] font-bold text-[#FF5A1F] flex items-center gap-1 hover:text-[#E64D00] transition-colors"
+          className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
         >
           View All <ArrowRight size={14} />
         </Link>
@@ -36,7 +36,7 @@ const DestinationsSection = ({ destinations }) => {
               
               {/* Distance Badge */}
               <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-0.5 shadow-sm">
-                <MapPin size={10} className="text-[#FF5A1F]" />
+                <MapPin size={10} className="text-[#272664]" />
                 {destination.distance}
               </div>
 

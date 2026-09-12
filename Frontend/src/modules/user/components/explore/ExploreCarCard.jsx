@@ -14,7 +14,7 @@ const ExploreCarCard = ({ car }) => {
         }}
         className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-gray-50 active:scale-90 transition-transform"
       >
-        <Heart size={14} className="text-gray-300 hover:text-[#FF5A1F] transition-colors" />
+        <Heart size={14} className="text-gray-300 hover:text-[#272664] transition-colors" />
       </button>
 
       <div className="h-[90px] mb-4 flex items-center justify-center pt-2">
@@ -42,7 +42,7 @@ const ExploreCarCard = ({ car }) => {
 
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[15px] font-bold text-[#FF5A1F] leading-none">
+            <p className="text-[15px] font-bold text-[#272664] leading-none">
               ₹{car.price.toLocaleString('en-IN')}
               <span className="text-[10px] text-gray-400 font-medium ml-0.5">/ day</span>
             </p>

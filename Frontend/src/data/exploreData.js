@@ -55,8 +55,8 @@ export const benefits = [
     title: "Safe & Secure",
     description: "Well maintained scoots for your safety",
     icon: "shield",
-    color: "text-[#FF5A1F]",
-    bgColor: "bg-[#FFF0EB]",
+    color: "text-[#272664]",
+    bgColor: "bg-[#e8e8f2]",
   },
   {
     id: "price",

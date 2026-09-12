@@ -34,20 +34,20 @@ const SelectLocationPage = () => {
         <button
           onClick={handleUseCurrentLocation}
           disabled={status === "loading"}
-          className="w-full bg-white rounded-2xl border border-gray-100 p-4 shadow-xs flex items-center justify-between hover:border-[#FF5A1F]/30 hover:bg-[#FFF0EB]/30 transition-all duration-200 group text-left"
+          className="w-full bg-white rounded-2xl border border-gray-100 p-4 shadow-xs flex items-center justify-between hover:border-[#272664]/30 hover:bg-[#e8e8f2]/30 transition-all duration-200 group text-left"
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-[#FFF0EB] flex items-center justify-center text-[#FF5A1F] shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#e8e8f2] flex items-center justify-center text-[#272664] shrink-0">
               <Navigation size={18} className={status === "loading" ? "animate-spin" : ""} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#FF5A1F] group-hover:text-[#E64D00]">
+              <h3 className="text-sm font-bold text-[#272664] group-hover:text-[#1e1d4d]">
                 {status === "loading" ? "Detecting GPS Location..." : "Use Current Location"}
               </h3>
               <p className="text-[11px] text-gray-400 mt-0.5">Enable GPS for accuracy</p>
             </div>
           </div>
-          <ChevronRight size={18} className="text-gray-400 group-hover:text-[#FF5A1F] transition-colors" />
+          <ChevronRight size={18} className="text-gray-400 group-hover:text-[#272664] transition-colors" />
         </button>
 
         {/* Saved Addresses Section */}
@@ -58,7 +58,7 @@ const SelectLocationPage = () => {
             </h2>
             <button
               onClick={() => navigate("/user/add-location")}
-              className="text-[12px] font-bold text-[#FF5A1F] flex items-center gap-1 hover:text-[#E64D00] transition-colors"
+              className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
             >
               <Plus size={14} /> Add New
             </button>
@@ -70,7 +70,7 @@ const SelectLocationPage = () => {
               <p className="text-xs text-gray-500 mb-3">No saved addresses yet.</p>
               <button
                 onClick={() => navigate("/user/add-location")}
-                className="px-4 py-2 bg-[#FF5A1F] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#E64D00] transition-colors"
+                className="px-4 py-2 bg-[#272664] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#1e1d4d] transition-colors"
               >
                 + Add Delivery Location
               </button>
@@ -85,7 +85,7 @@ const SelectLocationPage = () => {
                     onClick={() => handleSelectAddress(addr)}
                     className={`w-full bg-white rounded-2xl border p-4 shadow-xs flex items-start justify-between cursor-pointer transition-all duration-200 ${
                       isSelected
-                        ? "border-[#FF5A1F] bg-[#FFF0EB]/20 ring-1 ring-[#FF5A1F]/30"
+                        ? "border-[#272664] bg-[#e8e8f2]/20 ring-1 ring-[#272664]/30"
                         : "border-gray-100 hover:border-gray-200"
                     }`}
                   >
@@ -97,7 +97,7 @@ const SelectLocationPage = () => {
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-bold text-gray-900">{addr.type || "Home"}</h3>
                           {isSelected && (
-                            <span className="text-[9px] bg-[#FF5A1F] text-white px-2 py-0.5 rounded-full font-bold">
+                            <span className="text-[9px] bg-[#272664] text-white px-2 py-0.5 rounded-full font-bold">
                               Selected
                             </span>
                           )}

@@ -44,7 +44,7 @@ const StationDetailsPage = () => {
               <div className="flex flex-wrap gap-3">
                 <div className="rounded-[1.5rem] bg-orange-50 px-4 py-3">
                   <p className="text-sm text-orange-600 font-medium">Price</p>
-                  <p className="mt-1 text-xl font-semibold text-[#FF5A1F]">
+                  <p className="mt-1 text-xl font-semibold text-[#272664]">
                     ₹{station.pricePerKwh?.toFixed(2) || "0.00"}<span className="text-sm font-medium text-orange-600/70">/kWh</span>
                   </p>
                 </div>

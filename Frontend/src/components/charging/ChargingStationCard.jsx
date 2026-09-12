@@ -43,7 +43,7 @@ const ChargingStationCard = ({ station }) => {
             e.target.nextSibling.style.display = "block";
           }}
         />
-        <div className="hidden text-[#FF5A1F] opacity-50">
+        <div className="hidden text-[#272664] opacity-50">
           <Zap size={32} />
         </div>
       </div>
@@ -68,9 +68,9 @@ const ChargingStationCard = ({ station }) => {
           <div className="flex flex-wrap gap-1.5">
             <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700 whitespace-nowrap">
               {station.chargingType === "AC" ? (
-                <Cable size={12} className="text-[#FF5A1F]" />
+                <Cable size={12} className="text-[#272664]" />
               ) : (
-                <Zap size={12} className="text-[#FF5A1F]" />
+                <Zap size={12} className="text-[#272664]" />
               )}
               <span className="text-[10px] font-bold">{station.chargingType}</span>
             </div>
@@ -88,7 +88,7 @@ const ChargingStationCard = ({ station }) => {
             </div>
 
             <div className="flex flex-col items-center justify-center">
-              <div className="w-8 h-8 rounded-full border border-[#FF5A1F] text-[#FF5A1F] flex items-center justify-center hover:bg-[#FFF0EB] transition-colors mb-1 shrink-0">
+              <div className="w-8 h-8 rounded-full border border-[#272664] text-[#272664] flex items-center justify-center hover:bg-[#e8e8f2] transition-colors mb-1 shrink-0">
                 <ArrowRight size={16} strokeWidth={2.5} />
               </div>
               <p className="text-[8px] text-gray-500 font-medium leading-none text-center">

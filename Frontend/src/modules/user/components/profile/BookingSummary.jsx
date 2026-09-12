@@ -64,7 +64,7 @@ const BookingCard = ({ booking }) => {
             </div>
           </div>
           
-          <button className="shrink-0 border border-[#FF5A1F] text-[#FF5A1F] hover:bg-[#FF5A1F] hover:text-white text-[11px] font-bold px-4 py-1.5 rounded-xl transition-colors active:scale-95">
+          <button className="shrink-0 border border-[#272664] text-[#272664] hover:bg-[#272664] hover:text-white text-[11px] font-bold px-4 py-1.5 rounded-xl transition-colors active:scale-95">
             View Details
           </button>
         </div>
@@ -83,7 +83,7 @@ const BookingSummary = ({ latestBooking }) => {
         <h2 className="text-[17px] font-bold text-gray-900">My Bookings</h2>
         <Link 
           to="/bookings" 
-          className="text-[12px] font-bold text-[#FF5A1F] flex items-center gap-1 hover:text-[#E64D00] transition-colors"
+          className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
         >
           View All <span className="text-[14px]">→</span>
         </Link>

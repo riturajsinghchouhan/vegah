@@ -44,6 +44,12 @@ const OtpPage = () => {
     setLoading(true);
     try {
       const session = await verifyOtp(phoneNumber, otpString);
+      
+      // Save city to localStorage so it acts as the user's active zone
+      if (city) {
+        localStorage.setItem("userCity", city);
+      }
+
       if (session?.isNewUser || session?.user?.fullName?.startsWith("User ")) {
         navigate("/user/auth/name", { replace: true });
       } else {
@@ -57,6 +63,7 @@ const OtpPage = () => {
 
   const isOtpComplete = otp.every(digit => digit !== "");
   const phoneNumber = routerLocation.state?.phone ?? "your phone number";
+  const city = routerLocation.state?.city ?? "";
 
   return (
     <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-[#F8F9FA] shadow-2xl">
@@ -101,14 +108,14 @@ const OtpPage = () => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-[60px] h-[64px] rounded-[16px] border-2 border-gray-100 bg-[#F8F9FA] text-center text-[24px] font-bold text-gray-900 outline-none focus:border-[#FF5A1F] focus:bg-white focus:ring-4 focus:ring-[#FF5A1F]/10 transition-all"
+                className="w-[60px] h-[64px] rounded-[16px] border-2 border-gray-100 bg-[#F8F9FA] text-center text-[24px] font-bold text-gray-900 outline-none focus:border-[#272664] focus:bg-white focus:ring-4 focus:ring-[#272664]/10 transition-all"
               />
             ))}
           </div>
 
           <div className="flex items-center justify-between mb-8">
             <p className="text-[13px] text-gray-500 font-medium">Didn't receive code?</p>
-            <button type="button" className="text-[13px] font-bold text-[#FF5A1F] hover:underline">
+            <button type="button" className="text-[13px] font-bold text-[#272664] hover:underline">
               Resend in 00:30
             </button>
           </div>
@@ -117,15 +124,15 @@ const OtpPage = () => {
           <button 
             type="submit"
             disabled={loading || !isOtpComplete}
-            className="w-full h-[52px] bg-[#FF5A1F] hover:bg-[#E54D15] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
+            className="w-full h-[52px] bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Verifying..." : "Verify and proceed"}
             {!loading && <ArrowRight size={18} className="ml-2" />}
           </button>
 
-          <div className="mt-6 bg-[#FFF9F6] rounded-[16px] p-4 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-[#FFE5D6]">
-              <ShieldCheck size={16} className="text-[#FF5A1F]" />
+          <div className="mt-6 bg-[#f3f3f8] rounded-[16px] p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-[#d0d0e3]">
+              <ShieldCheck size={16} className="text-[#272664]" />
             </div>
             <div>
               <p className="text-[12px] font-bold text-gray-900 leading-tight">Secure verification</p>

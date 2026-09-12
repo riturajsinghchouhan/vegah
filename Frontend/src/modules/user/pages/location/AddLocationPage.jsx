@@ -173,7 +173,7 @@ const AddLocationPage = () => {
         {/* Search Input Bar */}
         <div className="absolute top-4 left-4 right-4 z-20">
           <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-3 shadow-md border border-gray-100">
-            <Search size={18} className="text-[#FF5A1F]" />
+            <Search size={18} className="text-[#272664]" />
             <input
               id="location-search-input"
               type="text"
@@ -207,9 +207,9 @@ const AddLocationPage = () => {
         {/* Floating "Use My Location" Button */}
         <button
           onClick={handleUseMyLocation}
-          className="absolute bottom-4 right-4 z-20 bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-100 text-xs font-bold text-[#FF5A1F] flex items-center gap-2 hover:bg-[#FFF0EB] transition-all active:scale-95"
+          className="absolute bottom-4 right-4 z-20 bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-100 text-xs font-bold text-[#272664] flex items-center gap-2 hover:bg-[#e8e8f2] transition-all active:scale-95"
         >
-          <Navigation size={14} className="fill-[#FF5A1F]" />
+          <Navigation size={14} className="fill-[#272664]" />
           Use My Location
         </button>
       </div>
@@ -238,7 +238,7 @@ const AddLocationPage = () => {
               required
               value={addressForm.primaryAddress}
               onChange={(e) => setAddressForm({ ...addressForm, primaryAddress: e.target.value })}
-              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition-all"
+              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
               placeholder="e.g. Pawar Villa"
             />
           </div>
@@ -252,7 +252,7 @@ const AddLocationPage = () => {
               type="text"
               value={addressForm.secondaryAddress}
               onChange={(e) => setAddressForm({ ...addressForm, secondaryAddress: e.target.value })}
-              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition-all"
+              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
               placeholder="e.g. Talawali Chanda"
             />
           </div>
@@ -266,7 +266,7 @@ const AddLocationPage = () => {
                 required
                 value={addressForm.city}
                 onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition-all"
+                className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
                 placeholder="Indore"
               />
             </div>
@@ -277,7 +277,7 @@ const AddLocationPage = () => {
                 required
                 value={addressForm.state}
                 onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition-all"
+                className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
                 placeholder="Madhya Pradesh"
               />
             </div>
@@ -291,7 +291,7 @@ const AddLocationPage = () => {
               required
               value={addressForm.pincode}
               onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
-              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition-all"
+              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
               placeholder="452007"
             />
           </div>
@@ -299,7 +299,7 @@ const AddLocationPage = () => {
           {/* Save Button */}
           <button
             type="submit"
-            className="w-full py-3.5 bg-[#FF5A1F] text-white font-bold text-xs rounded-xl shadow-md hover:bg-[#E64D00] active:scale-95 transition-all mt-4"
+            className="w-full py-3.5 bg-[#272664] text-white font-bold text-xs rounded-xl shadow-md hover:bg-[#1e1d4d] active:scale-95 transition-all mt-4"
           >
             Save Address & Set Location
           </button>

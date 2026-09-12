@@ -4,7 +4,7 @@ const Toggle = ({ active, onChange }) => (
   <button 
     onClick={onChange}
     className={`w-[34px] h-[20px] rounded-full p-0.5 transition-colors ${
-      active ? "bg-[#FF5A1F]" : "bg-gray-200"
+      active ? "bg-[#272664]" : "bg-gray-200"
     }`}
   >
     <div className={`w-[16px] h-[16px] bg-white rounded-full shadow-sm transition-transform ${
@@ -46,7 +46,7 @@ const Preferences = ({ preferences }) => {
                 onChange={() => handleToggle(pref.id)} 
               />
             ) : (
-              <span className="text-[12px] font-bold text-[#FF5A1F]">{pref.value}</span>
+              <span className="text-[12px] font-bold text-[#272664]">{pref.value}</span>
             )}
           </div>
         ))}

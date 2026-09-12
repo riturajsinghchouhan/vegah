@@ -22,7 +22,7 @@ export const latestBooking = {
 };
 
 export const quickActions = [
-  { id: "bookings", label: "My Bookings", icon: "calendar", color: "text-[#FF5A1F]", bg: "bg-[#FFF0EB]" },
+  { id: "bookings", label: "My Bookings", icon: "calendar", color: "text-[#272664]", bg: "bg-[#e8e8f2]" },
   { id: "payments", label: "Payments", icon: "credit-card", color: "text-blue-500", bg: "bg-blue-50" },
   { id: "offers", label: "Offers & Coupons", icon: "badge-percent", color: "text-green-500", bg: "bg-green-50" },
   { id: "saved", label: "Saved Scoots", icon: "heart", color: "text-purple-500", bg: "bg-purple-50" },

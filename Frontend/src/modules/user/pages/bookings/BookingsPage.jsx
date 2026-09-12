@@ -123,7 +123,7 @@ const BookingsPage = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-300 ${
                 activeTab === tab 
-                  ? "bg-[#FF5A1F] text-white shadow-md shadow-[#FF5A1F]/20" 
+                  ? "bg-[#272664] text-white shadow-md shadow-[#272664]/20" 
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -170,7 +170,7 @@ const BookingsPage = () => {
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <MapPin size={14} className="text-[#FF5A1F] mt-0.5 shrink-0" />
+                    <MapPin size={14} className="text-[#272664] mt-0.5 shrink-0" />
                     <div>
                       <p className="text-[10px] font-bold text-gray-500">Pickup & Drop-off</p>
                       <p className="text-[12px] font-semibold text-gray-800 leading-snug">
@@ -200,7 +200,7 @@ const BookingsPage = () => {
                     {booking.status === "ACTIVE" && (
                       <Link 
                         to="/user/rental/active" 
-                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#FF5A1F] rounded-xl hover:bg-[#E54D15] transition-colors shadow-sm"
+                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#272664] rounded-xl hover:bg-[#1e1d4d] transition-colors shadow-sm"
                       >
                         Track Ride <ArrowRight size={14} />
                       </Link>

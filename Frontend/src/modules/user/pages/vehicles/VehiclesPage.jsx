@@ -176,7 +176,7 @@ const VehiclesPage = () => {
           <div className="flex items-center gap-2">
             <h2 className="text-[17px] font-bold text-gray-900">Explore EV Fleet</h2>
             {!loading && (
-              <span className="text-[11px] font-semibold bg-[#FFF0EB] text-[#FF5A1F] px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-semibold bg-[#e8e8f2] text-[#272664] px-2 py-0.5 rounded-full">
                 {filteredVehicles.length} available
               </span>
             )}
@@ -195,7 +195,7 @@ const VehiclesPage = () => {
             <p className="text-sm font-semibold text-gray-800 mb-1">{error}</p>
             <button
               onClick={fetchVehiclesData}
-              className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#FF5A1F] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#E64D00] transition-colors"
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#272664] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#1e1d4d] transition-colors"
             >
               <RefreshCw size={14} /> Retry Loading
             </button>

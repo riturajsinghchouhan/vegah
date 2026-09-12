@@ -6,7 +6,7 @@ const VehicleCard = ({ vehicle }) => (
   <Link className="block bg-white rounded-[16px] border border-gray-100 shadow-sm p-3 hover:border-gray-200 transition-colors relative" to={`/user/vehicles/${vehicle.id}`}>
     
     <button className="absolute top-3 right-3 z-10" type="button" onClick={(e) => e.preventDefault()}>
-      <Heart size={16} className="text-gray-400 hover:text-[#FF5500] transition-colors" />
+      <Heart size={16} className="text-gray-400 hover:text-[#272664] transition-colors" />
     </button>
     
     <div className="h-[90px] mb-3 flex items-center justify-center">
@@ -21,7 +21,7 @@ const VehicleCard = ({ vehicle }) => (
         <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
         <span>{vehicle.transmission || 'Auto'}</span>
       </div>
-      <p className="text-[14px] font-bold text-[#FF5500]">
+      <p className="text-[14px] font-bold text-[#272664]">
         {formatCurrency(vehicle.prices.day).replace('.00', '')}
         <span className="text-[10px] text-gray-400 font-medium">/day</span>
       </p>

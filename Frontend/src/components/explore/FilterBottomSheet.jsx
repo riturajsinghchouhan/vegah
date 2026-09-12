@@ -84,7 +84,7 @@ const FilterBottomSheet = ({ isOpen, onClose, onApply }) => {
                       onClick={() => toggleFilter(key, option)}
                       className={`px-4 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 border ${
                         isSelected 
-                          ? "bg-[#FFF0EB] border-[#FF5A1F] text-[#FF5A1F]" 
+                          ? "bg-[#e8e8f2] border-[#272664] text-[#272664]" 
                           : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
                       }`}
                     >
@@ -108,7 +108,7 @@ const FilterBottomSheet = ({ isOpen, onClose, onApply }) => {
           </button>
           <button 
             onClick={handleApply}
-            className="flex-[2] py-3.5 rounded-xl bg-[#FF5A1F] text-white font-bold text-[14px] shadow-[0_4px_12px_rgba(255,90,31,0.3)] hover:bg-[#E64D00] active:scale-95 transition-all"
+            className="flex-[2] py-3.5 rounded-xl bg-[#272664] text-white font-bold text-[14px] shadow-[0_4px_12px_rgba(255,90,31,0.3)] hover:bg-[#1e1d4d] active:scale-95 transition-all"
           >
             Apply Filters
           </button>

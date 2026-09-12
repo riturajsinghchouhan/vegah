@@ -20,7 +20,7 @@ const VehicleGallery = ({ vehicle }) => {
               key={idx} 
               type="button"
               onClick={() => setActiveIndex(idx)}
-              className={`h-16 w-16 bg-gray-50 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${activeIndex === idx ? 'border-[#FF5500]' : 'border-transparent hover:border-gray-300'}`}
+              className={`h-16 w-16 bg-gray-50 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${activeIndex === idx ? 'border-[#272664]' : 'border-transparent hover:border-gray-300'}`}
             >
               <img src={img} className="h-full w-full object-cover mix-blend-multiply" alt={`${vehicle.name} ${idx + 1}`} />
             </button>

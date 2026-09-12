@@ -19,11 +19,11 @@ const CategoryCarousel = ({ categories, selectedCategory, onSelectCategory }) =>
               onClick={() => onSelectCategory(category.id)}
               className={`flex flex-col items-center justify-center rounded-2xl w-[85px] py-3.5 shadow-sm transition-all duration-200 ${
                 isActive
-                  ? "bg-[#FFF0EB] border border-[#FF5A1F] text-[#FF5A1F]"
+                  ? "bg-[#e8e8f2] border border-[#272664] text-[#272664]"
                   : "bg-white border border-gray-100 text-gray-500 hover:border-gray-200"
               }`}
             >
-              <div className={`mb-2 flex h-8 w-8 items-center justify-center ${isActive ? "text-[#FF5A1F]" : "text-gray-700"}`}>
+              <div className={`mb-2 flex h-8 w-8 items-center justify-center ${isActive ? "text-[#272664]" : "text-gray-700"}`}>
                 {category.image ? (
                   <img
                     src={category.image}
@@ -34,7 +34,7 @@ const CategoryCarousel = ({ categories, selectedCategory, onSelectCategory }) =>
                   <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
                 )}
               </div>
-              <span className={`text-[11px] font-bold ${isActive ? "text-[#FF5A1F]" : "text-gray-900"}`}>
+              <span className={`text-[11px] font-bold ${isActive ? "text-[#272664]" : "text-gray-900"}`}>
                 {category.name}
               </span>
             </button>

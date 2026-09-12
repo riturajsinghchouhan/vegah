@@ -112,7 +112,7 @@ const ActiveRentalPage = () => {
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-[#FF5A1F] px-5 py-4 text-white shadow-md min-w-[180px]">
+          <div className="rounded-[1.5rem] bg-[#272664] px-5 py-4 text-white shadow-md min-w-[180px]">
             <p className="text-xs font-semibold uppercase tracking-wider text-orange-100">Rental timer</p>
             <p className="mt-2 text-3xl font-bold tracking-widest font-mono">
               {timeLeft.hours}:{timeLeft.minutes}:{timeLeft.seconds}

@@ -11,8 +11,8 @@ const NearbyStations = ({ stations }) => {
         </div>
         
         <button className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium hover:text-gray-800 transition-colors">
-          Sort by: <span className="text-[#FF5A1F] font-bold">Distance</span>
-          <ChevronDown size={14} className="text-[#FF5A1F]" />
+          Sort by: <span className="text-[#272664] font-bold">Distance</span>
+          <ChevronDown size={14} className="text-[#272664]" />
         </button>
       </div>
 

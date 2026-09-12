@@ -50,10 +50,7 @@ const HomePage = () => {
   const [copiedCode, setCopiedCode] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Booking form state
-  const [selectedZone, setSelectedZone] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -96,13 +93,7 @@ const HomePage = () => {
     });
   };
 
-  const handleSearchScoots = () => {
-    const params = new URLSearchParams();
-    if (selectedZone) params.set("zone", selectedZone);
-    if (startDate) params.set("start", startDate);
-    if (endDate) params.set("end", endDate);
-    navigate(`/user/vehicles?${params.toString()}`);
-  };
+
 
   const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
   const activeCoupon = coupons[activeCouponIndex];
@@ -116,13 +107,13 @@ const HomePage = () => {
           onClick={() => navigate("/user/select-location")}
           className="flex items-start gap-2.5 cursor-pointer group p-1 -ml-1 rounded-xl hover:bg-gray-100/60 transition-colors"
         >
-          <MapPin size={22} className="text-[#FF5500] mt-0.5 shrink-0" />
+          <MapPin size={22} className="text-[#272664] mt-0.5 shrink-0" />
           <div>
             <div className="flex items-center gap-1">
-              <h2 className="text-sm font-bold text-gray-900 group-hover:text-[#FF5500] transition-colors truncate max-w-[180px]">
+              <h2 className="text-sm font-bold text-gray-900 group-hover:text-[#272664] transition-colors truncate max-w-[180px]">
                 {location?.title || location?.primaryAddress || "Select Location"}
               </h2>
-              <ChevronDown size={14} className="text-gray-900 group-hover:text-[#FF5500] transition-colors shrink-0" />
+              <ChevronDown size={14} className="text-gray-900 group-hover:text-[#272664] transition-colors shrink-0" />
             </div>
             <p className="text-[10px] text-gray-500 truncate max-w-[200px]">
               {location?.subtitle || (location?.city ? `${location.city}, ${location.state || "India"}` : "Madhya Pradesh, India")}
@@ -132,10 +123,10 @@ const HomePage = () => {
         <div className="flex items-center gap-3">
           <button className="relative p-1 hover:bg-gray-100 rounded-full transition-colors">
             <Bell size={22} className="text-gray-800" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#FF5500] border-2 border-white" />
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#272664] border-2 border-white" />
           </button>
           <Link to="/user/profile">
-            <div className="h-8 w-8 rounded-full bg-[#FF5500] flex items-center justify-center text-white font-bold text-sm shadow-sm hover:scale-105 transition-transform">
+            <div className="h-8 w-8 rounded-full bg-[#272664] flex items-center justify-center text-white font-bold text-sm shadow-sm hover:scale-105 transition-transform">
               {userInitial}
             </div>
           </Link>
@@ -181,7 +172,7 @@ const HomePage = () => {
                     key={cat._id}
                     to={`/user/vehicles?category=${cat._id}`}
                     className={`flex flex-col items-center justify-center bg-white rounded-2xl border w-[80px] py-3 shadow-sm transition-colors ${
-                      i === 0 ? "border-[#FF5500]" : "border-gray-100"
+                      i === 0 ? "border-[#272664]" : "border-gray-100"
                     }`}
                   >
                     <img
@@ -213,78 +204,7 @@ const HomePage = () => {
         </Link>
       </div>
 
-      {/* Rent a Scoot — Booking Form with real Zones */}
-      <div className="px-4 mb-6">
-        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-3.5 sm:p-4 relative">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base sm:text-lg font-bold text-gray-900">Rent a Scoot</h2>
-            <span className="text-[10px] font-semibold text-[#FF5500] bg-[#FFF0EB] px-2.5 py-0.5 rounded-full">
-              Flexible Rentals
-            </span>
-          </div>
-          
-          <div className="space-y-2.5">
-            {/* Zone Selector */}
-            <div className="border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/50 focus-within:bg-white focus-within:border-[#FF5500] transition-colors relative">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
-                <MapPin size={11} className="text-[#FF5500]" /> Pickup Location
-              </label>
-              <div className="flex items-center justify-between relative">
-                <select
-                  className="w-full appearance-none bg-transparent text-xs sm:text-sm font-semibold text-gray-800 outline-none pr-6 cursor-pointer"
-                  value={selectedZone}
-                  onChange={(e) => setSelectedZone(e.target.value)}
-                >
-                  <option value="" disabled>Select pickup location</option>
-                  {zones.length > 0 &&
-                    zones.map((z) => (
-                      <option key={z._id} value={z._id}>
-                        {z.name}{z.address ? ` — ${z.address}` : ""}
-                      </option>
-                    ))}
-                </select>
-                <ChevronDown size={14} className="text-gray-400 absolute right-0 pointer-events-none" />
-              </div>
-            </div>
 
-            {/* Date Selectors — Compact & Auto-Adjusting Responsive Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {/* Pick-up */}
-              <div className="border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/50 focus-within:bg-white focus-within:border-[#FF5500] transition-colors">
-                <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
-                  <Calendar size={11} className="text-[#FF5500]" /> Pick-up Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  className="w-full bg-transparent text-xs font-semibold text-gray-800 outline-none cursor-pointer"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-
-              {/* Drop-off */}
-              <div className="border border-gray-200 rounded-xl px-3 py-2 bg-gray-50/50 focus-within:bg-white focus-within:border-[#FF5500] transition-colors">
-                <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 flex items-center gap-1">
-                  <Calendar size={11} className="text-gray-400" /> Drop-off Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  className="w-full bg-transparent text-xs font-semibold text-gray-800 outline-none cursor-pointer"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={handleSearchScoots}
-              className="bg-[#FF5500] text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold shadow-md w-full mt-1.5 hover:bg-[#E64D00] transition active:scale-[0.98]"
-            >
-              Search Available Scoots <ChevronRight size={15} />
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Active Coupon from API */}
       {(loading || coupons.length > 0) && (
@@ -341,24 +261,24 @@ const HomePage = () => {
       )}
 
       {/* Popular Scoots from API */}
-      <div className="mb-6 pl-4">
-        <div className="flex items-center justify-between pr-4 mb-4">
+      <div className="mb-6 px-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-gray-900">Popular Scoots</h2>
-          <Link to="/user/vehicles" className="text-xs font-bold text-[#FF5500] flex items-center">
+          <Link to="/user/vehicles" className="text-xs font-bold text-[#272664] flex items-center">
             View All <ChevronRight size={14} />
           </Link>
         </div>
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 pr-4">
+        <div className="grid grid-cols-2 gap-3 pb-2">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <VehicleSkeleton key={i} />)
             : vehicles.length > 0
               ? vehicles.map((vehicle) => (
-                  <div key={vehicle.id} className="min-w-[160px]">
+                  <div key={vehicle.id} className="w-full">
                     <VehicleCard vehicle={vehicle} />
                   </div>
                 ))
               : (
-                  <div className="flex items-center justify-center w-full py-8 text-gray-400">
+                  <div className="col-span-2 flex items-center justify-center w-full py-8 text-gray-400">
                     <div className="text-center">
                       <Loader2 className="mx-auto mb-2 animate-spin" size={24} />
                       <p className="text-xs">No vehicles found nearby</p>

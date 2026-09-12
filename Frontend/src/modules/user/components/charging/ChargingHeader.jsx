@@ -22,7 +22,7 @@ const ChargingHeader = () => {
       <div className="flex items-center gap-2">
         <button className="relative p-2 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-95 transition-all text-gray-700">
           <Bell size={22} strokeWidth={1.5} />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#FF5A1F] border-2 border-[#F8F9FA] rounded-full"></span>
+          <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#272664] border-2 border-[#F8F9FA] rounded-full"></span>
         </button>
         <button className="p-2 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-95 transition-all text-gray-700">
           <Settings size={22} strokeWidth={1.5} />

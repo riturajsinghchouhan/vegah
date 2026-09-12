@@ -4,7 +4,7 @@ const SearchAndFilter = ({ searchTerm, setSearchTerm, onOpenFilters }) => {
   return (
     <div className="px-4 mb-6 flex items-center gap-3">
       {/* Search Bar */}
-      <div className="flex-1 flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm focus-within:border-[#FF5A1F] focus-within:ring-1 focus-within:ring-[#FF5A1F]/20 transition-all">
+      <div className="flex-1 flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm focus-within:border-[#272664] focus-within:ring-1 focus-within:ring-[#272664]/20 transition-all">
         <Search size={18} className="text-gray-400 shrink-0" />
         <input 
           type="text" 
@@ -20,8 +20,8 @@ const SearchAndFilter = ({ searchTerm, setSearchTerm, onOpenFilters }) => {
         onClick={onOpenFilters}
         className="flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm hover:bg-gray-50 active:scale-95 transition-all shrink-0"
       >
-        <SlidersHorizontal size={16} className="text-[#FF5A1F]" />
-        <span className="text-[13px] font-bold text-[#FF5A1F]">Filters</span>
+        <SlidersHorizontal size={16} className="text-[#272664]" />
+        <span className="text-[13px] font-bold text-[#272664]">Filters</span>
       </button>
     </div>
   );
