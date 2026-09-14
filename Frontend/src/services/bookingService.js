@@ -61,8 +61,24 @@ export const bookingService = {
     return response.data.data;
   },
 
+  async getBooking(id) {
+    const response = await api.get(`/bookings/${id}`);
+    const b = response.data.data;
+    return {
+      ...b,
+      id: b._id || b.id || b.bookingId,
+      amount: b.totalAmount ?? b.amount ?? 0,
+      totalAmount: b.totalAmount ?? b.amount ?? 0,
+    };
+  },
+
   async startRide(bookingId) {
     const response = await api.patch(`/bookings/${bookingId}/status`, { status: 'ACTIVE' });
+    return response.data.data;
+  },
+
+  async endRide(bookingId) {
+    const response = await api.patch(`/bookings/${bookingId}/status`, { status: 'COMPLETED' });
     return response.data.data;
   },
 };

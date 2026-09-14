@@ -7,6 +7,16 @@ export const createZoneSchema = {
     unit: Joi.string().default('kilometer'),
     status: Joi.string().valid('ACTIVE', 'INACTIVE').default('ACTIVE'),
     boundary: Joi.alternatives().try(Joi.object(), Joi.array()).allow(null),
+    pickupLocation: Joi.object({
+      address: Joi.string().allow(''),
+      latitude: Joi.number().allow(null),
+      longitude: Joi.number().allow(null),
+    }).optional(),
+    dropLocation: Joi.object({
+      address: Joi.string().allow(''),
+      latitude: Joi.number().allow(null),
+      longitude: Joi.number().allow(null),
+    }).optional(),
   }),
 };
 
@@ -20,6 +30,16 @@ export const updateZoneSchema = {
     unit: Joi.string(),
     status: Joi.string().valid('ACTIVE', 'INACTIVE'),
     boundary: Joi.alternatives().try(Joi.object(), Joi.array()).allow(null),
+    pickupLocation: Joi.object({
+      address: Joi.string().allow(''),
+      latitude: Joi.number().allow(null),
+      longitude: Joi.number().allow(null),
+    }).optional(),
+    dropLocation: Joi.object({
+      address: Joi.string().allow(''),
+      latitude: Joi.number().allow(null),
+      longitude: Joi.number().allow(null),
+    }).optional(),
   }).min(1), // At least one field must be provided
 };
 

@@ -1,14 +1,17 @@
 import { FileImage, Upload } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import Button from "../../../../components/common/Button";
 import Input from "../../../../components/common/Input";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { useBooking } from "../../../../hooks/useBooking";
 import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
+import { compressImageToBase64 } from "../../../../utils/imageUtils";
 
 const LicenseDetailsPage = () => {
   const navigate = useNavigate();
   const { booking, pricing, updateBookingField } = useBooking();
+  const [error, setError] = useState("");
 
   if (!booking.vehicle) {
     return <Navigate to="/user/vehicles" replace />;
@@ -16,10 +19,40 @@ const LicenseDetailsPage = () => {
 
   const steps = [1, 2, 3, 4, 5, 6];
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      updateBookingField("licenseFile", e.target.files[0]);
+      const file = e.target.files[0];
+      try {
+        const compressed = await compressImageToBase64(file);
+        updateBookingField("licenseFile", compressed);
+        setError("");
+      } catch (err) {
+        console.error("Failed to compress image", err);
+        setError("Failed to process image. Please try another one.");
+      }
     }
+  };
+
+  const handleNext = () => {
+    const licenseRegex = /^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9\s\-]{11,15}$/;
+    
+    if (!booking.licenseNumber || booking.licenseNumber.trim() === "") {
+      setError("Please enter your driving license number");
+      return;
+    }
+    
+    if (!licenseRegex.test(booking.licenseNumber)) {
+      setError("Please enter a valid Indian Driving License number (e.g. MH1220110012345)");
+      return;
+    }
+
+    if (!booking.licenseFile) {
+      setError("Please upload your driving license image");
+      return;
+    }
+
+    setError("");
+    navigate("/user/booking/battery-package");
   };
 
   return (
@@ -51,16 +84,20 @@ const LicenseDetailsPage = () => {
           <div className="mt-4">
             <Input
               label="License Number"
-              onChange={(event) => updateBookingField("licenseNumber", event.target.value)}
+              onChange={(event) => {
+                updateBookingField("licenseNumber", event.target.value.toUpperCase());
+                setError("");
+              }}
               placeholder="Enter your driving license number"
               value={booking.licenseNumber}
               type="text"
+              maxLength={20}
             />
           </div>
 
           <div className="mt-5">
             <p className="text-sm font-medium text-app-text mb-2">Upload License Image</p>
-            <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-app-border bg-app-card p-6 text-center">
+            <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-app-border bg-app-card p-6 text-center overflow-hidden min-h-[160px]">
               <input
                 type="file"
                 accept="image/*"
@@ -68,13 +105,7 @@ const LicenseDetailsPage = () => {
                 className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
               />
               {booking.licenseFile ? (
-                <>
-                  <div className="rounded-full bg-emerald-50 p-3 text-app-primary mb-3">
-                    <FileImage size={24} />
-                  </div>
-                  <p className="text-sm font-medium text-app-text">{booking.licenseFile.name}</p>
-                  <p className="text-xs text-app-subtle mt-1">Tap to change image</p>
-                </>
+                <img src={booking.licenseFile.dataUrl} alt="License Preview" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
                 <>
                   <div className="rounded-full bg-[#f1f4f1] p-3 text-app-subtle mb-3">
@@ -86,10 +117,12 @@ const LicenseDetailsPage = () => {
               )}
             </div>
           </div>
+          
+          {error && <p className="mt-3 text-sm text-red-500 font-medium">{error}</p>}
         </section>
 
         <PriceBreakdown pricing={pricing} />
-        <Button className="w-full" onClick={() => navigate("/user/booking/battery-package")}>
+        <Button className="w-full" onClick={handleNext}>
           Next
         </Button>
       </div>

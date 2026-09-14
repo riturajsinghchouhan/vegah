@@ -72,8 +72,15 @@ const VehicleDetailsPage = () => {
                 <MapPin size={16} />
                 Pickup location
               </div>
-              <p className="mt-2">{vehicle.location}</p>
-              <p className="mt-1">{vehicle.pickupNote}</p>
+              <p className="mt-2 text-app-text font-medium">{vehicle.pickupLocation}</p>
+              
+              <div className="flex items-center gap-2 text-app-text mt-4">
+                <MapPin size={16} />
+                Drop location
+              </div>
+              <p className="mt-2 text-app-text font-medium">{vehicle.dropLocation}</p>
+
+              <p className="mt-3 text-xs text-app-subtle border-t border-app-border pt-3">{vehicle.pickupNote}</p>
             </div>
           </section>
 

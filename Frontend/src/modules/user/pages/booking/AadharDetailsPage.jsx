@@ -1,14 +1,17 @@
 import { FileImage, Upload } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import Button from "../../../../components/common/Button";
 import Input from "../../../../components/common/Input";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { useBooking } from "../../../../hooks/useBooking";
 import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
+import { compressImageToBase64 } from "../../../../utils/imageUtils";
 
 const AadharDetailsPage = () => {
   const navigate = useNavigate();
   const { booking, pricing, updateBookingField } = useBooking();
+  const [error, setError] = useState("");
 
   if (!booking.vehicle) {
     return <Navigate to="/user/vehicles" replace />;
@@ -16,10 +19,41 @@ const AadharDetailsPage = () => {
 
   const steps = [1, 2, 3, 4, 5, 6];
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      updateBookingField("aadharFile", e.target.files[0]);
+      const file = e.target.files[0];
+      try {
+        const compressed = await compressImageToBase64(file);
+        updateBookingField("aadharFile", compressed);
+        setError("");
+      } catch (err) {
+        console.error("Failed to compress image", err);
+        setError("Failed to process image. Please try another one.");
+      }
     }
+  };
+
+  const handleNext = () => {
+    const aadharRegex = /^\d{12}$/;
+    const sanitizedAadhar = booking.aadharNumber.replace(/\s/g, '');
+
+    if (!sanitizedAadhar) {
+      setError("Please enter your Aadhar number");
+      return;
+    }
+    
+    if (!aadharRegex.test(sanitizedAadhar)) {
+      setError("Please enter a valid 12-digit Aadhar number");
+      return;
+    }
+
+    if (!booking.aadharFile) {
+      setError("Please upload your Aadhar card image");
+      return;
+    }
+
+    setError("");
+    navigate("/user/booking/license");
   };
 
   return (
@@ -51,16 +85,20 @@ const AadharDetailsPage = () => {
           <div className="mt-4">
             <Input
               label="Aadhar Number"
-              onChange={(event) => updateBookingField("aadharNumber", event.target.value)}
+              onChange={(event) => {
+                updateBookingField("aadharNumber", event.target.value);
+                setError("");
+              }}
               placeholder="Enter 12-digit Aadhar number"
               value={booking.aadharNumber}
               type="text"
+              maxLength={14}
             />
           </div>
 
           <div className="mt-5">
             <p className="text-sm font-medium text-app-text mb-2">Upload Aadhar Card Image</p>
-            <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-app-border bg-app-card p-6 text-center">
+            <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-app-border bg-app-card p-6 text-center overflow-hidden min-h-[160px]">
               <input
                 type="file"
                 accept="image/*"
@@ -68,13 +106,7 @@ const AadharDetailsPage = () => {
                 className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
               />
               {booking.aadharFile ? (
-                <>
-                  <div className="rounded-full bg-emerald-50 p-3 text-app-primary mb-3">
-                    <FileImage size={24} />
-                  </div>
-                  <p className="text-sm font-medium text-app-text">{booking.aadharFile.name}</p>
-                  <p className="text-xs text-app-subtle mt-1">Tap to change image</p>
-                </>
+                <img src={booking.aadharFile.dataUrl} alt="Aadhar Preview" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
                 <>
                   <div className="rounded-full bg-[#f1f4f1] p-3 text-app-subtle mb-3">
@@ -86,10 +118,12 @@ const AadharDetailsPage = () => {
               )}
             </div>
           </div>
+          
+          {error && <p className="mt-3 text-sm text-red-500 font-medium">{error}</p>}
         </section>
 
         <PriceBreakdown pricing={pricing} />
-        <Button className="w-full" onClick={() => navigate("/user/booking/license")}>
+        <Button className="w-full" onClick={handleNext}>
           Next
         </Button>
       </div>

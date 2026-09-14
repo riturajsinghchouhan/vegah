@@ -8,6 +8,16 @@ const zoneSchema = new Schema({
   unit: { type: String, default: 'kilometer' },
   status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
   boundary: { type: Schema.Types.Mixed, default: null }, // GeoJSON polygon
+  pickupLocation: {
+    address: { type: String, default: '' },
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null }
+  },
+  dropLocation: {
+    address: { type: String, default: '' },
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null }
+  },
   deletedAt: { type: Date, default: null },
 }, { timestamps: true });
 

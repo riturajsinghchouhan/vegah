@@ -44,6 +44,12 @@ export default function AdminZoneForm() {
   const existingZonesPolygonsRef = useRef([]);
   const autocompleteInputRef = useRef(null);
   const autocompleteRef = useRef(null);
+  
+  const pickupInputRef = useRef(null);
+  const pickupAutocompleteRef = useRef(null);
+  
+  const dropInputRef = useRef(null);
+  const dropAutocompleteRef = useRef(null);
 
   // States
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState(env.mapsKey || "");
@@ -56,6 +62,8 @@ export default function AdminZoneForm() {
     country: "India",
     zoneName: "",
     unit: "kilometer",
+    pickupLocation: { address: "", latitude: null, longitude: null },
+    dropLocation: { address: "", latitude: null, longitude: null }
   });
 
   const [coordinates, setCoordinates] = useState([]);
@@ -77,20 +85,64 @@ export default function AdminZoneForm() {
 
   // Google Places Autocomplete setup
   useEffect(() => {
-    if (!mapLoading && mapInstanceRef.current && autocompleteInputRef.current && window.google?.maps?.places && !autocompleteRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
-        componentRestrictions: { country: 'in' }
-      });
+    if (!mapLoading && window.google?.maps?.places) {
+      if (autocompleteInputRef.current && !autocompleteRef.current) {
+        const autocomplete = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
+          componentRestrictions: { country: 'in' }
+        });
 
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.geometry && place.geometry.location && mapInstanceRef.current) {
-          mapInstanceRef.current.setCenter(place.geometry.location);
-          mapInstanceRef.current.setZoom(15);
-          setLocationSearch(place.formatted_address || place.name || "");
-        }
-      });
-      autocompleteRef.current = autocomplete;
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.geometry && place.geometry.location && mapInstanceRef.current) {
+            mapInstanceRef.current.setCenter(place.geometry.location);
+            mapInstanceRef.current.setZoom(15);
+            setLocationSearch(place.formatted_address || place.name || "");
+          }
+        });
+        autocompleteRef.current = autocomplete;
+      }
+      
+      if (pickupInputRef.current && !pickupAutocompleteRef.current) {
+        const autocomplete = new window.google.maps.places.Autocomplete(pickupInputRef.current, {
+          componentRestrictions: { country: 'in' }
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.geometry && place.geometry.location) {
+            setFormData(prev => ({
+              ...prev,
+              pickupLocation: {
+                address: place.formatted_address || place.name || "",
+                latitude: place.geometry.location.lat(),
+                longitude: place.geometry.location.lng()
+              }
+            }));
+          }
+        });
+        pickupAutocompleteRef.current = autocomplete;
+      }
+
+      if (dropInputRef.current && !dropAutocompleteRef.current) {
+        const autocomplete = new window.google.maps.places.Autocomplete(dropInputRef.current, {
+          componentRestrictions: { country: 'in' }
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.geometry && place.geometry.location) {
+            setFormData(prev => ({
+              ...prev,
+              dropLocation: {
+                address: place.formatted_address || place.name || "",
+                latitude: place.geometry.location.lat(),
+                longitude: place.geometry.location.lng()
+              }
+            }));
+          }
+        });
+        dropAutocompleteRef.current = autocomplete;
+      }
     }
   }, [mapLoading]);
 
@@ -131,6 +183,8 @@ export default function AdminZoneForm() {
           country: zoneData.subtitle || zoneData.country || "India",
           zoneName: zoneData.name || "",
           unit: zoneData.unit || "kilometer",
+          pickupLocation: zoneData.pickupLocation || { address: "", latitude: null, longitude: null },
+          dropLocation: zoneData.dropLocation || { address: "", latitude: null, longitude: null }
         });
         
         const coords = zoneData.boundary || zoneData.coordinates || [];
@@ -411,6 +465,11 @@ export default function AdminZoneForm() {
       alert(`Please fill in all details and draw at least ${MIN_POINTS} points on the map.`);
       return;
     }
+    
+    if (!formData.pickupLocation.address || !formData.dropLocation.address) {
+      alert(`Please select both Pickup and Drop locations.`);
+      return;
+    }
 
     try {
       setSaving(true);
@@ -424,6 +483,8 @@ export default function AdminZoneForm() {
         subtitle: formData.country,
         unit: formData.unit || "kilometer",
         boundary: validCoordinates,
+        pickupLocation: formData.pickupLocation,
+        dropLocation: formData.dropLocation,
         status: "ACTIVE"
       };
 
@@ -517,6 +578,40 @@ export default function AdminZoneForm() {
                 <option value="kilometer">Kilometers (km)</option>
                 <option value="miles">Miles (mi)</option>
               </select>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100">
+              <h3 className="text-md font-bold text-gray-900 mb-4">Location Settings</h3>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Pickup Location <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  ref={pickupInputRef}
+                  type="text" 
+                  value={formData.pickupLocation.address} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, pickupLocation: { ...prev.pickupLocation, address: e.target.value } }))}
+                  placeholder="Search and select pickup address..." 
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  required 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Drop Location <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  ref={dropInputRef}
+                  type="text" 
+                  value={formData.dropLocation.address} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, dropLocation: { ...prev.dropLocation, address: e.target.value } }))}
+                  placeholder="Search and select drop address..." 
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  required 
+                />
+              </div>
             </div>
 
             <button 

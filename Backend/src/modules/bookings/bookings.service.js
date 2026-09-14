@@ -105,7 +105,10 @@ export const reserveVehicle = async (userId, data) => {
     
     // Populate booking for socket event and push notification
     const populatedBooking = await Booking.findById(booking._id)
-      .populate('vehicle', 'name registrationNumber plateNumber images pricePerHour pricePerDay')
+      .populate({
+        path: 'vehicle',
+        populate: { path: 'zone' }
+      })
       .populate('user', 'fullName phone email');
 
     // Emit Socket.IO event to admin_room
@@ -217,7 +220,10 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
 
     // Populate updated booking for notifications
     const updatedBooking = await Booking.findById(booking._id)
-      .populate('vehicle', 'name registrationNumber plateNumber images')
+      .populate({
+        path: 'vehicle',
+        populate: { path: 'zone' }
+      })
       .populate('user', 'fullName phone email');
 
     // Emit Socket.IO event to User and Admin rooms
@@ -270,7 +276,10 @@ export const listBookings = async (query) => {
 
   const [bookings, total] = await Promise.all([
     Booking.find(filter)
-      .populate('vehicle', 'name plateNumber images')
+      .populate({
+        path: 'vehicle',
+        populate: { path: 'zone' }
+      })
       .populate('user', 'fullName phone')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -291,7 +300,10 @@ export const listBookings = async (query) => {
 
 export const getBookingById = async (id) => {
   const booking = await Booking.findById(id)
-    .populate('vehicle')
+    .populate({
+      path: 'vehicle',
+      populate: { path: 'zone' }
+    })
     .populate('user', 'fullName phone email isVerified')
     .populate('coupon');
 

@@ -25,6 +25,7 @@ const StationDetailsPage = safeLazy(() => import("./pages/charging/StationDetail
 const ProfilePage = safeLazy(() => import("./pages/profile/ProfilePage"));
 const SelectLocationPage = safeLazy(() => import("./pages/location/SelectLocationPage"));
 const AddLocationPage = safeLazy(() => import("./pages/location/AddLocationPage"));
+const LiveNavigationPage = safeLazy(() => import("./pages/bookings/LiveNavigationPage"));
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, sessionReady } = useAuth();
@@ -108,6 +109,16 @@ const UserRoutes = () => (
       <Route path="select-location" element={<SelectLocationPage />} />
       <Route path="add-location" element={<AddLocationPage />} />
     </Route>
+
+    {/* Full Screen Live Map Navigation Route */}
+    <Route
+      path="navigation"
+      element={
+        <ProtectedRoute>
+          <LiveNavigationPage />
+        </ProtectedRoute>
+      }
+    />
 
     {/* Catch-all for unknown /user/* paths */}
     <Route path="*" element={<Navigate to="/" replace />} />

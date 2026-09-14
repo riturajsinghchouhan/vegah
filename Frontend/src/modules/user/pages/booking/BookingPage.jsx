@@ -92,33 +92,6 @@ const BookingPage = () => {
               value={booking.endTime}
             />
           </div>
-
-          <div className="mt-5 grid gap-3">
-            <div className="rounded-[18px] border border-app-border bg-app-card p-4">
-              <CalendarDays size={18} className="text-app-primary" />
-              <p className="mt-3 text-sm font-medium text-app-text">Flexible dates</p>
-              <p className="mt-1 text-xs text-app-subtle">Structure is ready for availability APIs.</p>
-            </div>
-            <div className="rounded-[18px] border border-app-border bg-app-card p-4">
-              <Clock3 size={18} className="text-app-primary" />
-              <p className="mt-3 text-sm font-medium text-app-text">Hourly or daily</p>
-              <p className="mt-1 text-xs text-app-subtle">Same state model supports both flows.</p>
-            </div>
-            <div className="rounded-[18px] border border-app-border bg-app-card p-4">
-              <MapPin size={18} className="text-app-primary" />
-              <p className="mt-3 text-sm font-medium text-app-text">Pickup location</p>
-              <p className="mt-1 text-xs text-app-subtle">Backend-ready for multi-hub expansion later.</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="surface-card p-4">
-          <Input
-            label="Pickup hub"
-            onChange={(event) => updateBookingField("pickupLocation", event.target.value)}
-            placeholder="Choose pickup location"
-            value={booking.pickupLocation}
-          />
         </section>
 
         <PriceBreakdown pricing={pricing} />

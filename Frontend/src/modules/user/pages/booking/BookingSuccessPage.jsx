@@ -159,7 +159,7 @@ const BookingSuccessPage = () => {
 
         <p className="mt-3 text-sm leading-7 text-app-subtle max-w-xl mx-auto">
           {isConfirmed
-            ? `Booking ID ${bookingId} has been approved by Admin! Click the button below to start your EV ride.`
+            ? `Booking ID ${bookingId} has been approved by Admin! Navigate to your pickup location to collect the scooter.`
             : `Booking ID ${bookingId} created. Please wait a moment while Admin reviews and approves your booking.`}
         </p>
 
@@ -192,22 +192,31 @@ const BookingSuccessPage = () => {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           {isConfirmed ? (
-            <Button 
-              onClick={handleStartRide} 
-              disabled={startingRide}
-              className="w-full sm:min-w-[220px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-base shadow-lg flex items-center justify-center gap-2"
-            >
-              <Zap size={20} />
-              {startingRide ? "Starting Ride..." : "Start Ride Now"}
-            </Button>
+            <>
+              <Button 
+                onClick={() => navigate(`/user/navigation?type=pickup&bookingId=${latestBooking?._id || latestBooking?.id || latestBooking?.bookingId}`, { state: { booking: latestBooking } })} 
+                className="w-full sm:min-w-[220px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-base shadow-lg flex items-center justify-center gap-2"
+              >
+                <Navigation size={20} />
+                Navigate to Pickup Location
+              </Button>
+              <Button 
+                onClick={handleStartRide} 
+                disabled={startingRide}
+                variant="secondary"
+                className="w-full sm:min-w-[160px] flex items-center justify-center gap-2"
+              >
+                <Zap size={18} />
+                {startingRide ? "Starting..." : "Start Ride Directly"}
+              </Button>
+            </>
           ) : (
             <Link to="/user/bookings">
               <Button className="w-full sm:min-w-[180px]">View My Bookings</Button>
             </Link>
           )}
           <Link to="/user/charging">
-            <Button className="w-full sm:min-w-[180px]" variant="secondary">
-              <Navigation className="mr-2" size={16} />
+            <Button className="w-full sm:min-w-[160px]" variant="ghost">
               Find chargers
             </Button>
           </Link>

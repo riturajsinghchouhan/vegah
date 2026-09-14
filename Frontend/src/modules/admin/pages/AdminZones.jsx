@@ -28,6 +28,8 @@ export default function AdminZones() {
           status: z.isActive ? 'Active' : 'Inactive',
           totalScooties: z.vehicleCount || 0,
           availableScooties: z.vehicleCount || 0, // Mock available until inventory merges
+          pickupLocation: z.pickupLocation?.address || 'Not Set',
+          dropLocation: z.dropLocation?.address || 'Not Set',
         }));
         setZones(mappedZones);
       } catch (error) {
@@ -161,8 +163,12 @@ export default function AdminZones() {
             {/* Card Body */}
             <div className="p-5 space-y-4 flex-1">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Unit:</span>
-                <span className="font-semibold text-gray-900 capitalize">{zone.unit}</span>
+                <span className="text-gray-500">Pickup:</span>
+                <span className="font-medium text-gray-900 text-right truncate w-40" title={zone.pickupLocation}>{zone.pickupLocation}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Drop:</span>
+                <span className="font-medium text-gray-900 text-right truncate w-40" title={zone.dropLocation}>{zone.dropLocation}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Status:</span>
@@ -235,8 +241,12 @@ export default function AdminZones() {
              
              <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-3">
-                  <span className="text-gray-500 font-medium">Zone ID</span>
-                  <span className="font-semibold text-gray-900">{selectedZone.id}</span>
+                  <span className="text-gray-500 font-medium">Pickup Location</span>
+                  <span className="font-semibold text-gray-900 text-right w-48 truncate" title={selectedZone.pickupLocation}>{selectedZone.pickupLocation}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-3">
+                  <span className="text-gray-500 font-medium">Drop Location</span>
+                  <span className="font-semibold text-gray-900 text-right w-48 truncate" title={selectedZone.dropLocation}>{selectedZone.dropLocation}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-3">
                   <span className="text-gray-500 font-medium">Measurement Unit</span>

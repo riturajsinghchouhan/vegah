@@ -18,6 +18,8 @@ const mapVehicle = (v) => ({
   transmission: v.transmission || "Twist & Go",
   features: v.features || ["GPS Tracking", "Digital Console", "Fast Charge"],
   location: v.location || (v.zone ? (typeof v.zone === 'object' ? v.zone.name : v.zone) : "Main Station"),
+  pickupLocation: v.zone?.pickupLocation?.address || v.location || "Main Station",
+  dropLocation: v.zone?.dropLocation?.address || v.location || "Main Station",
   distanceKm: v.distanceKm || null,
   availability: v.status === 'AVAILABLE' ? 'Available now' : (v.status || 'Available now'),
   deposit: v.securityDeposit || 0,

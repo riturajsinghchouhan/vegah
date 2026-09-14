@@ -92,7 +92,7 @@ export const updateVehicle = async (id, data, files) => {
 export const getVehicleById = async (id) => {
   const vehicle = await Vehicle.findOne({ _id: id, deletedAt: null })
     .populate('category', 'name type')
-    .populate('zone', 'name subtitle');
+    .populate('zone', 'name subtitle pickupLocation dropLocation');
     
   if (!vehicle) {
     throw new NotFoundError('Vehicle not found');
@@ -129,7 +129,7 @@ export const listVehicles = async (query) => {
   const [vehicles, total] = await Promise.all([
     Vehicle.find(filter)
       .populate('category', 'name type')
-      .populate('zone', 'name subtitle')
+      .populate('zone', 'name subtitle pickupLocation dropLocation')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),

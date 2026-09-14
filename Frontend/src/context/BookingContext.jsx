@@ -1,4 +1,4 @@
-import { createContext, useMemo, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
 import { calculateBookingPricing } from "../utils/pricing";
 
 const today = new Date();
@@ -11,7 +11,7 @@ const initialState = {
   startTime: "10:00",
   endDate: formattedToday,
   endTime: "14:00",
-  pickupLocation: "HSR Layout Hub",
+  pickupLocation: "",
   aadharNumber: "",
   aadharFile: null,
   licenseNumber: "",
@@ -23,7 +23,15 @@ const initialState = {
 export const BookingContext = createContext(null);
 
 export const BookingProvider = ({ children }) => {
-  const [booking, setBooking] = useState(initialState);
+  const [booking, setBooking] = useState(() => {
+    try {
+      const draft = localStorage.getItem("vegah_draft_booking");
+      return draft ? JSON.parse(draft) : initialState;
+    } catch {
+      return initialState;
+    }
+  });
+
   const [latestBooking, setLatestBookingState] = useState(() => {
     try {
       const saved = localStorage.getItem("vegah_latest_booking");
@@ -32,6 +40,15 @@ export const BookingProvider = ({ children }) => {
       return null;
     }
   });
+
+  // Effect to persist draft booking
+  useEffect(() => {
+    try {
+      localStorage.setItem("vegah_draft_booking", JSON.stringify(booking));
+    } catch (e) {
+      console.error("Failed to save draft booking to localStorage (might be too large)", e);
+    }
+  }, [booking]);
 
   const setLatestBooking = (data) => {
     setLatestBookingState(data);
@@ -51,11 +68,13 @@ export const BookingProvider = ({ children }) => {
   };
 
   const selectVehicle = (vehicle) => {
-    setBooking((current) => ({ ...current, vehicle }));
+    const pickupLoc = vehicle?.zone?.pickupLocation?.address || vehicle?.location || "Main Station";
+    setBooking((current) => ({ ...current, vehicle, pickupLocation: pickupLoc }));
   };
 
   const resetBooking = () => {
     setBooking(initialState);
+    localStorage.removeItem("vegah_draft_booking");
   };
 
   const pricing = useMemo(() => calculateBookingPricing(booking), [booking]);

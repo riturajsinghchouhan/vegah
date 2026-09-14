@@ -1,12 +1,25 @@
-import { useEffect, useState } from "react";
-import { BatteryCharging, Clock3, MapPin, PhoneForwarded } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { 
+  BatteryCharging, 
+  Clock3, 
+  MapPin, 
+  PhoneForwarded, 
+  Navigation, 
+  AlertTriangle, 
+  X, 
+  CheckCircle2 
+} from "lucide-react";
 import Button from "../../../../components/common/Button";
 import MetricCard from "../../../../components/common/MetricCard";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { bookingService } from "../../../../services/bookingService";
 
 const ActiveRentalPage = () => {
+  const navigate = useNavigate();
   const [activeBooking, setActiveBooking] = useState(null);
+  const [showAlert15Min, setShowAlert15Min] = useState(false);
+  const hasAlertedRef = useRef(false);
 
   // Default target end time (3 hours from now if no booking is returned by API)
   const [targetTime, setTargetTime] = useState(() => {
@@ -72,12 +85,36 @@ const ActiveRentalPage = () => {
       const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
+      const totalSecs = Math.floor(difference / 1000);
+
       setTimeLeft({
         hours: String(hours).padStart(2, "0"),
         minutes: String(minutes).padStart(2, "0"),
         seconds: String(seconds).padStart(2, "0"),
-        totalSeconds: Math.floor(difference / 1000),
+        totalSeconds: totalSecs,
       });
+
+      // ⚠️ 15-minute alert trigger (900 seconds or less)
+      if (totalSecs > 0 && totalSecs <= 900 && !hasAlertedRef.current) {
+        hasAlertedRef.current = true;
+        setShowAlert15Min(true);
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.4);
+        } catch (e) {
+          console.warn("Audio chime error:", e);
+        }
+      }
     };
 
     calculateTimeLeft(); // initial run
@@ -87,20 +124,57 @@ const ActiveRentalPage = () => {
   }, [targetTime]);
 
   const handleExtendRental = () => {
-    // Add 1 hour to target time
+    // Add 1 hour to target time and reset alert
+    hasAlertedRef.current = false;
+    setShowAlert15Min(false);
     setTargetTime((prev) => new Date(prev.getTime() + 60 * 60 * 1000));
   };
 
   const vehicleName = activeBooking?.vehicle?.name || "Ather 450X";
   const plateNumber = activeBooking?.vehicle?.plateNumber || "KA 03 EV 4421";
-  const pickupLoc = activeBooking?.pickupLocation || activeBooking?.vehicle?.location || "Koramangala EVORA Hub";
-  const returnLoc = activeBooking?.returnLocation || "HSR Layout EVORA Hub";
+  const pickupLoc = activeBooking?.pickupLocation || activeBooking?.vehicle?.zone?.pickupLocation?.address || activeBooking?.vehicle?.location || "Koramangala EVORA Hub";
+  const returnLoc = activeBooking?.returnLocation || activeBooking?.vehicle?.zone?.dropLocation?.address || "HSR Layout EVORA Hub";
   const formattedReturnTime = targetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formattedReturnDate = targetTime.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
     <main className="page-padding">
       <PageHeader showBack subtitle="Live rental tracking and session status" title="Active rental" />
+
+      {/* ⚠️ 15-Minute Remaining Alert Notification */}
+      {showAlert15Min && (
+        <div className="mb-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-amber-300 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-white/20 shrink-0">
+              <AlertTriangle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <p className="font-black text-base tracking-wide flex items-center gap-2">
+                ⚠️ ONLY 15 MINUTES REMAINING!
+              </p>
+              <p className="text-xs text-amber-100 mt-1">
+                Your rental session ends soon. Please begin navigating back to the drop location to complete your return on time.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              onClick={() => navigate(`/user/navigation?type=drop&bookingId=${activeBooking?._id || activeBooking?.id || activeBooking?.bookingId}`, { state: { booking: activeBooking } })}
+              className="bg-white text-orange-700 hover:bg-orange-50 font-black text-xs py-2 px-4 shadow-md flex items-center gap-1.5"
+            >
+              <Navigation size={14} />
+              Navigate to Drop Now
+            </Button>
+            <button
+              onClick={() => setShowAlert15Min(false)}
+              className="p-1.5 hover:bg-white/20 rounded-lg text-white"
+              aria-label="Dismiss alert"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <section className="surface-card p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -157,11 +231,18 @@ const ActiveRentalPage = () => {
         <div className="surface-card p-5">
           <h3 className="text-lg font-semibold text-app-text">Quick actions</h3>
           <div className="mt-4 grid gap-3">
+            <Button 
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 flex items-center justify-center gap-2 shadow-md"
+              onClick={() => navigate(`/user/navigation?type=drop&bookingId=${activeBooking?._id || activeBooking?.id || activeBooking?.bookingId}`, { state: { booking: activeBooking } })}
+            >
+              <Navigation size={18} />
+              Navigate to Drop Location
+            </Button>
             <Button onClick={handleExtendRental}>
               + Extend Rental (+1 Hour)
             </Button>
-            <Button variant="secondary" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(pickupLoc)}`, '_blank')}>
-              Navigate to charger / hub
+            <Button variant="secondary" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(returnLoc)}`, '_blank')}>
+              Open in External Maps
             </Button>
             <Button variant="ghost" onClick={() => window.location.href = "tel:18001234567"}>
               <PhoneForwarded className="mr-2" size={16} />
