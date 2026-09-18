@@ -16,7 +16,7 @@ const paymentMethods = [
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const { booking, pricing, setLatestBooking } = useBooking();
+  const { booking, pricing, setLatestBooking, resetBooking } = useBooking();
 
   const [paymentMode, setPaymentMode] = useState("ONLINE");
   const [processing, setProcessing] = useState(false);
@@ -51,6 +51,7 @@ const PaymentPage = () => {
 
       if (paymentMode === "CASH") {
         setLatestBooking(fullBookingInfo);
+        resetBooking();
         navigate("/user/booking/success");
         return;
       }
@@ -81,6 +82,7 @@ const PaymentPage = () => {
               method: 'ONLINE'
             });
             setLatestBooking(fullBookingInfo);
+            resetBooking();
             navigate("/user/booking/success");
           } catch (err) {
             alert("Payment verification failed. Please contact support.");
