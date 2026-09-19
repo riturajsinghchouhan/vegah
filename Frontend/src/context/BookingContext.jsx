@@ -26,7 +26,17 @@ export const BookingProvider = ({ children }) => {
   const [booking, setBooking] = useState(() => {
     try {
       const draft = localStorage.getItem("vegah_draft_booking");
-      return draft ? JSON.parse(draft) : initialState;
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        const now = new Date().getTime();
+        // Check if draft is older than 30 minutes (30 * 60 * 1000 ms) or if it's old data without a timestamp
+        if (!parsed.lastUpdated || (now - parsed.lastUpdated > 30 * 60 * 1000)) {
+          localStorage.removeItem("vegah_draft_booking");
+          return initialState;
+        }
+        return parsed;
+      }
+      return initialState;
     } catch {
       return initialState;
     }
@@ -41,10 +51,11 @@ export const BookingProvider = ({ children }) => {
     }
   });
 
-  // Effect to persist draft booking
+  // Effect to persist draft booking with timestamp
   useEffect(() => {
     try {
-      localStorage.setItem("vegah_draft_booking", JSON.stringify(booking));
+      const bookingToSave = { ...booking, lastUpdated: new Date().getTime() };
+      localStorage.setItem("vegah_draft_booking", JSON.stringify(bookingToSave));
     } catch (e) {
       console.error("Failed to save draft booking to localStorage (might be too large)", e);
     }

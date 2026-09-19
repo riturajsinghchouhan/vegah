@@ -29,6 +29,9 @@ export const bookingService = {
       pickupLocation: payload.pickupLocation || 'Default Hub',
       batteryPackage: payload.batteryPackage ? payload.batteryPackage.toUpperCase() : 'SINGLE',
       couponCode: payload.couponCode || undefined,
+      aadharFile: payload.aadharFile?.dataUrl || payload.aadharFile || undefined,
+      licenseFile: payload.licenseFile?.dataUrl || payload.licenseFile || undefined,
+      userPhotoFile: payload.userPhotoFile?.dataUrl || payload.userPhotoFile || undefined,
     };
 
     const response = await api.post('/bookings', requestData);

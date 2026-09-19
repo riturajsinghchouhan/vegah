@@ -93,6 +93,12 @@ export const reserveVehicle = async (userId, data) => {
       
       ...pricing,
 
+      kycDocuments: {
+        aadharFile: data.aadharFile || null,
+        licenseFile: data.licenseFile || null,
+        userPhotoFile: data.userPhotoFile || null,
+      },
+
       coupon: couponObj ? couponObj._id : null,
       status: BOOKING_STATUS.RESERVED,
       reservationExpiresAt,
@@ -171,6 +177,12 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
     
     if (!booking) {
       throw new NotFoundError('Booking not found');
+    }
+
+    if (booking.status === newStatus) {
+      await session.abortTransaction();
+      session.endSession();
+      return booking; // Idempotent: already in the desired state
     }
 
     // Validate state machine

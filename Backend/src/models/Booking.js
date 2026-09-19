@@ -25,6 +25,12 @@ const bookingSchema = new Schema({
 
   coupon: { type: Schema.Types.ObjectId, ref: 'Coupon', default: null },
 
+  kycDocuments: {
+    aadharFile: { type: String, default: null },
+    licenseFile: { type: String, default: null },
+    userPhotoFile: { type: String, default: null },
+  },
+
   status: {
     type: String,
     enum: [

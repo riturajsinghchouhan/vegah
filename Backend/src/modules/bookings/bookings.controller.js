@@ -1,10 +1,20 @@
 import * as bookingsService from './bookings.service.js';
 import { sendSuccess } from '../../utils/response.js';
 import { ForbiddenError } from '../../utils/errors.js';
+import { getIO } from '../../config/socket.js';
 
 export const createBooking = async (req, res, next) => {
   try {
     const booking = await bookingsService.reserveVehicle(req.user.id, req.body);
+    
+    // Notify admins about the new booking
+    try {
+      const io = getIO();
+      io.to('admin_room').emit('NEW_BOOKING', booking);
+    } catch (ioErr) {
+      console.error('Socket emit error (NEW_BOOKING):', ioErr);
+    }
+
     sendSuccess(res, 201, 'Vehicle reserved successfully. Please complete KYC and payment.', booking);
   } catch (error) {
     next(error);

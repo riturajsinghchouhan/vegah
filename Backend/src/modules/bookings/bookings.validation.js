@@ -12,6 +12,9 @@ export const createBookingSchema = {
     pickupLocation: Joi.string().required(),
     batteryPackage: Joi.string().valid(BATTERY_PACKAGES.NONE.id, BATTERY_PACKAGES.SINGLE.id, BATTERY_PACKAGES.UNLIMITED.id).default(BATTERY_PACKAGES.SINGLE.id),
     couponCode: Joi.string().allow('', null),
+    aadharFile: Joi.string().allow('', null),
+    licenseFile: Joi.string().allow('', null),
+    userPhotoFile: Joi.string().allow('', null),
   }),
 };
 

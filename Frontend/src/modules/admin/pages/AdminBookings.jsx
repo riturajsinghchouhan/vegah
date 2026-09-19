@@ -95,6 +95,20 @@ export default function AdminBookings() {
     };
   }, []);
 
+  useEffect(() => {
+    let soundInterval;
+    if (newBookingAlert) {
+      playNotificationSound(); // Play immediately
+      // Keep ringing every 3 seconds until action is taken
+      soundInterval = setInterval(() => {
+        playNotificationSound();
+      }, 3000);
+    }
+    return () => {
+      if (soundInterval) clearInterval(soundInterval);
+    };
+  }, [newBookingAlert]);
+
   const handleApproveBooking = async (bookingId) => {
     try {
       setActionLoading(bookingId);
@@ -109,10 +123,39 @@ export default function AdminBookings() {
           return b;
         })
       );
+      if (newBookingAlert && (newBookingAlert._id === bookingId || newBookingAlert.id === bookingId)) {
+        setNewBookingAlert(null);
+      }
       alert(`✅ Booking ${updated?.bookingId || bookingId} Approved Successfully! User can now start ride.`);
     } catch (error) {
       console.error("Failed to approve booking", error);
       alert(error.response?.data?.message || "Failed to approve booking.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectBooking = async (bookingId) => {
+    try {
+      setActionLoading(bookingId);
+      const updated = await adminService.updateBookingStatus(bookingId, 'CANCELLED_BY_ADMIN');
+      
+      setBookings((prev) =>
+        prev.map((b) => {
+          const bId = b._id || b.id;
+          if (bId === bookingId) {
+            return { ...b, status: 'CANCELLED_BY_ADMIN', ...(updated || {}) };
+          }
+          return b;
+        })
+      );
+      if (newBookingAlert && (newBookingAlert._id === bookingId || newBookingAlert.id === bookingId)) {
+        setNewBookingAlert(null);
+      }
+      alert(`Booking Rejected successfully.`);
+    } catch (error) {
+      console.error("Failed to reject booking", error);
+      alert(error.response?.data?.message || "Failed to reject booking.");
     } finally {
       setActionLoading(null);
     }
@@ -146,24 +189,42 @@ export default function AdminBookings() {
       
       {/* Live Booking Alert Banner */}
       {newBookingAlert && (
-        <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between border border-emerald-500 animate-bounce">
+        <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center justify-between border border-emerald-500 gap-4 animate-bounce">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-700 rounded-lg">
-              <Zap className="h-6 w-6 text-yellow-300 fill-yellow-300" />
+              <Zap className="h-6 w-6 text-yellow-300 fill-yellow-300 animate-pulse" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-wide">⚡ NEW BOOKING RECEIVED FOR APPROVAL!</p>
-              <p className="text-xs text-emerald-100 mt-0.5">
+              <p className="font-bold text-sm tracking-wide text-yellow-300">⚡ NEW BOOKING WAITING FOR APPROVAL!</p>
+              <p className="text-xs text-emerald-100 mt-1">
                 Booking ID: <span className="font-mono font-bold bg-emerald-700 px-1.5 py-0.5 rounded">{newBookingAlert.bookingId || newBookingAlert._id}</span> | Vehicle: <span className="font-semibold">{newBookingAlert.vehicle?.name || 'EV Scooter'}</span> | User: <span className="font-semibold">{newBookingAlert.user?.fullName || 'Customer'}</span>
               </p>
             </div>
           </div>
-          <button 
-            onClick={() => setNewBookingAlert(null)}
-            className="p-1.5 hover:bg-emerald-700 rounded-lg text-emerald-100 hover:text-white transition-colors"
-          >
-            <X size={18} />
-          </button>
+          
+          <div className="flex items-center gap-3 self-end md:self-auto">
+            <button
+              onClick={() => handleApproveBooking(newBookingAlert._id || newBookingAlert.id)}
+              disabled={actionLoading === (newBookingAlert._id || newBookingAlert.id)}
+              className="bg-white text-emerald-700 font-bold px-4 py-2 rounded-lg text-sm shadow-md hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            >
+              {actionLoading === (newBookingAlert._id || newBookingAlert.id) ? 'Processing...' : 'Approve'}
+            </button>
+            <button
+              onClick={() => handleRejectBooking(newBookingAlert._id || newBookingAlert.id)}
+              disabled={actionLoading === (newBookingAlert._id || newBookingAlert.id)}
+              className="bg-red-500 text-white font-bold px-4 py-2 rounded-lg text-sm shadow-md hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              Reject
+            </button>
+            <button 
+              onClick={() => setNewBookingAlert(null)}
+              className="p-2 hover:bg-emerald-700 rounded-lg text-emerald-100 hover:text-white transition-colors border border-emerald-500"
+              title="Dismiss Alert"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -369,6 +430,42 @@ function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
               <div className="mb-2"><strong className="text-gray-900">Pickup:</strong> {selectedBooking.pickup.date} at {selectedBooking.pickup.time} ({selectedBooking.pickup.location})</div>
               <div><strong className="text-gray-900">Status:</strong> <StatusBadge status={selectedBooking.status} /></div>
             </div>
+
+            {selectedBooking.raw.kycDocuments && (selectedBooking.raw.kycDocuments.aadharFile || selectedBooking.raw.kycDocuments.licenseFile) && (
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <strong className="text-gray-900 block mb-3">KYC Documents</strong>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {selectedBooking.raw.kycDocuments.aadharFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedBooking.raw.kycDocuments.aadharFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">Aadhar Card</p>
+                      <img src={selectedBooking.raw.kycDocuments.aadharFile} alt="Aadhar" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  {selectedBooking.raw.kycDocuments.licenseFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedBooking.raw.kycDocuments.licenseFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">Driving License</p>
+                      <img src={selectedBooking.raw.kycDocuments.licenseFile} alt="License" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  {selectedBooking.raw.kycDocuments.userPhotoFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedBooking.raw.kycDocuments.userPhotoFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">User Photo</p>
+                      <img src={selectedBooking.raw.kycDocuments.userPhotoFile} alt="User Photo" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedBooking.financials.amount}</span></div>
               <div className="text-right"><strong className="text-gray-900 block">Deposit</strong> {selectedBooking.financials.deposit}</div>
@@ -669,6 +766,42 @@ function UpcomingPickupsTable({ allBookings, onApprove, actionLoading }) {
               <div className="mb-2"><strong className="text-gray-900">Pickup Date:</strong> {selectedPickup.pickup.date} at {selectedPickup.pickup.time}</div>
               <div><strong className="text-gray-900">Location:</strong> {selectedPickup.pickup.location}</div>
             </div>
+
+            {selectedPickup.raw.kycDocuments && (selectedPickup.raw.kycDocuments.aadharFile || selectedPickup.raw.kycDocuments.licenseFile) && (
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <strong className="text-gray-900 block mb-3">KYC Documents</strong>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {selectedPickup.raw.kycDocuments.aadharFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedPickup.raw.kycDocuments.aadharFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">Aadhar Card</p>
+                      <img src={selectedPickup.raw.kycDocuments.aadharFile} alt="Aadhar" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  {selectedPickup.raw.kycDocuments.licenseFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedPickup.raw.kycDocuments.licenseFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">Driving License</p>
+                      <img src={selectedPickup.raw.kycDocuments.licenseFile} alt="License" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  {selectedPickup.raw.kycDocuments.userPhotoFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedPickup.raw.kycDocuments.userPhotoFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">User Photo</p>
+                      <img src={selectedPickup.raw.kycDocuments.userPhotoFile} alt="User Photo" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedPickup.financials.amount}</span></div>
             </div>
