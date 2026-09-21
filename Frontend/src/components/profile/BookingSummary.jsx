@@ -6,6 +6,8 @@ const BookingCard = ({ booking }) => {
     switch (status) {
       case "Upcoming":
         return "bg-green-100 text-green-700";
+      case "Active":
+        return "bg-orange-100 text-orange-700";
       case "Completed":
         return "bg-blue-100 text-blue-700";
       case "Cancelled":
@@ -64,9 +66,12 @@ const BookingCard = ({ booking }) => {
             </div>
           </div>
           
-          <button className="shrink-0 border border-[#272664] text-[#272664] hover:bg-[#272664] hover:text-white text-[11px] font-bold px-4 py-1.5 rounded-xl transition-colors active:scale-95">
+          <Link 
+            to="/user/bookings"
+            className="shrink-0 border border-[#272664] text-[#272664] hover:bg-[#272664] hover:text-white text-[11px] font-bold px-4 py-1.5 rounded-xl transition-colors active:scale-95 inline-flex items-center"
+          >
             View Details
-          </button>
+          </Link>
         </div>
 
       </div>

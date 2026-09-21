@@ -14,12 +14,15 @@ import {
   RefreshCw,
   PhoneCall
 } from "lucide-react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { useJsApiLoader } from "@react-google-maps/api";
 import { env } from "../../../../config/env";
 import { bookingService } from "../../../../services/bookingService";
+import { userService } from "../../../../services/userService";
 import Button from "../../../../components/common/Button";
 
 const DEFAULT_COORDS = { lat: 12.9352, lng: 77.6245 }; // Bangalore Koramangala default
+
+const MAP_LIBRARIES = ["places", "geometry"];
 
 const LiveNavigationPage = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +31,13 @@ const LiveNavigationPage = () => {
 
   const navType = searchParams.get("type") || "pickup"; // 'pickup' | 'drop'
   const bookingId = searchParams.get("bookingId");
+
+  // Load Google Maps API script safely
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: env.mapsKey || "",
+    libraries: MAP_LIBRARIES,
+  });
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -44,6 +54,7 @@ const LiveNavigationPage = () => {
   const [destAddress, setDestAddress] = useState("");
   const [routeInfo, setRouteInfo] = useState({ distance: "", duration: "", steps: [] });
   const [mapError, setMapError] = useState("");
+  const [mapReady, setMapReady] = useState(false);
   const [locationStatus, setLocationStatus] = useState("Locating...");
   const [rideCompletedModal, setRideCompletedModal] = useState(false);
 
@@ -52,17 +63,31 @@ const LiveNavigationPage = () => {
     let isMounted = true;
     const loadBooking = async () => {
       try {
-        if (bookingId) {
-          const data = await bookingService.getBooking(bookingId);
-          if (isMounted && data) {
-            setBooking(data);
-          }
+        let b = null;
+        if (bookingId && bookingId !== "undefined" && bookingId !== "null") {
+          b = await bookingService.getBooking(bookingId);
         } else {
           // Fallback to most recent booking
           const list = await bookingService.listBookings({ limit: 1 });
-          if (isMounted && list && list.length > 0) {
-            setBooking(list[0]);
+          if (list && list.length > 0) {
+            b = list[0];
           }
+        }
+
+        if (b && isMounted) {
+          // If vehicle zone is just an ID string, fetch public zones to populate it
+          if (b.vehicle && typeof b.vehicle.zone === 'string') {
+            try {
+              const zones = await userService.getPublicZones();
+              const fullZone = zones.find(z => (z._id || z.id) === b.vehicle.zone);
+              if (fullZone) {
+                b.vehicle.zone = fullZone;
+              }
+            } catch (zErr) {
+              console.warn("Could not populate zone", zErr);
+            }
+          }
+          setBooking(b);
         }
       } catch (err) {
         console.warn("Could not fetch booking details:", err);
@@ -77,17 +102,21 @@ const LiveNavigationPage = () => {
 
   // 2. Extract destination coordinates based on navType ('pickup' vs 'drop')
   useEffect(() => {
-    if (!booking) return;
-
     let targetLat = null;
     let targetLng = null;
     let targetAddr = "";
 
-    const zone = booking.vehicle?.zone;
+    if (!booking) {
+      // Fallback if booking fails to load
+      targetLat = DEFAULT_COORDS.lat + 0.008;
+      targetLng = DEFAULT_COORDS.lng + 0.005;
+      targetAddr = "Vegah Fallback Hub";
+    } else {
+      const zone = booking.vehicle?.zone;
 
-    if (navType === "pickup") {
-      // Priority 1: Zone pickupLocation coordinates
-      if (zone?.pickupLocation?.latitude && zone?.pickupLocation?.longitude) {
+      if (navType === "pickup") {
+        // Priority 1: Zone pickupLocation coordinates
+        if (zone?.pickupLocation?.latitude && zone?.pickupLocation?.longitude) {
         targetLat = Number(zone.pickupLocation.latitude);
         targetLng = Number(zone.pickupLocation.longitude);
         targetAddr = zone.pickupLocation.address || zone.name || "Vegah Pickup Hub";
@@ -117,6 +146,7 @@ const LiveNavigationPage = () => {
         targetLng = DEFAULT_COORDS.lng + 0.005;
         targetAddr = booking.returnLocation || "Vegah Return Station, HSR Hub";
       }
+    }
     }
 
     if (targetLat && targetLng && !isNaN(targetLat) && !isNaN(targetLng)) {
@@ -190,21 +220,14 @@ const LiveNavigationPage = () => {
     let isCancelled = false;
 
     const initMap = async () => {
-      if (!mapRef.current) return;
+      if (!mapRef.current || !isLoaded) return;
+      if (loadError) {
+        setMapError(`Failed to load Google Maps script: ${loadError.message || 'Unknown error'}`);
+        return;
+      }
 
       try {
         let googleObj = window.google;
-        if (!googleObj?.maps) {
-          const apiKey = env.mapsKey || "";
-          if (apiKey) {
-            const loader = new Loader({
-              apiKey,
-              version: "weekly",
-              libraries: ["places", "geometry"],
-            });
-            googleObj = await loader.load();
-          }
-        }
 
         if (isCancelled) return;
 
@@ -243,10 +266,11 @@ const LiveNavigationPage = () => {
         });
         directionsRendererRef.current = directionsRenderer;
         directionsServiceRef.current = new googleObj.maps.DirectionsService();
+        setMapReady(true);
 
       } catch (err) {
         console.error("Map initialization failed:", err);
-        setMapError("Failed to initialize Google Maps. Live map unavailable.");
+        setMapError(`Map init error: ${err.message || String(err)}`);
       }
     };
 
@@ -255,7 +279,7 @@ const LiveNavigationPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [navType]);
+  }, [navType, isLoaded, loadError]);
 
   // 5. Draw polyline when both userCoords and destCoords are available
   useEffect(() => {
@@ -265,20 +289,18 @@ const LiveNavigationPage = () => {
     const google = window.google;
     const map = mapInstanceRef.current;
 
-    // Place or update User GPS Marker (Pulsing blue dot style)
+    // Place or update User GPS Marker (Scooter / Delivery style)
     if (!userMarkerRef.current) {
       userMarkerRef.current = new google.maps.Marker({
         position: userCoords,
         map,
         title: "Your Live Location",
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 9,
-          fillColor: "#2563eb",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 3,
+          url: "/assets/bikelogo.png",
+          scaledSize: new google.maps.Size(44, 44),
+          anchor: new google.maps.Point(22, 22),
         },
+        animation: google.maps.Animation.DROP,
       });
     } else {
       userMarkerRef.current.setPosition(userCoords);
@@ -290,12 +312,9 @@ const LiveNavigationPage = () => {
       map,
       title: navType === "pickup" ? "Pickup Hub" : "Drop Hub",
       icon: {
-        path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-        scale: 6,
-        fillColor: navType === "pickup" ? "#059669" : "#7c3aed",
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeWeight: 2,
+        url: "/assets/pickuphub.png",
+        scaledSize: new google.maps.Size(48, 48),
+        anchor: new google.maps.Point(24, 48),
       },
     });
 
@@ -342,7 +361,7 @@ const LiveNavigationPage = () => {
     return () => {
       destMarker.setMap(null);
     };
-  }, [userCoords, destCoords, navType]);
+  }, [userCoords, destCoords, navType, mapReady]);
 
   // Handle Action: "Reached Pickup -> Start Ride"
   const handleStartRide = async () => {
@@ -390,20 +409,20 @@ const LiveNavigationPage = () => {
   const plateNumber = booking?.vehicle?.plateNumber || "KA 03 EV 4421";
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-slate-900 text-slate-100 flex flex-col font-sans">
+    <div className="relative h-screen w-full overflow-hidden bg-slate-50 text-slate-900 flex flex-col font-sans">
       
       {/* 1. TOP FLOATING APP BAR */}
       <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
         <button
           onClick={() => navigate(-1)}
-          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/90 dark:bg-slate-900/90 text-slate-800 dark:text-white shadow-xl backdrop-blur-md border border-white/20 hover:scale-105 active:scale-95 transition"
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-800 shadow-xl backdrop-blur-md border border-slate-200 hover:scale-105 active:scale-95 transition"
           aria-label="Go Back"
         >
           <ArrowLeft size={20} />
         </button>
 
         {/* Status Chip */}
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-md border border-white/10">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-xl backdrop-blur-md border border-slate-200">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -429,13 +448,13 @@ const LiveNavigationPage = () => {
 
         {/* Fallback View if Google Maps key is missing or errored */}
         {mapError && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
-            <AlertTriangle className="h-12 w-12 text-amber-400 mb-3" />
-            <h3 className="text-lg font-bold text-white mb-2">Live Map View Unavailable</h3>
-            <p className="text-sm text-slate-400 max-w-md mb-6">{mapError}</p>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 max-w-md w-full text-left mb-6">
-              <p className="text-xs text-slate-400 uppercase font-semibold tracking-wider">Destination Hub</p>
-              <p className="text-base font-bold text-white mt-1">{destAddress || "Vegah Main Hub"}</p>
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
+            <AlertTriangle className="h-12 w-12 text-amber-500 mb-3" />
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Live Map View Unavailable</h3>
+            <p className="text-sm text-slate-500 max-w-md mb-6">{mapError}</p>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 max-w-md w-full text-left mb-6">
+              <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Destination Hub</p>
+              <p className="text-base font-bold text-slate-900 mt-1">{destAddress || "Vegah Main Hub"}</p>
               {destCoords && (
                 <p className="text-xs text-slate-500 mt-1 font-mono">
                   Coordinates: {destCoords.lat.toFixed(4)}, {destCoords.lng.toFixed(4)}
@@ -455,16 +474,16 @@ const LiveNavigationPage = () => {
         {/* Floating Route Distance & ETA Pill */}
         {routeInfo.duration && (
           <div className="absolute top-20 left-4 z-20 pointer-events-none">
-            <div className="rounded-2xl bg-slate-950/90 p-3 shadow-2xl backdrop-blur-md border border-white/10 text-white flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${navType === "pickup" ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"}`}>
+            <div className="rounded-2xl bg-white/95 p-3 shadow-2xl backdrop-blur-md border border-slate-200 text-slate-900 flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${navType === "pickup" ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600"}`}>
                 <Navigation size={22} className="rotate-45" />
               </div>
               <div>
                 <p className="text-lg font-extrabold tracking-tight">
                   {routeInfo.duration}
-                  <span className="text-xs font-normal text-slate-400 ml-2">({routeInfo.distance})</span>
+                  <span className="text-xs font-normal text-slate-500 ml-2">({routeInfo.distance})</span>
                 </p>
-                <p className="text-[11px] text-slate-400 font-medium">Estimated arrival time</p>
+                <p className="text-[11px] text-slate-500 font-medium">Estimated arrival time</p>
               </div>
             </div>
           </div>
@@ -473,36 +492,36 @@ const LiveNavigationPage = () => {
 
       {/* 3. BOTTOM FLOATING INTERACTIVE SHEET (Uber/Zomato style) */}
       <div className="z-30 w-full max-w-xl mx-auto px-4 pb-6 pt-2">
-        <div className="rounded-3xl bg-slate-900/95 text-white p-5 shadow-2xl backdrop-blur-xl border border-white/15">
+        <div className="rounded-3xl bg-white text-slate-900 p-5 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.15)] backdrop-blur-xl border border-slate-200">
           
           {/* Destination Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                navType === "pickup" ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"
+                navType === "pickup" ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600"
               }`}>
                 <MapPin size={22} />
               </div>
               <div>
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  navType === "pickup" ? "bg-emerald-500/20 text-emerald-300" : "bg-purple-500/20 text-purple-300"
+                  navType === "pickup" ? "bg-emerald-100 text-emerald-700" : "bg-purple-100 text-purple-700"
                 }`}>
                   {navType === "pickup" ? "Pickup Point" : "Drop Return Point"}
                 </span>
-                <h3 className="text-base font-bold text-white mt-1 leading-snug">
+                <h3 className="text-base font-bold text-slate-900 mt-1 leading-snug">
                   {destAddress || "Vegah Designated Hub"}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                  <span>Vehicle: <strong className="text-slate-200">{vehicleName}</strong></span>
+                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                  <span>Vehicle: <strong className="text-slate-700">{vehicleName}</strong></span>
                   <span>•</span>
-                  <span className="font-mono text-slate-300">{plateNumber}</span>
+                  <span className="font-mono text-slate-600">{plateNumber}</span>
                 </p>
               </div>
             </div>
 
             <button
               onClick={handleOpenGoogleMapsApp}
-              className="shrink-0 p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 transition"
+              className="shrink-0 p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
               title="Open external map"
             >
               <ExternalLink size={18} />
@@ -533,11 +552,11 @@ const LiveNavigationPage = () => {
           </div>
 
           {/* Helper Micro-bar */}
-          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 px-1">
+          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 px-1">
             <span className="flex items-center gap-1">
               <Clock size={12} /> Live GPS Sync Active
             </span>
-            <a href="tel:18001234567" className="hover:text-white flex items-center gap-1">
+            <a href="tel:18001234567" className="hover:text-slate-900 flex items-center gap-1">
               <PhoneCall size={12} /> Contact Hub Manager
             </a>
           </div>
@@ -547,29 +566,29 @@ const LiveNavigationPage = () => {
 
       {/* 4. RIDE COMPLETED CONGRATULATIONS MODAL */}
       {rideCompletedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-3xl bg-slate-900 p-6 text-center shadow-2xl border border-white/10">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 ring-8 ring-emerald-500/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
               <Sparkles size={40} className="animate-spin" style={{ animationDuration: '6s' }} />
             </div>
 
-            <h3 className="mt-5 text-2xl font-black text-white">Ride Completed! 🎉</h3>
-            <p className="mt-2 text-sm text-slate-300">
+            <h3 className="mt-5 text-2xl font-black text-slate-900">Ride Completed! 🎉</h3>
+            <p className="mt-2 text-sm text-slate-600">
               Thank you for riding with Vegah! The scooter has been returned to the drop station safely.
             </p>
 
-            <div className="mt-6 rounded-2xl bg-white/5 p-4 border border-white/10 text-left text-xs space-y-2">
+            <div className="mt-6 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-slate-400">Vehicle:</span>
-                <span className="font-bold text-white">{vehicleName}</span>
+                <span className="text-slate-500">Vehicle:</span>
+                <span className="font-bold text-slate-900">{vehicleName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Return Location:</span>
-                <span className="font-bold text-white">{destAddress || "Vegah Drop Hub"}</span>
+                <span className="text-slate-500">Return Location:</span>
+                <span className="font-bold text-slate-900">{destAddress || "Vegah Drop Hub"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Booking Status:</span>
-                <span className="font-bold text-emerald-400">COMPLETED</span>
+                <span className="text-slate-500">Booking Status:</span>
+                <span className="font-bold text-emerald-600">COMPLETED</span>
               </div>
             </div>
 
