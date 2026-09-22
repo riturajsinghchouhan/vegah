@@ -112,3 +112,29 @@ export const uploadDocument = async (userId, data, file) => {
 export const getUserDocuments = async (userId) => {
   return await Document.find({ user: userId });
 };
+
+import Notification from '../../models/Notification.js';
+
+/**
+ * In-app notification feed. Rental reminders are persisted as well as pushed,
+ * so a user who had the app closed still sees that their rental was expiring.
+ */
+export const listNotifications = async (userId, { limit = 30, unreadOnly = false } = {}) => {
+  const filter = { user: userId };
+  if (unreadOnly) filter.isRead = false;
+
+  const [notifications, unreadCount] = await Promise.all([
+    Notification.find(filter).sort({ createdAt: -1 }).limit(limit),
+    Notification.countDocuments({ user: userId, isRead: false }),
+  ]);
+
+  return { notifications, unreadCount };
+};
+
+export const markNotificationsRead = async (userId, ids) => {
+  const filter = { user: userId, isRead: false };
+  if (Array.isArray(ids) && ids.length) filter._id = { $in: ids };
+
+  const result = await Notification.updateMany(filter, { $set: { isRead: true } });
+  return { updated: result.modifiedCount ?? result.nModified ?? 0 };
+};

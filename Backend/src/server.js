@@ -18,7 +18,7 @@ const startServer = async () => {
     initSocket(server);
 
     // 4. Initialize Background Workers
-    initWorkers();
+    await initWorkers();
 
     // 5. Start listening
     const PORT = env.PORT || 5000;

@@ -11,7 +11,17 @@ const bookingSchema = new Schema({
   startTime: { type: String, required: true },
   endDate: { type: Date, required: true },
   endTime: { type: String, required: true },
+  // Set by the admin at physical handover; the trip timer runs from here, not from startDate.
+  actualPickupAt: { type: Date, default: null },
+  // actualPickupAt + booked duration. Authoritative deadline once the trip has started.
+  tripEndsAt: { type: Date, default: null },
+  // Set when the user declares the vehicle dropped; cleared deadline is still tripEndsAt.
+  returnRequestedAt: { type: Date, default: null },
   actualReturnAt: { type: Date, default: null },
+  pickupConfirmedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
+  returnConfirmedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null },
+  reminderSentAt: { type: Date, default: null },
+  lateFee: { type: Number, default: 0 },
   pickupLocation: { type: String, required: true },
   batteryPackage: { type: String, enum: ['NONE', 'SINGLE', 'UNLIMITED'], default: 'SINGLE' },
 
@@ -39,6 +49,7 @@ const bookingSchema = new Schema({
       'PAYMENT_INITIATED',
       'CONFIRMED',
       'ACTIVE',
+      'PENDING_RETURN',
       'COMPLETED',
       'OVERDUE',
       'CANCELLED_BY_USER',
@@ -58,6 +69,14 @@ const bookingSchema = new Schema({
   notes: { type: String, default: null },
   idempotencyKey: { type: String, unique: true, sparse: true },
   depositStatus: { type: String, enum: ['PENDING', 'COLLECTED', 'REFUNDED'], default: 'PENDING' },
+  // Timestamped audit trail of every state change, for the admin booking timeline.
+  statusHistory: [{
+    _id: false,
+    status: { type: String, required: true },
+    at: { type: Date, default: Date.now },
+    by: { type: String, enum: ['USER', 'ADMIN', 'SYSTEM'], default: 'SYSTEM' },
+    note: { type: String, default: null },
+  }],
 }, { timestamps: true });
 
 bookingSchema.index({ user: 1, status: 1, createdAt: -1 });

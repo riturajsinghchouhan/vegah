@@ -2,15 +2,15 @@ import { lazy } from "react";
 
 /**
  * Robust lazy import wrapper for React + Vite single page applications.
- * Automatically catches stale bundle chunk errors (e.g. after a Vercel deployment)
- * and safely reloads the page to load the latest deployment without crashing.
+ * Automatically catches stale bundle chunk errors (e.g. after a Vite HMR rebuild
+ * or a Vercel deployment) and safely reloads the page to load the latest bundle.
  */
 export function safeLazy(importFn) {
   return lazy(async () => {
     try {
       return await importFn();
     } catch (error) {
-      console.warn("⚡ Dynamic import failed (stale chunk or network error). Reloading page...", error);
+      console.warn("⚡ Dynamic import failed (stale chunk or network error):", error?.message || error);
 
       const retryKey = "vegah_lazy_chunk_retry_timestamp";
       const lastRetry = sessionStorage.getItem(retryKey);
@@ -23,6 +23,7 @@ export function safeLazy(importFn) {
         return new Promise(() => {}); // Suspend until browser reloads page
       }
 
+      // If we already reloaded recently, throw and let ChunkErrorBoundary show the retry UI
       throw error;
     }
   });

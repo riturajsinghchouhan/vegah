@@ -75,13 +75,40 @@ export const bookingService = {
     };
   },
 
-  async startRide(bookingId) {
-    const response = await api.patch(`/bookings/${bookingId}/status`, { status: 'ACTIVE' });
+  // Server-authoritative trip timer. Runs from the admin-confirmed pickup time,
+  // not from the originally booked start time.
+  async getLiveStatus(bookingId) {
+    const response = await api.get(`/bookings/${bookingId}/live`);
     return response.data.data;
   },
 
-  async endRide(bookingId) {
-    const response = await api.patch(`/bookings/${bookingId}/status`, { status: 'COMPLETED' });
+  // Step 7: the user tells us the EV is back at the hub. The booking moves to
+  // PENDING_RETURN and only the admin can close it from there.
+  async requestReturn(bookingId, note) {
+    const response = await api.patch(`/bookings/${bookingId}/request-return`, note ? { note } : {});
+    return response.data.data;
+  },
+
+  async extendBooking(bookingId, extraHours) {
+    const response = await api.patch(`/bookings/${bookingId}/extend`, { extraHours });
+    return response.data.data;
+  },
+
+  async cancelBooking(bookingId, cancellationReason) {
+    const response = await api.patch(`/bookings/${bookingId}/status`, {
+      status: 'CANCELLED_BY_USER',
+      cancellationReason,
+    });
+    return response.data.data;
+  },
+
+  async getNotifications(params = {}) {
+    const response = await api.get('/users/notifications', { params });
+    return response.data.data;
+  },
+
+  async markNotificationsRead(ids) {
+    const response = await api.patch('/users/notifications/read', ids ? { ids } : {});
     return response.data.data;
   },
 };

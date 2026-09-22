@@ -37,12 +37,27 @@ export const validateStateTransition = (currentStatus, newStatus) => {
       BOOKING_STATUS.CANCELLED_BY_ADMIN
     ],
     [BOOKING_STATUS.ACTIVE]: [
+      // User declares the drop; admin still has to verify it.
+      BOOKING_STATUS.PENDING_RETURN,
+      // Admin can close the trip directly if the user never used the app.
       BOOKING_STATUS.COMPLETED,
       BOOKING_STATUS.OVERDUE,
       BOOKING_STATUS.CANCELLED_BY_ADMIN
     ],
     [BOOKING_STATUS.OVERDUE]: [
+      BOOKING_STATUS.PENDING_RETURN,
       BOOKING_STATUS.COMPLETED,
+      // An extension can push the deadline back into the future, which clears
+      // the overdue flag and resumes a normal running trip.
+      BOOKING_STATUS.ACTIVE,
+      BOOKING_STATUS.CANCELLED_BY_ADMIN
+    ],
+    [BOOKING_STATUS.PENDING_RETURN]: [
+      // Admin verified the vehicle is back.
+      BOOKING_STATUS.COMPLETED,
+      // Admin rejected the return (vehicle not at the hub) -> trip keeps running.
+      BOOKING_STATUS.ACTIVE,
+      BOOKING_STATUS.OVERDUE,
       BOOKING_STATUS.CANCELLED_BY_ADMIN
     ],
     // Terminal states - no transitions allowed out of these

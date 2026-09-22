@@ -5,19 +5,20 @@ import {
   Navigation, 
   MapPin, 
   CheckCircle2, 
-  Zap, 
   AlertTriangle, 
   Compass, 
   ExternalLink, 
   Clock, 
   Sparkles,
-  RefreshCw,
-  PhoneCall
+  PhoneCall,
+  ShieldCheck,
+  Hourglass
 } from "lucide-react";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { env } from "../../../../config/env";
 import { bookingService } from "../../../../services/bookingService";
 import { userService } from "../../../../services/userService";
+import { initSocket } from "../../../../services/socketService";
 import Button from "../../../../components/common/Button";
 
 const DEFAULT_COORDS = { lat: 12.9352, lng: 77.6245 }; // Bangalore Koramangala default
@@ -44,6 +45,8 @@ const LiveNavigationPage = () => {
   const directionsRendererRef = useRef(null);
   const directionsServiceRef = useRef(null);
   const userMarkerRef = useRef(null);
+  const destMarkerRef = useRef(null);
+  const fallbackPolylineRef = useRef(null);
   const watchPositionIdRef = useRef(null);
 
   const [booking, setBooking] = useState(location.state?.booking || null);
@@ -57,6 +60,10 @@ const LiveNavigationPage = () => {
   const [mapReady, setMapReady] = useState(false);
   const [locationStatus, setLocationStatus] = useState("Locating...");
   const [rideCompletedModal, setRideCompletedModal] = useState(false);
+  // Waiting on the hub team to confirm the handover (pickup) or the drop (return).
+  const [awaitingHandover, setAwaitingHandover] = useState(false);
+  const [awaitingReturnCheck, setAwaitingReturnCheck] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   // 1. Fetch booking details if not available from state
   useEffect(() => {
@@ -125,9 +132,9 @@ const LiveNavigationPage = () => {
         targetLat = Number(booking.vehicle.coordinates.coordinates[1]);
         targetAddr = booking.pickupLocation || booking.vehicle.location || "Vegah Vehicle Hub";
       } else {
-        targetLat = DEFAULT_COORDS.lat;
-        targetLng = DEFAULT_COORDS.lng;
-        targetAddr = booking.pickupLocation || "Vegah Koramangala Hub";
+        targetLat = null;
+        targetLng = null;
+        targetAddr = booking.pickupLocation || "Vegah Pickup Hub";
       }
     } else {
       // Drop location
@@ -139,12 +146,18 @@ const LiveNavigationPage = () => {
         // Return to same zone hub if specific drop not set
         targetLat = Number(zone.pickupLocation.latitude);
         targetLng = Number(zone.pickupLocation.longitude);
-        targetAddr = zone.pickupLocation.address || "Vegah Return Hub";
+        targetAddr = zone.dropLocation?.address || zone.pickupLocation.address || "Vegah Return Hub";
+      } else if (booking.vehicle?.coordinates?.coordinates?.length === 2) {
+        // Use vehicle's own coordinates as a fallback
+        targetLng = Number(booking.vehicle.coordinates.coordinates[0]);
+        targetLat = Number(booking.vehicle.coordinates.coordinates[1]);
+        targetAddr = zone?.dropLocation?.address || booking.pickupLocation || booking.vehicle.location || "Vegah Return Hub";
       } else {
-        // Fallback offset slightly for demonstration
-        targetLat = DEFAULT_COORDS.lat + 0.008;
-        targetLng = DEFAULT_COORDS.lng + 0.005;
-        targetAddr = booking.returnLocation || "Vegah Return Station, HSR Hub";
+        // Last resort: geocode the booking's pickupLocation address string
+        // (pickup and drop are at the same hub for this zone)
+        targetLat = null;
+        targetLng = null;
+        targetAddr = booking.returnLocation || booking.pickupLocation || "Vegah Return Station";
       }
     }
     }
@@ -152,6 +165,20 @@ const LiveNavigationPage = () => {
     if (targetLat && targetLng && !isNaN(targetLat) && !isNaN(targetLng)) {
       setDestCoords({ lat: targetLat, lng: targetLng });
       setDestAddress(targetAddr);
+    } else if (targetAddr && targetAddr !== "Vegah Return Station") {
+      // We have an address but no coordinates — try geocoding it
+      setDestAddress(targetAddr);
+      if (window.google?.maps?.Geocoder) {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: targetAddr }, (results, status) => {
+          if (status === "OK" && results?.[0]?.geometry?.location) {
+            setDestCoords({
+              lat: results[0].geometry.location.lat(),
+              lng: results[0].geometry.location.lng(),
+            });
+          }
+        });
+      }
     }
   }, [booking, navType]);
 
@@ -289,6 +316,22 @@ const LiveNavigationPage = () => {
     const google = window.google;
     const map = mapInstanceRef.current;
 
+    // ── Cleanup previous render artifacts ──
+    // Clear old directions from renderer so stale routes don't linger
+    if (directionsRendererRef.current) {
+      directionsRendererRef.current.setDirections({ routes: [] });
+    }
+    // Remove old fallback polyline
+    if (fallbackPolylineRef.current) {
+      fallbackPolylineRef.current.setMap(null);
+      fallbackPolylineRef.current = null;
+    }
+    // Remove old destination marker
+    if (destMarkerRef.current) {
+      destMarkerRef.current.setMap(null);
+      destMarkerRef.current = null;
+    }
+
     // Place or update User GPS Marker (Scooter / Delivery style)
     if (!userMarkerRef.current) {
       userMarkerRef.current = new google.maps.Marker({
@@ -307,7 +350,7 @@ const LiveNavigationPage = () => {
     }
 
     // Place Destination Marker (Pickup Hub or Drop Hub)
-    const destMarker = new google.maps.Marker({
+    destMarkerRef.current = new google.maps.Marker({
       position: destCoords,
       map,
       title: navType === "pickup" ? "Pickup Hub" : "Drop Hub",
@@ -340,7 +383,7 @@ const LiveNavigationPage = () => {
         } else {
           console.warn("Directions request failed with status:", status);
           // Fallback: draw straight polyline between points if driving directions fail
-          const line = new google.maps.Polyline({
+          fallbackPolylineRef.current = new google.maps.Polyline({
             path: [userCoords, destCoords],
             geodesic: true,
             strokeColor: navType === "pickup" ? "#10b981" : "#8b5cf6",
@@ -359,40 +402,82 @@ const LiveNavigationPage = () => {
     );
 
     return () => {
-      destMarker.setMap(null);
+      // Cleanup on unmount or before next re-render
+      if (destMarkerRef.current) {
+        destMarkerRef.current.setMap(null);
+        destMarkerRef.current = null;
+      }
+      if (fallbackPolylineRef.current) {
+        fallbackPolylineRef.current.setMap(null);
+        fallbackPolylineRef.current = null;
+      }
+      if (directionsRendererRef.current) {
+        directionsRendererRef.current.setDirections({ routes: [] });
+      }
     };
   }, [userCoords, destCoords, navType, mapReady]);
 
-  // Handle Action: "Reached Pickup -> Start Ride"
-  const handleStartRide = async () => {
-    try {
-      setActionLoading(true);
-      const targetId = booking?._id || booking?.id || bookingId;
-      if (targetId) {
-        await bookingService.startRide(targetId);
+  const bookingStatus = (booking?.status || "").toUpperCase();
+
+  // Live status feed: the trip starts and ends on the admin's action, so this
+  // screen has to react to their confirmation rather than assume it.
+  useEffect(() => {
+    const socket = initSocket();
+    const currentId = booking?._id || booking?.id || bookingId;
+
+    const handleStatusUpdated = (updated) => {
+      const targetId = updated?._id || updated?.id;
+      if (currentId && targetId && String(targetId) !== String(currentId)) return;
+
+      setBooking((prev) => ({ ...(prev || {}), ...updated }));
+
+      if (updated?.status === "ACTIVE") {
+        setAwaitingHandover(false);
+        navigate("/user/rental/active");
       }
-      navigate("/user/rental/active");
-    } catch (err) {
-      console.error("Start ride error:", err);
-      // Fallback navigate to active rental
-      navigate("/user/rental/active");
-    } finally {
-      setActionLoading(false);
-    }
+
+      if (updated?.status === "COMPLETED") {
+        setAwaitingReturnCheck(false);
+        setRideCompletedModal(true);
+      }
+
+      // Admin could not verify the drop - put the user back on the drop flow.
+      if (updated?.status === "ACTIVE" || updated?.status === "OVERDUE") {
+        setAwaitingReturnCheck(false);
+      }
+    };
+
+    socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+    return () => socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+  }, [booking?._id, booking?.id, bookingId, navigate]);
+
+  // Step 3: the user is at the hub. The trip is started by the admin, so all
+  // this does is surface the booking ID for them to show at the counter.
+  const handleArrivedAtPickup = () => {
+    setActionError("");
+    setAwaitingHandover(true);
   };
 
-  // Handle Action: "Reached Drop -> End Ride"
-  const handleEndRide = async () => {
+  // Step 7: the user declares the drop. The booking goes to PENDING_RETURN and
+  // stays there until an admin verifies the vehicle is physically back.
+  const handleConfirmReturn = async () => {
+    const targetId = booking?._id || booking?.id || bookingId;
+    if (!targetId) {
+      setActionError("We could not identify this booking. Please reopen it from My Bookings.");
+      return;
+    }
+
     try {
+      setActionError("");
       setActionLoading(true);
-      const targetId = booking?._id || booking?.id || bookingId;
-      if (targetId) {
-        await bookingService.endRide(targetId);
-      }
-      setRideCompletedModal(true);
+      const updated = await bookingService.requestReturn(targetId);
+      setBooking((prev) => ({ ...(prev || {}), ...(updated || {}), status: updated?.status || "PENDING_RETURN" }));
+      setAwaitingReturnCheck(true);
     } catch (err) {
-      console.error("End ride error:", err);
-      setRideCompletedModal(true);
+      console.error("Return request error:", err);
+      setActionError(
+        err?.response?.data?.message || "Could not submit the return. Please try again or ask the hub team for help."
+      );
     } finally {
       setActionLoading(false);
     }
@@ -530,25 +615,46 @@ const LiveNavigationPage = () => {
 
           {/* Action Button */}
           <div className="mt-5">
+            {actionError && (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
             {navType === "pickup" ? (
               <Button
-                onClick={handleStartRide}
+                onClick={handleArrivedAtPickup}
                 disabled={actionLoading}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-black py-4 rounded-2xl text-base shadow-xl flex items-center justify-center gap-2 tracking-wide transition-all duration-200"
               >
-                <Zap size={22} className="fill-current animate-pulse" />
-                {actionLoading ? "Starting your ride..." : "Reached Pickup? Start Ride"}
+                <ShieldCheck size={22} />
+                Reached Pickup Hub? Show Booking ID
+              </Button>
+            ) : bookingStatus === "PENDING_RETURN" ? (
+              <Button
+                disabled
+                className="w-full bg-purple-200 text-purple-800 font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 tracking-wide cursor-not-allowed"
+              >
+                <Hourglass size={22} className="animate-pulse" />
+                Awaiting hub verification
               </Button>
             ) : (
               <Button
-                onClick={handleEndRide}
+                onClick={handleConfirmReturn}
                 disabled={actionLoading}
                 className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-black py-4 rounded-2xl text-base shadow-xl flex items-center justify-center gap-2 tracking-wide transition-all duration-200"
               >
                 <CheckCircle2 size={22} />
-                {actionLoading ? "Ending your ride..." : "Reached Drop Hub? End Ride"}
+                {actionLoading ? "Submitting return..." : "Reached Drop Hub? Confirm Return"}
               </Button>
             )}
+
+            <p className="mt-2.5 text-center text-[11px] leading-relaxed text-slate-500">
+              {navType === "pickup"
+                ? "Your rental timer starts only once the hub team confirms the handover."
+                : "Your rental closes once the hub team verifies the EV is back."}
+            </p>
           </div>
 
           {/* Helper Micro-bar */}
@@ -564,7 +670,95 @@ const LiveNavigationPage = () => {
         </div>
       </div>
 
-      {/* 4. RIDE COMPLETED CONGRATULATIONS MODAL */}
+      {/* 4a. PICKUP HANDOVER MODAL - waiting on the admin to start the trip */}
+      {awaitingHandover && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
+              <ShieldCheck size={40} />
+            </div>
+
+            <h3 className="mt-5 text-2xl font-black text-slate-900">Show this at the hub</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              The hub team will verify your booking and hand over the EV. Your trip timer starts the moment they confirm it.
+            </p>
+
+            <div className="mt-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Booking ID</p>
+              <p className="mt-1 font-mono text-3xl font-black tracking-wider text-emerald-900">
+                {booking?.bookingId || "EVR-----"}
+              </p>
+            </div>
+
+            <div className="mt-5 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Vehicle:</span>
+                <span className="font-bold text-slate-900">{vehicleName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Plate:</span>
+                <span className="font-mono font-bold text-slate-900">{plateNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Pickup Hub:</span>
+                <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Hub"}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
+              <Hourglass size={16} className="animate-pulse" />
+              Waiting for the hub team to confirm...
+            </div>
+
+            <button
+              onClick={() => setAwaitingHandover(false)}
+              className="mt-5 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+            >
+              Back to navigation
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 4b. RETURN SUBMITTED MODAL - waiting on the admin to verify the drop */}
+      {awaitingReturnCheck && !rideCompletedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-purple-100 text-purple-600 ring-8 ring-purple-50">
+              <Hourglass size={40} className="animate-pulse" />
+            </div>
+
+            <h3 className="mt-5 text-2xl font-black text-slate-900">Return submitted</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              We have told the hub team that you dropped the EV. Your rental closes as soon as they verify the vehicle.
+            </p>
+
+            <div className="mt-6 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Booking:</span>
+                <span className="font-mono font-bold text-slate-900">{booking?.bookingId || "EVR-----"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Drop Location:</span>
+                <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Drop Hub"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Status:</span>
+                <span className="font-bold text-purple-600">AWAITING VERIFICATION</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => navigate("/user/bookings")}
+              className="mt-6 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg"
+            >
+              View My Bookings
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 4c. RIDE COMPLETED CONGRATULATIONS MODAL */}
       {rideCompletedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">

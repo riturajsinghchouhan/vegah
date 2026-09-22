@@ -36,6 +36,16 @@ router.get(
   usersController.getUserDocuments
 );
 
+router.get(
+  '/notifications',
+  usersController.listNotifications
+);
+
+router.patch(
+  '/notifications/read',
+  usersController.markNotificationsRead
+);
+
 // Admin endpoints
 router.use(authorize('ADMIN', 'SUPER_ADMIN'));
 

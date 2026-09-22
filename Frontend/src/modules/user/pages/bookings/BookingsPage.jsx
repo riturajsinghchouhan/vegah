@@ -1,4 +1,4 @@
-import { Calendar, MapPin, ArrowRight, Zap, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Navigation, CheckCircle2, Clock, XCircle, AlertTriangle, PackageCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EmptyState from "../../../../components/common/EmptyState";
@@ -46,7 +46,7 @@ const BookingsPage = () => {
     return userBookings.map((b) => {
       const st = (b.status || 'RESERVED').toUpperCase();
       let tabCategory = 'Upcoming';
-      if (st === 'ACTIVE' || st === 'OVERDUE') tabCategory = 'Active';
+      if (st === 'ACTIVE' || st === 'OVERDUE' || st === 'PENDING_RETURN') tabCategory = 'Active';
       else if (st === 'COMPLETED') tabCategory = 'Completed';
       else if (st.includes('CANCELLED')) tabCategory = 'Cancelled';
 
@@ -68,19 +68,11 @@ const BookingsPage = () => {
     [formattedList, activeTab]
   );
 
-  const handleStartRide = async (bookingId) => {
-    try {
-      await bookingService.startRide(bookingId);
-      navigate("/user/rental/active");
-    } catch (err) {
-      console.error("Failed to start ride:", err);
-      navigate("/user/rental/active");
-    }
-  };
-
   const getStatusIcon = (status) => {
     switch (status) {
-      case "ACTIVE": return <Zap size={14} className="text-blue-500" />;
+      case "ACTIVE": return <Navigation size={14} className="text-blue-500" />;
+      case "OVERDUE": return <AlertTriangle size={14} className="text-red-500" />;
+      case "PENDING_RETURN": return <PackageCheck size={14} className="text-purple-500" />;
       case "CONFIRMED": return <CheckCircle2 size={14} className="text-emerald-500" />;
       case "COMPLETED": return <CheckCircle2 size={14} className="text-green-500" />;
       case "CANCELLED_BY_USER":
@@ -93,6 +85,8 @@ const BookingsPage = () => {
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case "ACTIVE": return "bg-blue-50 text-blue-600 border-blue-100";
+      case "OVERDUE": return "bg-red-50 text-red-600 border-red-200 font-bold";
+      case "PENDING_RETURN": return "bg-purple-50 text-purple-700 border-purple-200 font-bold";
       case "CONFIRMED": return "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold";
       case "COMPLETED": return "bg-green-50 text-green-600 border-green-100";
       case "CANCELLED_BY_USER":
@@ -103,9 +97,17 @@ const BookingsPage = () => {
   };
 
   const formatStatusLabel = (status) => {
-    if (status === 'CONFIRMED') return 'Approved by Admin';
+    if (status === 'CONFIRMED') return 'Ready for Pickup';
     if (status === 'PENDING_VERIFICATION' || status === 'RESERVED') return 'Waiting Approval';
+    if (status === 'ACTIVE') return 'Trip Running';
+    if (status === 'PENDING_RETURN') return 'Verifying Return';
+    if (status === 'OVERDUE') return 'Overdue';
     return status.replace(/_/g, ' ');
+  };
+
+  const goToNavigation = (booking, type) => {
+    const id = booking.raw._id || booking.raw.id || booking.raw.bookingId;
+    navigate(`/user/navigation?type=${type}&bookingId=${id}`, { state: { booking: booking.raw } });
   };
 
   return (
@@ -188,22 +190,36 @@ const BookingsPage = () => {
                       {formatCurrency(booking.amount).replace('.00', '')}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     {booking.status === "CONFIRMED" && (
-                      <button 
-                        onClick={() => handleStartRide(booking.raw._id || booking.raw.id)}
-                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-md animate-pulse"
+                      <button
+                        onClick={() => goToNavigation(booking, "pickup")}
+                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-md"
                       >
-                        <Zap size={14} /> Start Ride
+                        <Navigation size={14} /> Navigate to Pickup
                       </button>
                     )}
-                    {booking.status === "ACTIVE" && (
-                      <Link 
-                        to="/user/rental/active" 
-                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#272664] rounded-xl hover:bg-[#1e1d4d] transition-colors shadow-sm"
-                      >
-                        Track Ride <ArrowRight size={14} />
-                      </Link>
+                    {(booking.status === "ACTIVE" || booking.status === "OVERDUE") && (
+                      <>
+                        <button
+                          onClick={() => goToNavigation(booking, "drop")}
+                          className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-purple-600 rounded-xl hover:bg-purple-700 transition-colors shadow-md"
+                        >
+                          <Navigation size={14} /> Navigate to Drop
+                        </button>
+                        <Link
+                          to="/user/rental/active"
+                          className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#272664] rounded-xl hover:bg-[#1e1d4d] transition-colors shadow-sm"
+                        >
+                          Track Ride <ArrowRight size={14} />
+                        </Link>
+                      </>
+                    )}
+                    {booking.status === "PENDING_RETURN" && (
+                      <span className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded-xl">
+                        <Clock size={14} className="animate-spin" style={{ animationDuration: '3s' }} />
+                        Awaiting hub verification
+                      </span>
                     )}
                   </div>
                 </div>

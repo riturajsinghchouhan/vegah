@@ -146,6 +146,24 @@ export const adminService = {
     const res = await adminApi.patch(`/bookings/${id}/status`, { status });
     return res.data.data;
   },
+  // Step 4: customer is at the hub and has the EV in hand. Starts the trip timer.
+  async confirmPickup(id, note) {
+    const res = await adminApi.patch(`/bookings/${id}/confirm-pickup`, note ? { note } : {});
+    return res.data.data;
+  },
+  // Step 9: EV is physically back. Settles deposit/late fee and closes the rental.
+  async confirmReturn(id, { note, depositStatus } = {}) {
+    const res = await adminApi.patch(`/bookings/${id}/confirm-return`, {
+      ...(note ? { note } : {}),
+      ...(depositStatus ? { depositStatus } : {}),
+    });
+    return res.data.data;
+  },
+  // The claimed drop-off could not be verified - trip keeps running.
+  async rejectReturn(id, note) {
+    const res = await adminApi.patch(`/bookings/${id}/reject-return`, note ? { note } : {});
+    return res.data.data;
+  },
 
   // --- Coupons ---
   async getCoupons(params = {}) {

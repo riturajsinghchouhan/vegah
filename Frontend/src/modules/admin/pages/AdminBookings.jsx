@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
-import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers } from 'lucide-react';
+import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import { adminService } from '../services/adminService';
@@ -19,6 +19,7 @@ export default function AdminBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newBookingAlert, setNewBookingAlert] = useState(null);
+  const [returnAlert, setReturnAlert] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
   const playNotificationSound = () => {
@@ -82,6 +83,14 @@ export default function AdminBookings() {
     };
     socket.on('BOOKING_STATUS_UPDATED', handleStatusUpdated);
 
+    // A customer has dropped a vehicle and is waiting for verification.
+    const handleReturnRequested = (payload) => {
+      playNotificationSound();
+      setReturnAlert(payload);
+      fetchAllBookings();
+    };
+    socket.on('RETURN_REQUESTED', handleReturnRequested);
+
     requestNotificationPermission();
     const unsubscribeFcm = onForegroundMessage((payload) => {
       console.log("🔥 [FCM] Foreground notification:", payload);
@@ -91,6 +100,7 @@ export default function AdminBookings() {
     return () => {
       socket.off('NEW_BOOKING', handleNewBooking);
       socket.off('BOOKING_STATUS_UPDATED', handleStatusUpdated);
+      socket.off('RETURN_REQUESTED', handleReturnRequested);
       unsubscribeFcm();
     };
   }, []);
@@ -161,6 +171,58 @@ export default function AdminBookings() {
     }
   };
 
+  // Applies a lifecycle action and folds the returned booking back into the list.
+  const runBookingAction = async (bookingId, action, successMessage) => {
+    try {
+      setActionLoading(bookingId);
+      const updated = await action();
+
+      setBookings((prev) =>
+        prev.map((b) => ((b._id || b.id) === bookingId ? { ...b, ...(updated || {}) } : b))
+      );
+      if (returnAlert && (returnAlert._id === bookingId || returnAlert.id === bookingId)) {
+        setReturnAlert(null);
+      }
+      alert(successMessage(updated));
+      return updated;
+    } catch (error) {
+      console.error('Booking action failed', error);
+      alert(error.response?.data?.message || 'Action failed. Please try again.');
+      return null;
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Step 4: customer is at the hub with the EV in hand -> starts the trip timer.
+  const handleConfirmPickup = (bookingId) =>
+    runBookingAction(
+      bookingId,
+      () => adminService.confirmPickup(bookingId),
+      (updated) => `Pickup confirmed for ${updated?.bookingId || bookingId}. Trip timer started.`
+    );
+
+  // Step 9: EV is physically back -> closes the rental and frees the vehicle.
+  const handleConfirmReturn = (bookingId) =>
+    runBookingAction(
+      bookingId,
+      () => adminService.confirmReturn(bookingId),
+      (updated) => {
+        const lateFee = updated?.lateFee || 0;
+        return lateFee > 0
+          ? `Return verified for ${updated?.bookingId || bookingId}. Rental completed with a late fee of Rs ${lateFee}.`
+          : `Return verified for ${updated?.bookingId || bookingId}. Rental completed.`;
+      }
+    );
+
+  // The claimed drop-off could not be verified -> trip keeps running.
+  const handleRejectReturn = (bookingId) =>
+    runBookingAction(
+      bookingId,
+      () => adminService.rejectReturn(bookingId),
+      (updated) => `Return rejected for ${updated?.bookingId || bookingId}. The trip is running again.`
+    );
+
   const handleTabChange = (tabKey) => {
     if (tabKey === 'all') {
       setSearchParams({});
@@ -170,8 +232,10 @@ export default function AdminBookings() {
   };
 
   const allCount = bookings.length;
-  const liveCount = bookings.filter(b => b.status === 'ACTIVE' || b.status === 'OVERDUE').length;
-  const pickupsCount = bookings.filter(b => !b.status || b.status === 'PENDING' || b.status === 'CONFIRMED' || b.status === 'RESERVED' || b.status === 'PENDING_VERIFICATION').length;
+  const liveCount = bookings.filter(b => ['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(b.status)).length;
+  const pickupsCount = bookings.filter(b => !b.status || ['PENDING', 'CONFIRMED', 'RESERVED', 'PENDING_VERIFICATION'].includes(b.status)).length;
+  const awaitingReturnCount = bookings.filter(b => b.status === 'PENDING_RETURN').length;
+  const awaitingHandoverCount = bookings.filter(b => b.status === 'CONFIRMED').length;
 
   return (
     <div className="space-y-6 pb-8 max-w-[1600px] mx-auto">
@@ -228,6 +292,39 @@ export default function AdminBookings() {
         </div>
       )}
 
+      {/* Return Verification Alert Banner */}
+      {returnAlert && (
+        <div className="bg-purple-700 text-white p-4 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center justify-between border border-purple-500 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-800 rounded-lg">
+              <PackageCheck className="h-6 w-6 text-yellow-300 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-bold text-sm tracking-wide text-yellow-300">📦 VEHICLE RETURNED — VERIFICATION NEEDED!</p>
+              <p className="text-xs text-purple-100 mt-1">
+                Booking ID: <span className="font-mono font-bold bg-purple-800 px-1.5 py-0.5 rounded">{returnAlert.bookingId || returnAlert.id}</span> — check the EV and confirm the return to close the rental.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end md:self-auto">
+            <button
+              onClick={() => handleTabChange('live')}
+              className="bg-white text-purple-700 font-bold px-4 py-2 rounded-lg text-sm shadow-md hover:bg-purple-50 transition-colors"
+            >
+              Open Live Rentals
+            </button>
+            <button
+              onClick={() => setReturnAlert(null)}
+              className="p-2 hover:bg-purple-800 rounded-lg text-purple-100 hover:text-white transition-colors border border-purple-500"
+              title="Dismiss Alert"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tabs Bar */}
       <div className="flex gap-3 border-b border-gray-200 pb-3">
         <button
@@ -252,6 +349,11 @@ export default function AdminBookings() {
         >
           <Calendar size={16} />
           Upcoming Pickups ({pickupsCount})
+          {awaitingHandoverCount > 0 && (
+            <span className="ml-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-orange-600">
+              {awaitingHandoverCount} to hand over
+            </span>
+          )}
         </button>
 
         <button
@@ -264,6 +366,11 @@ export default function AdminBookings() {
         >
           <Zap size={16} />
           Live Active Rentals ({liveCount})
+          {awaitingReturnCount > 0 && (
+            <span className="ml-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-purple-700">
+              {awaitingReturnCount} to verify
+            </span>
+          )}
         </button>
       </div>
 
@@ -271,11 +378,26 @@ export default function AdminBookings() {
       {loading ? (
         <div className="p-12 text-center text-gray-500 font-medium">Loading bookings...</div>
       ) : activeTab === 'all' ? (
-        <AllBookingsTable allBookings={bookings} onApprove={handleApproveBooking} actionLoading={actionLoading} />
+        <AllBookingsTable
+          allBookings={bookings}
+          onApprove={handleApproveBooking}
+          onConfirmPickup={handleConfirmPickup}
+          actionLoading={actionLoading}
+        />
       ) : activeTab === 'live' ? (
-        <LiveRentalsTable allBookings={bookings} />
+        <LiveRentalsTable
+          allBookings={bookings}
+          onConfirmReturn={handleConfirmReturn}
+          onRejectReturn={handleRejectReturn}
+          actionLoading={actionLoading}
+        />
       ) : (
-        <UpcomingPickupsTable allBookings={bookings} onApprove={handleApproveBooking} actionLoading={actionLoading} />
+        <UpcomingPickupsTable
+          allBookings={bookings}
+          onApprove={handleApproveBooking}
+          onConfirmPickup={handleConfirmPickup}
+          actionLoading={actionLoading}
+        />
       )}
       
     </div>
@@ -283,7 +405,7 @@ export default function AdminBookings() {
 }
 
 // --- ALL BOOKINGS TABLE ---
-function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
+function AllBookingsTable({ allBookings, onApprove, onConfirmPickup, actionLoading }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -341,6 +463,7 @@ function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
             {searchFiltered.map((item) => {
               const bId = item.raw._id || item.raw.id;
               const isNeedsApproval = item.status === 'RESERVED' || item.status === 'PENDING_VERIFICATION' || item.status === 'PAYMENT_INITIATED';
+              const isAwaitingHandover = item.status === 'CONFIRMED';
               const isApproved = item.status === 'CONFIRMED' || item.status === 'ACTIVE' || item.status === 'COMPLETED';
               const isLoadingThis = actionLoading === bId;
 
@@ -373,8 +496,8 @@ function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
                       {isNeedsApproval ? (
-                        <button 
-                          title="Approve Booking" 
+                        <button
+                          title="Approve Booking"
                           className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
                           onClick={() => onApprove(bId)}
                           disabled={isLoadingThis}
@@ -382,9 +505,19 @@ function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
                           <CheckCircle size={16} />
                           {isLoadingThis ? 'Approving...' : 'Approve Booking'}
                         </button>
+                      ) : isAwaitingHandover ? (
+                        <button
+                          title="Customer has collected the EV - start the trip timer"
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                          onClick={() => onConfirmPickup(bId)}
+                          disabled={isLoadingThis}
+                        >
+                          <KeyRound size={16} />
+                          {isLoadingThis ? 'Starting trip...' : 'Confirm Pickup & Start Trip'}
+                        </button>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold">
-                          <CheckCircle size={14} /> Approved
+                          <CheckCircle size={14} /> Handed over
                         </span>
                       )}
 
@@ -489,31 +622,53 @@ function AllBookingsTable({ allBookings, onApprove, actionLoading }) {
   );
 }
 
+const fmtDateTime = (value) => {
+  if (!value) return '-';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString();
+};
+
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ allBookings }) {
+function LiveRentalsTable({ allBookings, onConfirmReturn, onRejectReturn, actionLoading }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const liveBookings = allBookings.filter(b => 
-    b.status === 'ACTIVE' || b.status === 'OVERDUE'
+  // A booking awaiting return verification is still a live rental - the EV is
+  // not back in the fleet until an admin confirms it.
+  const liveBookings = allBookings.filter(b =>
+    ['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(b.status)
   ).map(b => ({
     raw: b,
     id: b.bookingId || (typeof b._id === 'string' ? b._id.substring(0, 12).toUpperCase() : 'EVR-NEW'),
     user: { name: b.user?.fullName || 'Unknown', phone: b.user?.phone || 'Unknown' },
     scooty: { name: b.vehicle?.name || 'Unknown', reg: b.vehicle?.registrationNumber || b.vehicle?.plateNumber || 'Unknown' },
-    pickup: { location: b.pickupLocation || b.zone?.name || 'Unknown', time: b.startTime ? new Date(b.startTime).toLocaleString() : '-' },
-    expectedReturn: b.endTime ? new Date(b.endTime).toLocaleString() : '-',
-    actualReturn: b.actualReturnAt || b.actualEndTime ? new Date(b.actualReturnAt || b.actualEndTime).toLocaleString() : '-',
-    duration: b.startDate && b.endDate ? `${Math.round((new Date(b.endDate) - new Date(b.startDate)) / 3600000)} Hours` : 'N/A',
-    financials: { amount: `₹${b.totalAmount || b.amount || b.pricing?.total || 0}`, deposit: `₹${b.securityDeposit || b.pricing?.securityDeposit || 0}`, status: b.paymentStatus || 'Pending' },
+    // The real trip clock: handover time and the deadline derived from it.
+    pickup: { location: b.pickupLocation || b.zone?.name || 'Unknown', time: fmtDateTime(b.actualPickupAt) },
+    expectedReturn: fmtDateTime(b.tripEndsAt || b.endDate),
+    actualReturn: fmtDateTime(b.actualReturnAt),
+    returnRequestedAt: fmtDateTime(b.returnRequestedAt),
+    duration: b.actualPickupAt && b.tripEndsAt
+      ? `${Math.round((new Date(b.tripEndsAt) - new Date(b.actualPickupAt)) / 3600000)} Hours`
+      : 'N/A',
+    financials: {
+      amount: `₹${b.totalAmount || b.amount || b.pricing?.total || 0}`,
+      deposit: `₹${b.securityDeposit || b.pricing?.securityDeposit || 0}`,
+      lateFee: b.lateFee || 0,
+      status: b.depositStatus || b.paymentStatus || 'Pending',
+    },
+    isAwaitingReturn: b.status === 'PENDING_RETURN',
+    isOverdue: b.status === 'OVERDUE',
     rentalStatus: (b.status || 'ACTIVE').replace(/_/g, ' '),
   }));
 
-  const searchFiltered = liveBookings.filter(r => 
-    r.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.user.phone.includes(searchTerm)
-  );
+  const searchFiltered = liveBookings
+    .filter(r =>
+      r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.user.phone.includes(searchTerm)
+    )
+    // Anything waiting on the admin goes to the top.
+    .sort((a, b) => Number(b.isAwaitingReturn) - Number(a.isAwaitingReturn));
 
   return (
     <div className="space-y-4">
@@ -559,8 +714,13 @@ function LiveRentalsTable({ allBookings }) {
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm">
-                    <span className="text-gray-500 block">Pick: {rental.pickup.time} ({rental.pickup.location})</span>
-                    <span className="text-gray-500 block">Drop: {rental.expectedReturn}</span>
+                    <span className="text-gray-500 block">Picked up: {rental.pickup.time}</span>
+                    <span className="text-gray-500 block">Due back: {rental.expectedReturn}</span>
+                    {rental.isAwaitingReturn && (
+                      <span className="text-purple-700 font-semibold block mt-1">
+                        Drop reported: {rental.returnRequestedAt}
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -569,8 +729,40 @@ function LiveRentalsTable({ allBookings }) {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-center gap-2">
-                    <button 
-                      title="View Details" 
+                    {(() => {
+                      const bId = rental.raw._id || rental.raw.id;
+                      const isLoadingThis = actionLoading === bId;
+                      return (
+                        <>
+                          <button
+                            title="Verify the EV is back and close this rental"
+                            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 ${
+                              rental.isAwaitingReturn ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 hover:bg-gray-800'
+                            }`}
+                            onClick={() => onConfirmReturn(bId)}
+                            disabled={isLoadingThis}
+                          >
+                            <PackageCheck size={15} />
+                            {isLoadingThis ? 'Saving...' : rental.isAwaitingReturn ? 'Verify Return' : 'Close Rental'}
+                          </button>
+
+                          {rental.isAwaitingReturn && (
+                            <button
+                              title="The EV is not at the hub - resume the trip"
+                              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-all active:scale-95 disabled:opacity-50"
+                              onClick={() => onRejectReturn(bId)}
+                              disabled={isLoadingThis}
+                            >
+                              <Undo2 size={15} />
+                              Reject
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    <button
+                      title="View Details"
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       onClick={() => setSelectedRental(rental)}
                     >
@@ -607,8 +799,14 @@ function LiveRentalsTable({ allBookings }) {
               <div><strong className="text-gray-900 block">Vehicle</strong> {selectedRental.scooty.name} <br/> <span className="text-sm text-gray-500">{selectedRental.scooty.reg}</span></div>
             </div>
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-              <div className="mb-2"><strong className="text-gray-900">Pickup:</strong> {selectedRental.pickup.time} ({selectedRental.pickup.location})</div>
-              <div className="mb-2"><strong className="text-gray-900">Expected Drop:</strong> {selectedRental.expectedReturn}</div>
+              <div className="mb-2"><strong className="text-gray-900">Picked up at:</strong> {selectedRental.pickup.time} ({selectedRental.pickup.location})</div>
+              <div className="mb-2"><strong className="text-gray-900">Due back:</strong> {selectedRental.expectedReturn}</div>
+              {selectedRental.isAwaitingReturn && (
+                <div className="mb-2 text-purple-700 font-semibold">Drop reported at: {selectedRental.returnRequestedAt}</div>
+              )}
+              {selectedRental.financials.lateFee > 0 && (
+                <div className="text-red-600 font-semibold">Late fee accrued: ₹{selectedRental.financials.lateFee}</div>
+              )}
             </div>
             <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedRental.financials.amount}</span></div>
@@ -622,7 +820,7 @@ function LiveRentalsTable({ allBookings }) {
 }
 
 // --- UPCOMING PICKUPS TABLE ---
-function UpcomingPickupsTable({ allBookings, onApprove, actionLoading }) {
+function UpcomingPickupsTable({ allBookings, onApprove, onConfirmPickup, actionLoading }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPickup, setSelectedPickup] = useState(null);
 
@@ -682,6 +880,8 @@ function UpcomingPickupsTable({ allBookings, onApprove, actionLoading }) {
             {filteredPickups.map((pickup) => {
               const bId = pickup.raw._id || pickup.raw.id;
               const isNeedsApproval = pickup.raw.status === 'RESERVED' || pickup.raw.status === 'PENDING_VERIFICATION' || pickup.raw.status === 'PAYMENT_INITIATED';
+              // Approved and waiting for the customer to physically collect the EV.
+              const isAwaitingHandover = pickup.raw.status === 'CONFIRMED';
               const isLoadingThis = actionLoading === bId;
 
               return (

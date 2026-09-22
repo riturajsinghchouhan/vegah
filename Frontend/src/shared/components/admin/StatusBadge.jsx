@@ -31,6 +31,16 @@ const STATUS_ALIASES = {
   warning: "warning",
   queued: "warning",
   inreview: "warning",
+  reserved: "warning",
+  pendingverification: "warning",
+  paymentinitiated: "warning",
+
+  // Rental handover lifecycle
+  confirmed: "success",
+  pendingreturn: "info",
+  overdue: "danger",
+  reservationexpired: "danger",
+  paymentfailed: "danger",
 
   rejected: "danger",
   cancelled: "danger",

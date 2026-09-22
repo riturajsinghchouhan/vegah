@@ -46,11 +46,17 @@ export const deleteZone = async (req, res, next) => {
   }
 };
 
-// Public version — returns only id, name, address for user booking form
+// Public version — returns id, name, address and location coordinates for user-facing pages
 export const listZonesPublic = async (req, res, next) => {
   try {
     const result = await zonesService.listZones({ limit: 100 });
-    const publicZones = result.zones.map(z => ({ _id: z._id, name: z.name, address: z.address }));
+    const publicZones = result.zones.map(z => ({
+      _id: z._id,
+      name: z.name,
+      address: z.address,
+      pickupLocation: z.pickupLocation || null,
+      dropLocation: z.dropLocation || null,
+    }));
     sendSuccess(res, 200, 'Zones fetched successfully', publicZones);
   } catch (error) {
     next(error);

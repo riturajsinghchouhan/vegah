@@ -75,3 +75,24 @@ export const getUserDocuments = async (req, res, next) => {
     next(error);
   }
 };
+
+export const listNotifications = async (req, res, next) => {
+  try {
+    const data = await usersService.listNotifications(req.user.id, {
+      limit: Number(req.query.limit) || 30,
+      unreadOnly: req.query.unreadOnly === 'true',
+    });
+    sendSuccess(res, 200, 'Notifications fetched successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const markNotificationsRead = async (req, res, next) => {
+  try {
+    const data = await usersService.markNotificationsRead(req.user.id, req.body?.ids);
+    sendSuccess(res, 200, 'Notifications marked as read', data);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -95,3 +95,62 @@ export const extendBooking = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * ADMIN — step 4: confirm the customer has physically collected the vehicle.
+ * This is what starts the trip timer.
+ */
+export const confirmPickup = async (req, res, next) => {
+  try {
+    const booking = await bookingsService.confirmPickup(req.params.id, req.user.id, {
+      note: req.body?.note,
+    });
+    sendSuccess(res, 200, 'Pickup confirmed. Trip started.', booking);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * USER — step 7: declare the vehicle has been dropped at the hub. Parks the
+ * booking in PENDING_RETURN awaiting admin verification.
+ */
+export const requestReturn = async (req, res, next) => {
+  try {
+    const booking = await bookingsService.requestReturn(req.params.id, req.user.id, {
+      note: req.body?.note,
+    });
+    sendSuccess(res, 200, 'Return submitted. Awaiting hub verification.', booking);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ADMIN — step 9: verify the vehicle is back and close the rental.
+ */
+export const confirmReturn = async (req, res, next) => {
+  try {
+    const booking = await bookingsService.confirmReturn(req.params.id, req.user.id, {
+      note: req.body?.note,
+      depositStatus: req.body?.depositStatus,
+    });
+    sendSuccess(res, 200, 'Return verified. Rental completed.', booking);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ADMIN — the claimed return could not be verified; send the trip back to running.
+ */
+export const rejectReturn = async (req, res, next) => {
+  try {
+    const booking = await bookingsService.rejectReturn(req.params.id, req.user.id, {
+      note: req.body?.note,
+    });
+    sendSuccess(res, 200, 'Return rejected. Trip resumed.', booking);
+  } catch (error) {
+    next(error);
+  }
+};
