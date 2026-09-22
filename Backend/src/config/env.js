@@ -6,6 +6,7 @@ dotenv.config();
 
 const envSchema = Joi.object({
   PORT: Joi.number().default(5000),
+  SOCKET_PORT: Joi.number().default(5001),
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   TZ: Joi.string().default('Asia/Kolkata'),
   
