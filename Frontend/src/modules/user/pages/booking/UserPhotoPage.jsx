@@ -4,6 +4,7 @@ import Button from "../../../../components/common/Button";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { useBooking } from "../../../../hooks/useBooking";
 import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
+import { compressImageToBase64 } from "../../../../utils/imageUtils";
 
 const UserPhotoPage = () => {
   const navigate = useNavigate();
@@ -15,9 +16,15 @@ const UserPhotoPage = () => {
 
   const steps = [1, 2, 3, 4, 5, 6];
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      updateBookingField("userPhotoFile", e.target.files[0]);
+      const file = e.target.files[0];
+      try {
+        const compressed = await compressImageToBase64(file);
+        updateBookingField("userPhotoFile", compressed);
+      } catch (err) {
+        console.error("Failed to compress image", err);
+      }
     }
   };
 
@@ -48,7 +55,7 @@ const UserPhotoPage = () => {
           <p className="mt-1 text-sm text-app-subtle">Upload a clear selfie or photo to verify your identity.</p>
           
           <div className="mt-5">
-            <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-app-border bg-app-card p-8 text-center min-h-[200px]">
+            <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-app-border bg-app-card p-8 text-center min-h-[200px] overflow-hidden">
               <input
                 type="file"
                 accept="image/*"
@@ -58,11 +65,9 @@ const UserPhotoPage = () => {
               />
               {booking.userPhotoFile ? (
                 <>
-                  <div className="rounded-full bg-emerald-50 p-4 text-app-primary mb-3">
-                    <FileImage size={32} />
-                  </div>
-                  <p className="text-sm font-medium text-app-text">{booking.userPhotoFile.name}</p>
-                  <p className="text-xs text-app-subtle mt-2">Tap to retake photo</p>
+                  <img src={booking.userPhotoFile.dataUrl} alt="User Preview" className="absolute inset-0 w-full h-full object-cover z-0" />
+                  <div className="absolute inset-0 bg-black/40 z-0" />
+                  <p className="text-white text-sm font-medium z-10 relative">Tap to retake photo</p>
                 </>
               ) : (
                 <>

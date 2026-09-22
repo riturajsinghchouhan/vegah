@@ -23,7 +23,7 @@ api.interceptors.request.use(
     }
 
     if (!token) {
-      token = window.localStorage.getItem("admin_token") || window.localStorage.getItem("token");
+      token = window.localStorage.getItem("token");
     }
 
     if (token) {

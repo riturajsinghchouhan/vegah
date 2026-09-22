@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { CreditCard, Landmark, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../../components/common/Button";
@@ -99,7 +100,20 @@ const PaymentPage = () => {
 
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Failed to process payment");
+      const responseData = error.response?.data;
+      let errorMessage = responseData?.message || "Failed to process payment";
+      
+      // If there are validation details, show what is missing/invalid
+      if (responseData?.error?.details) {
+        const details = Array.isArray(responseData.error.details) 
+          ? responseData.error.details.map(d => d.message || d).join(', ')
+          : JSON.stringify(responseData.error.details);
+        errorMessage = `Validation Error: ${details}`;
+      } else if (responseData?.error && typeof responseData.error === 'string') {
+        errorMessage = responseData.error;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setProcessing(false);
     }
