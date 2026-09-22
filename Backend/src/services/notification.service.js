@@ -5,38 +5,27 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { getIO } from '../config/socket.js';
 
+import { sendNotificationToOwner, sendPushNotification as sendRawPush } from './firebase.service.js';
+
 export const sendPushNotification = async ({ targetToken, topic, title, body, data = {} }) => {
-  if (!firebaseApp) {
-    logger.debug('Push Notification skipped: Firebase Admin SDK not initialized.');
-    return null;
-  }
-
-  try {
-    const payload = {
-      notification: {
-        title,
-        body,
-      },
-      data: {
-        ...data,
-        click_action: '/admin/bookings',
-      },
-    };
-
-    if (targetToken) {
-      payload.token = targetToken;
-    } else if (topic) {
-      payload.topic = topic;
-    } else {
-      payload.topic = 'admin_bookings';
+  const payload = { title, body, data: { ...data, click_action: '/admin/bookings' } };
+  
+  if (targetToken) {
+    return sendRawPush([targetToken], payload);
+  } else if (topic) {
+    if (!admin) return null;
+    try {
+      const message = { notification: { title, body }, data: payload.data, topic };
+      const response = await admin.messaging().send(message);
+      logger.info(`Push notification sent to topic ${topic}`);
+      return response;
+    } catch (err) {
+      logger.error(`Error sending push to topic: ${err.message}`);
+      return null;
     }
-
-    const response = await admin.messaging().send(payload);
-    logger.info(`Push notification sent successfully: ${response}`);
-    return response;
-  } catch (error) {
-    logger.error(`Error sending push notification: ${error.message}`);
-    return null;
+  } else {
+    // default to admin_bookings topic
+    return sendPushNotification({ topic: 'admin_bookings', title, body, data });
   }
 };
 
@@ -58,14 +47,6 @@ export const sendAdminBookingNotification = async (booking) => {
   });
 };
 
-/**
- * Deliver a message to one user across every channel we have:
- * persisted (so it survives an offline app), socket (live in-app), and FCM push
- * (targeted at the user's own device token, not a broadcast topic).
- *
- * Never throws - notification delivery must not roll back the booking action
- * that triggered it.
- */
 export const notifyUser = async ({ userId, title, body, type = 'BOOKING', referenceId = null, event, data = {} }) => {
   const userIdStr = String(userId);
 
@@ -84,25 +65,18 @@ export const notifyUser = async ({ userId, title, body, type = 'BOOKING', refere
     logger.error(`Socket notification failed for user ${userIdStr}: ${err.message}`);
   }
 
-  try {
-    const user = await User.findById(userIdStr).select('fcmToken');
-    if (user?.fcmToken) {
-      await sendPushNotification({
-        targetToken: user.fcmToken,
-        title,
-        body,
-        data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
-      });
+  // Use the advanced sendNotificationToOwner which handles multiple tokens and cleanup
+  await sendNotificationToOwner({
+    ownerType: 'USER',
+    ownerId: userIdStr,
+    payload: {
+      title,
+      body,
+      data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)]))
     }
-  } catch (err) {
-    logger.error(`Push notification failed for user ${userIdStr}: ${err.message}`);
-  }
+  });
 };
 
-/**
- * Tell every admin in the panel that a booking needs their attention
- * (a user has dropped a vehicle and is waiting for return verification).
- */
 export const notifyAdmins = async ({ event, title, body, payload = {} }) => {
   try {
     const io = getIO();
@@ -113,8 +87,16 @@ export const notifyAdmins = async ({ event, title, body, payload = {} }) => {
     logger.error(`Socket admin notification failed: ${err.message}`);
   }
 
+  // Currently admins are notified via global topic. 
+  // We can leave this as topic broadcast or update to target actual admin documents.
+  // For now, keeping the topic backward compatibility
   try {
-    await sendPushNotification({ topic: 'admin_bookings', title, body, data: Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, String(v)])) });
+    await sendPushNotification({ 
+      topic: 'admin_bookings', 
+      title, 
+      body, 
+      data: Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, String(v)])) 
+    });
   } catch (err) {
     logger.error(`Admin push notification failed: ${err.message}`);
   }

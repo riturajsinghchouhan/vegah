@@ -16,7 +16,8 @@ const userSchema = new Schema({
     longitude: Number 
   }],
   refreshTokenHash: { type: String, default: null, select: false },
-  fcmToken: { type: String, default: null },
+  fcmTokens: [{ type: String }],
+  fcmTokenMobile: [{ type: String }],
   lastLoginAt: { type: Date, default: null },
 }, { timestamps: true });
 

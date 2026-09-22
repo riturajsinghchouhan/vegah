@@ -13,6 +13,8 @@ const adminSchema = new Schema({
   failedLoginAttempts: { type: Number, default: 0 },
   lockedUntil: { type: Date, default: null },
   refreshTokenHash: { type: String, default: null, select: false },
+  fcmTokens: [{ type: String }],
+  fcmTokenMobile: [{ type: String }]
 }, { timestamps: true });
 
 const Admin = mongoose.model('Admin', adminSchema);

@@ -68,6 +68,7 @@ import inspectionsRoutes from './modules/inspections/inspections.routes.js';
 import chargingStationsRoutes from './modules/charging-stations/chargingStations.routes.js';
 import paymentsRoutes from './modules/payments/payments.routes.js';
 import electicaRoutes from './modules/electica/electica.routes.js';
+import fcmRoutes from './modules/notifications/fcm.routes.js';
 import { BATTERY_PACKAGES } from './modules/bookings/bookings.constants.js';
 
 app.use('/api/auth', authRoutes);
@@ -88,6 +89,7 @@ app.use('/api/coupons', couponsRoutes);
 app.use('/api/charging-stations', chargingStationsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/electica', electicaRoutes);
+app.use('/api/notifications/fcm', fcmRoutes);
 
 // Battery Packages — static but served via API for frontend consistency
 app.get('/api/battery-packages', (req, res) => {
