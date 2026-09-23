@@ -92,15 +92,17 @@ import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
 
 export const getInventorySummary = async () => {
-  const [totalVehicles, activeBookings, totalUsers] = await Promise.all([
+  const [totalVehicles, available, booked, maintenance] = await Promise.all([
     Vehicle.countDocuments({ deletedAt: null }),
-    Booking.countDocuments({ status: { $in: ['ACTIVE', 'OVERDUE'] } }),
-    User.countDocuments({ isBlocked: false })
+    Vehicle.countDocuments({ deletedAt: null, status: 'AVAILABLE' }),
+    Vehicle.countDocuments({ deletedAt: null, status: { $in: ['BOOKED', 'ACTIVE', 'RESERVED'] } }),
+    Vehicle.countDocuments({ deletedAt: null, status: 'MAINTENANCE' })
   ]);
 
   return {
-    totalScooties: totalVehicles,
-    activeRentals: activeBookings,
-    totalUsers: totalUsers
+    totalVehicles,
+    available,
+    booked,
+    maintenance
   };
 };

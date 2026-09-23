@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
 
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!phone || phone.length < 10 || !city) return;
@@ -92,6 +93,15 @@ const LoginPage = () => {
           </button>
 
         </form>
+
+        {/* App Links */}
+        <div className="flex justify-center items-center gap-4 mt-6 text-xs font-medium text-gray-500">
+          <Link to="/user/profile/terms" className="hover:text-[#272664] transition-colors">Terms</Link>
+          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+          <Link to="/user/profile/privacy" className="hover:text-[#272664] transition-colors">Privacy</Link>
+          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+          <Link to="/user/support" className="hover:text-[#272664] transition-colors">Support</Link>
+        </div>
       </div>
 
     </div>

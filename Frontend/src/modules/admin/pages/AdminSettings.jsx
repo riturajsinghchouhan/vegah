@@ -22,6 +22,9 @@ export default function AdminSettings() {
     emailNotifications: true,
     smsAlerts: true,
     pushNotifications: false,
+    termsContent: "Terms and Conditions go here...",
+    privacyContent: "Privacy Policy goes here...",
+    supportContent: "Support information goes here...",
   });
 
   useEffect(() => {
@@ -146,6 +149,38 @@ export default function AdminSettings() {
                             type="text" 
                             value={settings.address}
                             onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6 border-t border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">App Pages Content</h3>
+                      <div className="grid grid-cols-1 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
+                          <textarea 
+                            rows={4}
+                            value={settings.termsContent}
+                            onChange={(e) => setSettings({ ...settings, termsContent: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Privacy Policy</label>
+                          <textarea 
+                            rows={4}
+                            value={settings.privacyContent}
+                            onChange={(e) => setSettings({ ...settings, privacyContent: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Support Info</label>
+                          <textarea 
+                            rows={4}
+                            value={settings.supportContent}
+                            onChange={(e) => setSettings({ ...settings, supportContent: e.target.value })}
                             className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
                           />
                         </div>
