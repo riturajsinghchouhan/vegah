@@ -8,6 +8,7 @@ import { chargingService } from "../../../../services/chargingService";
 const StationDetailsPage = () => {
   const { stationId } = useParams();
   const [station, setStation] = useState(null);
+  const [pods, setPods] = useState(null);
 
   const [swapState, setSwapState] = useState(null); // null, 'starting', 'polling', 'completed', 'failed'
   const [swapData, setSwapData] = useState(null);
@@ -15,6 +16,7 @@ const StationDetailsPage = () => {
 
   useEffect(() => {
     chargingService.getStationById(stationId).then(setStation);
+    chargingService.getPods(stationId).then(setPods);
   }, [stationId]);
 
   useEffect(() => {
@@ -121,22 +123,47 @@ const StationDetailsPage = () => {
 
         <div className="space-y-6">
           <section className="surface-card p-5">
-            <h3 className="text-lg font-semibold text-app-text">Battery status</h3>
+            <h3 className="text-lg font-semibold text-app-text">Battery status (Live)</h3>
             <div className="mt-4 space-y-3">
-              {chargers.map((charger) => (
-                <div key={charger.name + charger.connector} className="rounded-3xl border border-app-border bg-app-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-app-text">{charger.name}</p>
-                      <p className="mt-1 text-sm text-app-subtle">
-                        {charger.speed} • {charger.connector}
-                      </p>
+              {pods && Object.keys(pods).length > 0 ? (
+                Object.entries(pods).map(([podNumber, podData]) => (
+                  <div key={podNumber} className="rounded-3xl border border-app-border bg-app-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-app-text">Pod {podNumber}</p>
+                        <p className="mt-1 text-sm text-app-subtle">
+                          Status: {podData.status} {podData.battery_id ? `• Battery ID: ${podData.battery_id}` : ''}
+                        </p>
+                      </div>
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        podData.status === 'fully_charged' ? 'bg-emerald-100 text-emerald-700' :
+                        podData.status === 'charging' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {podData.soc ? `${podData.soc}%` : podData.status}
+                      </span>
                     </div>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-app-primary">{charger.status}</span>
+                    {podData.battery_id && (
+                      <p className="mt-3 text-sm text-app-subtle">Health: {podData.health || '--'}%</p>
+                    )}
                   </div>
-                  <p className="mt-3 text-sm text-app-subtle">Rs {charger.price}/kWh</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                chargers.map((charger) => (
+                  <div key={charger.name + charger.connector} className="rounded-3xl border border-app-border bg-app-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-app-text">{charger.name}</p>
+                        <p className="mt-1 text-sm text-app-subtle">
+                          {charger.speed} • {charger.connector}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-app-primary">{charger.status}</span>
+                    </div>
+                    <p className="mt-3 text-sm text-app-subtle">Rs {charger.price}/kWh</p>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 

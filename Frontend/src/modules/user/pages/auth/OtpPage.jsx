@@ -6,10 +6,12 @@ import { useAuth } from "../../../../hooks/useAuth";
 const OtpPage = () => {
   const routerLocation = useLocation();
   const navigate = useNavigate();
-  const { verifyOtp } = useAuth();
+  const { verifyOtp, user } = useAuth();
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef([]);
+  // Track whether OTP was actually submitted (not just mounted while already logged in)
+  const otpSubmitted = useRef(false);
 
   // Auto-focus first input on mount
   useEffect(() => {
@@ -17,6 +19,21 @@ const OtpPage = () => {
       inputRefs.current[0].focus();
     }
   }, []);
+
+  // Safe navigation after authentication state updates
+  // Only triggers when OTP was actually submitted (not on initial mount)
+  useEffect(() => {
+    if (user && otpSubmitted.current) {
+      const timer = setTimeout(() => {
+        if (user.fullName?.startsWith("User ")) {
+          navigate("/user/auth/name", { replace: true });
+        } else {
+          navigate("/user/home", { replace: true });
+        }
+      }, 10);
+      return () => clearTimeout(timer);
+    }
+  }, [user, navigate]);
 
   const handleChange = (index, value) => {
     if (value.length > 1) return; // Prevent multiple chars
@@ -43,20 +60,23 @@ const OtpPage = () => {
     
     setLoading(true);
     try {
-      const session = await verifyOtp(phoneNumber, otpString);
+      // Mark that OTP was submitted BEFORE calling verifyOtp
+      // so the useEffect knows it's safe to navigate
+      otpSubmitted.current = true;
+
+      await verifyOtp(phoneNumber, otpString);
       
       // Save city to localStorage so it acts as the user's active zone
       if (city) {
         localStorage.setItem("userCity", city);
       }
+      
+      // Navigation is now handled by the useEffect above
+      // once the AuthContext properly updates the 'user' state.
 
-      if (session?.isNewUser || session?.user?.fullName?.startsWith("User ")) {
-        navigate("/user/auth/name", { replace: true });
-      } else {
-        navigate("/user/home", { replace: true });
-      }
     } catch (error) {
       console.error("OTP verification failed", error);
+      otpSubmitted.current = false; // Reset on failure
       setLoading(false);
     }
   };

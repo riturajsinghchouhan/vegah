@@ -41,6 +41,15 @@ export const chargingService = {
     const all = await this.listStations();
     return all.find((station) => station.id === stationId) ?? null;
   },
+  async getPods(stationId) {
+    try {
+      const res = await api.get(`/electica/pods?stationId=${stationId}`);
+      return res.data?.data || res.data || {};
+    } catch (e) {
+      console.error('Failed to fetch pods', e);
+      return {};
+    }
+  },
   async startSwap(stationId, entitlementRef) {
     const res = await api.post(`/electica/swaps/start`, { stationId, entitlementRef });
     return res.data;
