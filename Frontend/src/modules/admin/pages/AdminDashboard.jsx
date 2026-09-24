@@ -140,6 +140,7 @@ export default function AdminDashboard() {
         <StatCard title="Pending Approvals" value={stats?.pendingApprovals ?? 0} icon={<Clock />} helper="Requires action" className="bg-amber-50 border-amber-100" />
         <StatCard title="Cancelled Today" value={stats?.cancelledToday ?? 0} icon={<XCircle />} className="bg-rose-50 border-rose-100" />
         <StatCard title="Today's Revenue" value={`₹${(stats?.todaysRevenue ?? 0).toLocaleString("en-IN")}`} icon={<TrendingUp />} trend="Live revenue" trendDirection="up" className="bg-green-50 border-green-100" />
+        <StatCard title="Total Revenue" value={`₹${(stats?.totalRevenue ?? 0).toLocaleString("en-IN")}`} icon={<TrendingUp />} trend="Overall earnings" trendDirection="up" className="bg-emerald-50 border-emerald-100" />
       </div>
 
       {/* Charts Section */}

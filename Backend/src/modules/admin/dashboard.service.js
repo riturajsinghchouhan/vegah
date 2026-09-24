@@ -15,6 +15,7 @@ export const getDashboardStats = async () => {
     pendingApprovals,
     cancelledToday,
     todaysRevenue,
+    totalRevenue,
   ] = await Promise.all([
     User.countDocuments({}),
     Booking.countDocuments({}),
@@ -27,11 +28,19 @@ export const getDashboardStats = async () => {
     Booking.aggregate([
       {
         $match: {
-          status: 'CONFIRMED',
+          status: { $in: ['CONFIRMED', 'ACTIVE', 'COMPLETED'] },
           createdAt: { $gte: todayStart, $lte: todayEnd },
         },
       },
-      { $group: { _id: null, total: { $sum: '$total' } } },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+    ]),
+    Booking.aggregate([
+      {
+        $match: {
+          status: { $in: ['CONFIRMED', 'ACTIVE', 'COMPLETED'] },
+        },
+      },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } },
     ]),
   ]);
 
@@ -42,6 +51,7 @@ export const getDashboardStats = async () => {
     pendingApprovals,
     cancelledToday,
     todaysRevenue: todaysRevenue[0]?.total || 0,
+    totalRevenue: totalRevenue[0]?.total || 0,
   };
 };
 
@@ -81,7 +91,7 @@ export const getChartData = async (query = {}) => {
       {
         $group: {
           _id: groupBy,
-          revenue: { $sum: '$total' },
+          revenue: { $sum: '$totalAmount' },
           count: { $sum: 1 },
         },
       },

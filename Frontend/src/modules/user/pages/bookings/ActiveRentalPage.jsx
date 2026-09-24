@@ -36,18 +36,8 @@ const splitDuration = (ms) => {
 
 const playChime = () => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(440, ctx.currentTime);
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
+    const audio = new Audio('/sound/alert.mp3');
+    audio.play().catch(e => console.warn("Audio playback prevented:", e));
   } catch (e) {
     console.warn("Audio chime error:", e);
   }

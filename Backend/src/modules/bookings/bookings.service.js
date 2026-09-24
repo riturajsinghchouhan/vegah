@@ -38,11 +38,21 @@ export const reserveVehicle = async (userId, data) => {
     const idempotencyKey = `${userId}:${data.vehicleId}:${startDateTimeStr}`;
 
     // 1. Check idempotency first (did they just click twice or retry payment?)
-    const existingBooking = await Booking.findOne({ idempotencyKey }).session(session);
+    let existingBooking = await Booking.findOne({ idempotencyKey }).session(session);
+    
     if (existingBooking) {
-      await session.abortTransaction();
-      session.endSession();
-      return existingBooking;
+      // If the existing booking is in a terminal/cancelled state, we should allow a new booking.
+      // We can do this by appending a random string to the old booking's idempotency key to free up the slot.
+      const terminalStatuses = ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED', 'PAYMENT_FAILED'];
+      if (terminalStatuses.includes(existingBooking.status)) {
+        existingBooking.idempotencyKey = `${idempotencyKey}_old_${Date.now()}`;
+        await existingBooking.save({ session });
+        existingBooking = null; // Proceed to create a new booking
+      } else {
+        await session.abortTransaction();
+        session.endSession();
+        return existingBooking;
+      }
     }
 
     // 2. Fetch Vehicle with Optimistic Locking Check
@@ -638,13 +648,56 @@ export const rejectReturn = async (bookingId, adminId, options = {}) => {
 };
 
 export const listBookings = async (query) => {
-  const { page = 1, limit = 20, status, userId, vehicleId } = query;
+  const { page = 1, limit = 20, status, userId, vehicleId, ops, depositStatus } = query;
   
   const filter = {};
+  
   if (status) {
-    const statuses = String(status).split(',').map((part) => part.trim()).filter(Boolean);
-    filter.status = statuses.length > 1 ? { $in: statuses } : statuses[0];
+    // Handle frontend mapped statuses or comma-separated raw statuses
+    if (status === 'pending_approval') {
+      filter.status = 'PENDING_VERIFICATION';
+    } else {
+      const statuses = String(status).split(',').map((part) => part.trim()).filter(Boolean);
+      filter.status = statuses.length > 1 ? { $in: statuses } : statuses[0];
+    }
   }
+  
+  if (ops) {
+    const now = new Date();
+    switch (ops) {
+      case 'live':
+        filter.status = { $in: ['ACTIVE', 'OVERDUE', 'PENDING_RETURN'] };
+        break;
+      case 'pickups':
+        filter.status = { $in: ['CONFIRMED', 'PENDING', 'RESERVED', 'PENDING_VERIFICATION'] };
+        break;
+      case 'returns':
+        filter.status = 'ACTIVE';
+        filter.tripEndsAt = { $gte: now }; // active but not yet overdue
+        break;
+      case 'late':
+        filter.status = 'OVERDUE';
+        break;
+      case 'extensions':
+        // extensions might not be a standalone status, but let's assume PENDING_RETURN could be related, or something else.
+        // There is no explicit EXTENSION status. We can filter for bookings that have been extended if there is a way, 
+        // or just show OVERDUE or something. Let's return ACTIVE/OVERDUE for now.
+        filter.status = { $in: ['ACTIVE', 'OVERDUE'] };
+        break;
+      case 'cancelled':
+        filter.status = { $in: ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED'] };
+        break;
+    }
+  }
+
+  if (depositStatus) {
+    if (depositStatus === 'pending_collection') {
+      filter.depositStatus = 'PENDING';
+    } else {
+      filter.depositStatus = depositStatus;
+    }
+  }
+  
   if (userId) filter.user = userId;
   if (vehicleId) filter.vehicle = vehicleId;
 

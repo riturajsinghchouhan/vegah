@@ -204,6 +204,10 @@ export const adminService = {
     const res = await adminApi.patch(`/wallet/admin/refunds/${id}/status`, { status });
     return res.data.data;
   },
+  async getAdminUserWallet(userId) {
+    const res = await adminApi.get(`/wallet/admin/user/${userId}`);
+    return res.data.data;
+  },
   async getUserWallet() {
     const res = await adminApi.get('/wallet/user');
     return res.data.data;

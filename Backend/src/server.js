@@ -3,6 +3,7 @@ import app from './app.js';
 import env from './config/env.js';
 import connectDB from './config/db.js';
 import logger from './utils/logger.js';
+import { initSocket } from './config/socket.js';
 
 const startServer = async () => {
   try {
@@ -12,7 +13,10 @@ const startServer = async () => {
     // 2. Create HTTP Server
     const server = http.createServer(app);
 
-    // 3. Start listening
+    // 3. Initialize Socket.IO
+    initSocket(server);
+
+    // 4. Start listening
     const PORT = env.PORT || 5000;
     server.listen(PORT, () => {
       logger.info(`Server running in ${env.NODE_ENV} mode on port ${PORT}`);

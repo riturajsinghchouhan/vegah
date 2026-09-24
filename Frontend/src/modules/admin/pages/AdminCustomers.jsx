@@ -30,7 +30,7 @@ export default function AdminCustomers() {
           totalSpent: `₹ ${u.stats?.totalSpent || 0}`,
           walletBalance: `₹ ${u.walletBalance || 0}`,
           regDate: new Date(u.createdAt).toLocaleDateString(),
-          status: u.isActive ? 'Active' : 'Blocked',
+          status: u.isBlocked ? 'Blocked' : 'Active',
           avatar: u.avatarUrl || ''
         }));
         
@@ -176,6 +176,21 @@ export default function AdminCustomers() {
                       <Button 
                         variant="outline" 
                         className={`h-8 px-3 text-xs ${customer.status === 'Active' ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}
+                        onClick={async () => {
+                          try {
+                            if (customer.status === 'Active') {
+                              await adminService.blockUser(customer.id);
+                            } else {
+                              await adminService.unblockUser(customer.id);
+                            }
+                            // Optimistically update the list
+                            setCustomers(prev => prev.map(c => 
+                              c.id === customer.id ? { ...c, status: c.status === 'Active' ? 'Blocked' : 'Active' } : c
+                            ));
+                          } catch (error) {
+                            console.error("Failed to toggle status", error);
+                          }
+                        }}
                       >
                         {customer.status === 'Active' ? 'Block' : 'Unblock'}
                       </Button>

@@ -11,6 +11,7 @@ router.post('/user/add-funds', authenticate, walletController.addFunds);
 
 // Admin Wallet & Refund Routes
 router.get('/admin/summary', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), walletController.getAdminWalletSummary);
+router.get('/admin/user/:userId', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), walletController.getAdminUserWallet);
 router.get('/admin/refunds', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), walletController.listRefunds);
 router.patch('/admin/refunds/:id/status', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), walletController.updateRefundStatus);
 

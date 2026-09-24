@@ -20,12 +20,46 @@ export const listUsers = async (query) => {
   const skip = (page - 1) * limit;
 
   const [users, total] = await Promise.all([
-    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     User.countDocuments(filter)
   ]);
 
+  // Fetch wallet balances and bookings for these users
+  const userIds = users.map(u => u._id);
+  
+  const { default: Wallet } = await import('../../models/Wallet.js');
+  const { default: Booking } = await import('../../models/Booking.js');
+
+  const [wallets, bookings] = await Promise.all([
+    Wallet.find({ user: { $in: userIds } }).lean(),
+    Booking.aggregate([
+      { $match: { user: { $in: userIds } } },
+      { $group: {
+          _id: '$user',
+          totalBookings: { $sum: 1 },
+          totalSpent: { $sum: '$totalAmount' },
+          activeBookings: { 
+            $sum: { $cond: [{ $in: ['$status', ['CONFIRMED', 'ACTIVE']] }, 1, 0] } 
+          }
+      }}
+    ])
+  ]);
+
+  const walletMap = wallets.reduce((acc, w) => { acc[w.user] = w.balance; return acc; }, {});
+  const bookingMap = bookings.reduce((acc, b) => { acc[b._id] = b; return acc; }, {});
+
+  const enrichedUsers = users.map(u => ({
+    ...u,
+    walletBalance: walletMap[u._id] || 0,
+    stats: {
+      totalBookings: bookingMap[u._id]?.totalBookings || 0,
+      totalSpent: bookingMap[u._id]?.totalSpent || 0,
+      activeBookings: bookingMap[u._id]?.activeBookings || 0,
+    }
+  }));
+
   return {
-    users,
+    users: enrichedUsers,
     meta: {
       total,
       page,
@@ -36,11 +70,38 @@ export const listUsers = async (query) => {
 };
 
 export const getUserById = async (id) => {
-  const user = await User.findById(id);
+  const user = await User.findById(id).lean();
   if (!user) {
     throw new NotFoundError('User not found');
   }
-  return user;
+
+  const { default: Wallet } = await import('../../models/Wallet.js');
+  const { default: Booking } = await import('../../models/Booking.js');
+
+  const [wallet, bookingStats] = await Promise.all([
+    Wallet.findOne({ user: id }).lean(),
+    Booking.aggregate([
+      { $match: { user: user._id } }, // use user._id Object
+      { $group: {
+          _id: null,
+          totalBookings: { $sum: 1 },
+          totalSpent: { $sum: '$totalAmount' },
+          activeBookings: { 
+            $sum: { $cond: [{ $in: ['$status', ['CONFIRMED', 'ACTIVE']] }, 1, 0] } 
+          }
+      }}
+    ])
+  ]);
+
+  return {
+    ...user,
+    walletBalance: wallet?.balance || 0,
+    stats: {
+      totalBookings: bookingStats[0]?.totalBookings || 0,
+      totalSpent: bookingStats[0]?.totalSpent || 0,
+      activeBookings: bookingStats[0]?.activeBookings || 0,
+    }
+  };
 };
 
 export const blockUser = async (id) => {

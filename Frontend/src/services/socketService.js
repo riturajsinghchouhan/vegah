@@ -7,7 +7,7 @@ export const initSocket = () => {
     return socket;
   }
 
-  const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || '';
+  const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('admin_token') || '';
   
   // Default to localhost:5000 if VITE_API_URL is relative or empty
   let serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';

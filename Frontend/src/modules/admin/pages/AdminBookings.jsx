@@ -14,7 +14,7 @@ export default function AdminBookings() {
   const navigate = useNavigate();
   const ops = searchParams.get('ops');
   
-  const activeTab = ops === 'live' ? 'live' : ops === 'pickups' ? 'pickups' : 'all';
+  const activeTab = ['live', 'late', 'returns', 'extensions'].includes(ops) ? 'live' : ops === 'pickups' ? 'pickups' : ops === 'cancelled' ? 'cancelled' : 'all';
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,18 +24,8 @@ export default function AdminBookings() {
 
   const playNotificationSound = () => {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.5);
+      const audio = new Audio('/sound/alert.mp3');
+      audio.play().catch(e => console.warn("Audio playback prevented:", e));
     } catch (e) {
       console.warn("Audio playback warning:", e);
     }
@@ -44,7 +34,8 @@ export default function AdminBookings() {
   const fetchAllBookings = async () => {
     try {
       setLoading(true);
-      const data = await adminService.getBookings();
+      const params = Object.fromEntries(searchParams.entries());
+      const data = await adminService.getBookings(params);
       const bookingList = Array.isArray(data) ? data : (data?.bookings || []);
       setBookings(bookingList);
     } catch (error) {
@@ -103,7 +94,7 @@ export default function AdminBookings() {
       socket.off('RETURN_REQUESTED', handleReturnRequested);
       unsubscribeFcm();
     };
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     let soundInterval;
@@ -236,6 +227,7 @@ export default function AdminBookings() {
   const pickupsCount = bookings.filter(b => !b.status || ['PENDING', 'CONFIRMED', 'RESERVED', 'PENDING_VERIFICATION'].includes(b.status)).length;
   const awaitingReturnCount = bookings.filter(b => b.status === 'PENDING_RETURN').length;
   const awaitingHandoverCount = bookings.filter(b => b.status === 'CONFIRMED').length;
+  const cancelledCount = bookings.filter(b => ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED'].includes(b.status)).length;
 
   return (
     <div className="space-y-6 pb-8 max-w-[1600px] mx-auto">
@@ -372,6 +364,18 @@ export default function AdminBookings() {
             </span>
           )}
         </button>
+
+        <button
+          onClick={() => handleTabChange('cancelled')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'cancelled'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          <X size={16} />
+          Cancelled Bookings ({cancelledCount})
+        </button>
       </div>
 
       {/* Render tables */}
@@ -381,6 +385,7 @@ export default function AdminBookings() {
         <AllBookingsTable
           allBookings={bookings}
           onApprove={handleApproveBooking}
+          onReject={handleRejectBooking}
           onConfirmPickup={handleConfirmPickup}
           actionLoading={actionLoading}
         />
@@ -391,10 +396,19 @@ export default function AdminBookings() {
           onRejectReturn={handleRejectReturn}
           actionLoading={actionLoading}
         />
+      ) : activeTab === 'cancelled' ? (
+        <AllBookingsTable
+          allBookings={bookings}
+          onApprove={handleApproveBooking}
+          onReject={handleRejectBooking}
+          onConfirmPickup={handleConfirmPickup}
+          actionLoading={actionLoading}
+        />
       ) : (
         <UpcomingPickupsTable
           allBookings={bookings}
           onApprove={handleApproveBooking}
+          onReject={handleRejectBooking}
           onConfirmPickup={handleConfirmPickup}
           actionLoading={actionLoading}
         />
@@ -405,7 +419,7 @@ export default function AdminBookings() {
 }
 
 // --- ALL BOOKINGS TABLE ---
-function AllBookingsTable({ allBookings, onApprove, onConfirmPickup, actionLoading }) {
+function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -464,6 +478,7 @@ function AllBookingsTable({ allBookings, onApprove, onConfirmPickup, actionLoadi
               const bId = item.raw._id || item.raw.id;
               const isNeedsApproval = item.status === 'RESERVED' || item.status === 'PENDING_VERIFICATION' || item.status === 'PAYMENT_INITIATED';
               const isAwaitingHandover = item.status === 'CONFIRMED';
+              const isCancelled = ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED'].includes(item.status);
               const isApproved = item.status === 'CONFIRMED' || item.status === 'ACTIVE' || item.status === 'COMPLETED';
               const isLoadingThis = actionLoading === bId;
 
@@ -496,15 +511,30 @@ function AllBookingsTable({ allBookings, onApprove, onConfirmPickup, actionLoadi
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
                       {isNeedsApproval ? (
-                        <button
-                          title="Approve Booking"
-                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
-                          onClick={() => onApprove(bId)}
-                          disabled={isLoadingThis}
-                        >
-                          <CheckCircle size={16} />
-                          {isLoadingThis ? 'Approving...' : 'Approve Booking'}
-                        </button>
+                        <>
+                          <button
+                            title="Approve Booking"
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                            onClick={() => onApprove(bId)}
+                            disabled={isLoadingThis}
+                          >
+                            <CheckCircle size={16} />
+                            {isLoadingThis ? 'Approving...' : 'Approve'}
+                          </button>
+                          <button
+                            title="Reject Booking"
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to reject this booking?")) {
+                                onReject(bId);
+                              }
+                            }}
+                            disabled={isLoadingThis}
+                          >
+                            <X size={16} />
+                            Reject
+                          </button>
+                        </>
                       ) : isAwaitingHandover ? (
                         <button
                           title="Customer has collected the EV - start the trip timer"
@@ -515,6 +545,10 @@ function AllBookingsTable({ allBookings, onApprove, onConfirmPickup, actionLoadi
                           <KeyRound size={16} />
                           {isLoadingThis ? 'Starting trip...' : 'Confirm Pickup & Start Trip'}
                         </button>
+                      ) : isCancelled ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-extrabold">
+                          <X size={14} /> Cancelled
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold">
                           <CheckCircle size={14} /> Handed over
@@ -820,7 +854,7 @@ function LiveRentalsTable({ allBookings, onConfirmReturn, onRejectReturn, action
 }
 
 // --- UPCOMING PICKUPS TABLE ---
-function UpcomingPickupsTable({ allBookings, onApprove, onConfirmPickup, actionLoading }) {
+function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPickup, setSelectedPickup] = useState(null);
 
@@ -912,15 +946,30 @@ function UpcomingPickupsTable({ allBookings, onApprove, onConfirmPickup, actionL
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
                       {isNeedsApproval ? (
-                        <button 
-                          title="Approve Booking" 
-                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
-                          onClick={() => onApprove(bId)}
-                          disabled={isLoadingThis}
-                        >
-                          <CheckCircle size={16} />
-                          {isLoadingThis ? 'Approving...' : 'Approve Booking'}
-                        </button>
+                        <>
+                          <button 
+                            title="Approve Booking" 
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                            onClick={() => onApprove(bId)}
+                            disabled={isLoadingThis}
+                          >
+                            <CheckCircle size={16} />
+                            {isLoadingThis ? 'Approving...' : 'Approve'}
+                          </button>
+                          <button
+                            title="Reject Booking"
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to reject this booking?")) {
+                                onReject(bId);
+                              }
+                            }}
+                            disabled={isLoadingThis}
+                          >
+                            <X size={16} />
+                            Reject
+                          </button>
+                        </>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold">
                           <CheckCircle size={14} /> Approved

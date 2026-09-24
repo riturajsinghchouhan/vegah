@@ -88,16 +88,17 @@ const BookingSuccessPage = () => {
   const pickupLoc = latestBooking?.pickupLocation ?? "Hub to be confirmed";
   const bookingStatus = (latestBooking?.status || "RESERVED").toUpperCase();
   const isApproved = bookingStatus === "CONFIRMED";
+  const isRejected = bookingStatus === "CANCELLED" || bookingStatus === "REJECTED" || bookingStatus === "CANCELLED_BY_ADMIN";
   const targetId = latestBooking?._id || latestBooking?.id || latestBooking?.bookingId;
 
   return (
     <main className="page-padding min-h-screen flex flex-col bg-[#fcfcfc]">
-      <PageHeader title={isApproved ? "Booking Approved" : "Booking Status"} />
+      <PageHeader title={isApproved ? "Booking Approved" : isRejected ? "Booking Rejected" : "Booking Status"} />
 
       <div className="flex-1 flex flex-col items-center justify-center py-8">
         <section className="surface-card w-full max-w-2xl p-6 sm:p-10 text-center relative shadow-sm border border-app-border rounded-3xl bg-white">
 
-          {confirmedAlert && (
+          {confirmedAlert && !isRejected && (
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-[90%] sm:w-full bg-emerald-600 text-white px-5 py-4 rounded-2xl shadow-xl flex items-start gap-4 border-2 border-white animate-bounce-short z-10">
               <Sparkles className="h-6 w-6 text-yellow-300 shrink-0 mt-0.5" />
               <div className="text-left flex-1">
@@ -113,18 +114,20 @@ const BookingSuccessPage = () => {
           )}
 
           <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full transition-all duration-500 mb-8 ${
-            isApproved ? "bg-emerald-100 text-emerald-600 ring-[12px] ring-emerald-50" : "bg-amber-100 text-amber-600 ring-[12px] ring-amber-50"
+            isApproved ? "bg-emerald-100 text-emerald-600 ring-[12px] ring-emerald-50" : isRejected ? "bg-red-100 text-red-600 ring-[12px] ring-red-50" : "bg-amber-100 text-amber-600 ring-[12px] ring-amber-50"
           }`}>
-            {isApproved ? <CheckCircle2 size={48} className="animate-in zoom-in duration-500" /> : <Clock size={48} className="animate-spin" style={{ animationDuration: '3s' }} />}
+            {isApproved ? <CheckCircle2 size={48} className="animate-in zoom-in duration-500" /> : isRejected ? <X size={48} className="animate-in zoom-in duration-500" /> : <Clock size={48} className="animate-spin" style={{ animationDuration: '3s' }} />}
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-app-text mb-3">
-            {isApproved ? "Ready for Pickup!" : "Waiting for Approval..."}
+            {isApproved ? "Ready for Pickup!" : isRejected ? "Booking Rejected" : "Waiting for Approval..."}
           </h2>
 
           <p className="text-sm leading-relaxed text-app-subtle max-w-md mx-auto mb-10">
             {isApproved
               ? "Your booking is approved. Navigate to the pickup hub and show your booking ID — the hub team will hand over the EV and start your trip."
+              : isRejected 
+              ? "Unfortunately, your booking request was rejected by the admin. Please try booking a different vehicle or contact support."
               : "Your booking is created and sent to the admin. Please wait while it's being reviewed."}
           </p>
 
@@ -147,9 +150,9 @@ const BookingSuccessPage = () => {
               <p className="text-[11px] font-bold uppercase tracking-wider text-app-subtle mb-1">Status</p>
               <div className="mt-1">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                  isApproved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700 animate-pulse"
+                  isApproved ? "bg-emerald-100 text-emerald-700" : isRejected ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700 animate-pulse"
                 }`}>
-                  {isApproved ? "✓ APPROVED" : "⏳ PENDING"}
+                  {isApproved ? "✓ APPROVED" : isRejected ? "✕ REJECTED" : "⏳ PENDING"}
                 </span>
               </div>
             </div>
@@ -182,6 +185,10 @@ const BookingSuccessPage = () => {
                   View My Bookings
                 </Button>
               </>
+            ) : isRejected ? (
+              <Button className="w-full py-3.5 shadow-sm" onClick={() => navigate("/user/bookings")}>
+                Go Back to My Bookings
+              </Button>
             ) : (
               <Button className="w-full py-3.5 shadow-sm" onClick={() => navigate("/user/bookings")}>
                 View My Bookings

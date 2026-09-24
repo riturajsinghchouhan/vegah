@@ -10,6 +10,15 @@ export const getUserWallet = async (req, res, next) => {
   }
 };
 
+export const getAdminUserWallet = async (req, res, next) => {
+  try {
+    const result = await walletService.getUserWallet(req.params.userId);
+    sendSuccess(res, 200, 'User wallet fetched successfully', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const addFunds = async (req, res, next) => {
   try {
     const { amount, description } = req.body;
