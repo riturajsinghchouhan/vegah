@@ -19,6 +19,15 @@ const userSchema = new Schema({
   fcmTokens: [{ type: String }],
   fcmTokenMobile: [{ type: String }],
   lastLoginAt: { type: Date, default: null },
+  kycDetails: {
+    aadharNumber: { type: String, default: null },
+    aadharFrontImage: { type: String, default: null },
+    aadharBackImage: { type: String, default: null },
+    licenseNumber: { type: String, default: null },
+    licenseFrontImage: { type: String, default: null },
+    licenseBackImage: { type: String, default: null },
+    isVerified: { type: Boolean, default: false }
+  },
 }, { timestamps: true });
 
 userSchema.index({ phone: 1 });

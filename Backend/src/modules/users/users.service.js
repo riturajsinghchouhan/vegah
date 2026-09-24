@@ -79,6 +79,29 @@ export const updateProfile = async (id, data) => {
   return user;
 };
 
+export const updateKycDetails = async (id, kycData) => {
+  const updateObj = {};
+  
+  // Directly set the nested properties to avoid Mongoose subdocument spread issues
+  for (const key in kycData) {
+    if (kycData[key] !== undefined) {
+      updateObj[`kycDetails.${key}`] = kycData[key];
+    }
+  }
+  
+  const updatedUser = await User.findByIdAndUpdate(
+    id,
+    { $set: updateObj },
+    { new: true }
+  );
+  
+  if (!updatedUser) {
+    throw new NotFoundError('User not found');
+  }
+  
+  return updatedUser;
+};
+
 import Document from '../../models/Document.js';
 import { BadRequestError } from '../../utils/errors.js';
 

@@ -21,6 +21,11 @@ router.patch(
   usersController.updateProfile
 );
 
+router.patch(
+  '/profile/kyc',
+  usersController.updateKycDetails
+);
+
 import { upload } from '../../config/cloudinary.js';
 import * as documentsValidation from './documents.validation.js';
 

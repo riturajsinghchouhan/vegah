@@ -6,40 +6,45 @@ import FilterBottomSheet from "../../../../components/charging/FilterBottomSheet
 import NearbyStations from "../../../../components/charging/NearbyStations";
 import SearchBar from "../../../../components/charging/SearchBar";
 import SupportBanner from "../../../../components/charging/SupportBanner";
-import { chargingStations } from "../../../../data/chargingStations";
+import { chargingService } from "../../../../services/chargingService";
 
 const ChargingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filteredStations, setFilteredStations] = useState(chargingStations);
+  const [filteredStations, setFilteredStations] = useState([]);
+  const [allStations, setAllStations] = useState([]);
 
   useEffect(() => {
-    // Simulate initial data loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    let mounted = true;
+    chargingService.listStations().then(stations => {
+      if (mounted) {
+        setAllStations(stations);
+        setFilteredStations(stations);
+        setIsLoading(false);
+      }
+    });
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
     // Apply quick filters
     if (activeFilter === "all") {
-      setFilteredStations(chargingStations);
+      setFilteredStations(allStations);
     } else if (activeFilter === "dc-fast") {
-      setFilteredStations(chargingStations.filter(s => s.chargingType === "DC Fast" || s.chargingType === "Ultra Fast"));
+      setFilteredStations(allStations.filter(s => s.chargingType === "DC Fast" || s.chargingType === "Ultra Fast"));
     } else if (activeFilter === "ac") {
-      setFilteredStations(chargingStations.filter(s => s.chargingType === "AC"));
+      setFilteredStations(allStations.filter(s => s.chargingType === "AC"));
     } else if (activeFilter === "available") {
-      setFilteredStations(chargingStations.filter(s => s.status === "Available"));
+      setFilteredStations(allStations.filter(s => s.status === "Available"));
     } else if (activeFilter === "my-plug") {
-      setFilteredStations(chargingStations.filter(s => s.connector === "CCS2")); // Mock logic for "my plug"
+      setFilteredStations(allStations.filter(s => s.connector === "CCS2" || s.chargingType === "Battery Swap")); // Mock logic
     }
-  }, [activeFilter]);
+  }, [activeFilter, allStations]);
 
   const handleApplyFilters = (filters) => {
     // Basic mock implementation of advanced filters
-    let result = [...chargingStations];
+    let result = [...allStations];
     
     if (filters.type && filters.type !== "Any Type") {
       result = result.filter(s => s.chargingType === filters.type);

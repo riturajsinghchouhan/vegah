@@ -8,9 +8,12 @@ import { useBooking } from "../../../../hooks/useBooking";
 import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
 import { compressImageToBase64 } from "../../../../utils/imageUtils";
 
+import { useAuth } from "../../../../hooks/useAuth";
+
 const LicenseDetailsPage = () => {
   const navigate = useNavigate();
   const { booking, pricing, updateBookingField } = useBooking();
+  const { user } = useAuth();
   const [error, setError] = useState("");
 
   if (!booking.vehicle) {
@@ -33,27 +36,44 @@ const LicenseDetailsPage = () => {
     }
   };
 
+  const handleUseSaved = () => {
+    updateBookingField("licenseNumber", user.kycDetails.licenseNumber);
+    updateBookingField("licenseFile", { dataUrl: user.kycDetails.licenseFrontImage });
+    navigate("/user/booking/battery-package");
+  };
+
+  const handleSkip = () => {
+    // Optional, so just skip
+    navigate("/user/booking/battery-package");
+  };
+
   const handleNext = () => {
     const licenseRegex = /^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9\s\-]{11,15}$/;
     
-    if (!booking.licenseNumber || booking.licenseNumber.trim() === "") {
-      setError("Please enter your driving license number");
-      return;
-    }
-    
-    if (!licenseRegex.test(booking.licenseNumber)) {
-      setError("Please enter a valid Indian Driving License number (e.g. MH1220110012345)");
-      return;
-    }
-
-    if (!booking.licenseFile) {
-      setError("Please upload your driving license image");
-      return;
+    // License is optional, so if both are empty we can technically allow them to continue using handleSkip.
+    // But if they entered something, validate it.
+    if (booking.licenseNumber || booking.licenseFile) {
+      if (!booking.licenseNumber || booking.licenseNumber.trim() === "") {
+        setError("Please enter your driving license number");
+        return;
+      }
+      
+      if (!licenseRegex.test(booking.licenseNumber)) {
+        setError("Please enter a valid Indian Driving License number (e.g. MH1220110012345)");
+        return;
+      }
+  
+      if (!booking.licenseFile) {
+        setError("Please upload your driving license image");
+        return;
+      }
     }
 
     setError("");
     navigate("/user/booking/battery-package");
   };
+
+  const hasSavedLicense = Boolean(user?.kycDetails?.licenseNumber);
 
   return (
     <main className="page-padding">
@@ -122,9 +142,26 @@ const LicenseDetailsPage = () => {
         </section>
 
         <PriceBreakdown pricing={pricing} />
-        <Button className="w-full" onClick={handleNext}>
-          Next
-        </Button>
+        
+        {hasSavedLicense ? (
+          <div className="space-y-3">
+            <Button className="w-full" onClick={handleNext}>
+              Save & Continue
+            </Button>
+            <Button variant="outline" className="w-full border-app-primary text-app-primary" onClick={handleUseSaved}>
+              Skip & Use Saved DL
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Button className="w-full" onClick={handleNext}>
+              Save & Continue
+            </Button>
+            <Button variant="outline" className="w-full border-gray-300 text-gray-500" onClick={handleSkip}>
+              Skip (Optional)
+            </Button>
+          </div>
+        )}
       </div>
     </main>
   );

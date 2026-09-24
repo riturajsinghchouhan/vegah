@@ -32,6 +32,9 @@ const TermsPage = safeLazy(() => import("./pages/profile/TermsPage"));
 const PrivacyPage = safeLazy(() => import("./pages/profile/PrivacyPage"));
 const SupportPage = safeLazy(() => import("./pages/profile/SupportPage"));
 
+const ProfileAadharPage = safeLazy(() => import("./pages/booking/AadharPage"));
+const ProfileLicensePage = safeLazy(() => import("./pages/booking/LicensePage"));
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, sessionReady } = useAuth();
   const location = useLocation();
@@ -111,6 +114,8 @@ const UserRoutes = () => (
       <Route path="charging" element={<ChargingPage />} />
       <Route path="charging/:stationId" element={<StationDetailsPage />} />
       <Route path="profile" element={<ProfilePage />} />
+      <Route path="profile/aadhar" element={<ProfileAadharPage />} />
+      <Route path="profile/license" element={<ProfileLicensePage />} />
       <Route path="select-location" element={<SelectLocationPage />} />
       <Route path="add-location" element={<AddLocationPage />} />
     </Route>

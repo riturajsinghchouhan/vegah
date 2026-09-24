@@ -1,6 +1,6 @@
 import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AccountSettings from "../../../../components/profile/AccountSettings";
 import BookingSummary from "../../../../components/profile/BookingSummary";
 import LogoutConfirmationSheet from "../../../../components/profile/LogoutConfirmationSheet";
@@ -130,6 +130,41 @@ const ProfilePage = () => {
       
       <AccountSettings settings={accountSettings} />
       
+      {/* Manage Details Section */}
+      <div className="px-5 mb-8">
+        <h3 className="text-[16px] font-bold text-gray-900 mb-3 px-1">Manage Details</h3>
+        <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+          <Link 
+            to="/user/profile/aadhar"
+            className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-50"
+          >
+            <div className="flex items-center gap-4">
+              <div className="text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="14" x="3" y="5" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="7" x2="9" y1="13" y2="13"/><line x1="7" x2="11" y1="17" y2="17"/></svg>
+              </div>
+              <span className="text-[14px] font-medium text-gray-800">
+                Aadhar Verification
+              </span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polyline points="9 18 15 12 9 6"/></svg>
+          </Link>
+          <Link 
+            to="/user/profile/license"
+            className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M12 14v4"/><path d="M8 14h8"/></svg>
+              </div>
+              <span className="text-[14px] font-medium text-gray-800">
+                Driving License
+              </span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polyline points="9 18 15 12 9 6"/></svg>
+          </Link>
+        </div>
+      </div>
+
       <Preferences preferences={preferences} />
       
       <ReferEarnCard />

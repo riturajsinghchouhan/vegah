@@ -71,6 +71,7 @@ const envSchema = Joi.object({
   // Electica Partner API
   ELECTICA_BASE_URL: Joi.string().uri().default('https://bss.electica.in/api/partner'),
   ELECTICA_API_KEY: Joi.string().allow(''),
+  ELECTICA_WRITE_KEY: Joi.string().allow(''),
   ELECTICA_STATION_ID: Joi.string().default('BLR001'),
 }).unknown(true);
 

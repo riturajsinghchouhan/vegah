@@ -9,9 +9,53 @@ const StationDetailsPage = () => {
   const { stationId } = useParams();
   const [station, setStation] = useState(null);
 
+  const [swapState, setSwapState] = useState(null); // null, 'starting', 'polling', 'completed', 'failed'
+  const [swapData, setSwapData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
   useEffect(() => {
     chargingService.getStationById(stationId).then(setStation);
   }, [stationId]);
+
+  useEffect(() => {
+    let interval;
+    if (swapState === 'polling' && swapData?.swap_id) {
+      interval = setInterval(async () => {
+        try {
+          const res = await chargingService.getSwapStatus(swapData.swap_id);
+          const data = res.data || res;
+          setSwapData(data);
+          if (data.status === 'completed') {
+            setSwapState('completed');
+          } else if (data.status === 'failed') {
+            setSwapState('failed');
+            setErrorMessage(data.failure_reason || "Swap failed");
+          }
+        } catch (err) {
+          console.error("Polling error", err);
+        }
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [swapState, swapData]);
+
+  const handleStartSwap = async () => {
+    try {
+      setSwapState('starting');
+      setErrorMessage("");
+      const res = await chargingService.startSwap(station.id, "TEST-PLAN-123");
+      setSwapData(res.data || res);
+      setSwapState('polling');
+    } catch (err) {
+      setSwapState('failed');
+      setErrorMessage(err?.response?.data?.message || err.message || "Failed to start swap");
+    }
+  };
+
+  const closeSwapModal = () => {
+    setSwapState(null);
+    setSwapData(null);
+  };
 
   if (!station) {
     return null;
@@ -23,7 +67,7 @@ const StationDetailsPage = () => {
   const paymentMethods = station.paymentMethods ?? ["UPI"];
 
   return (
-    <main className="page-padding">
+    <main className="page-padding relative">
       <PageHeader showBack subtitle="Station details and battery availability" title={station.name} showBell={false} />
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -110,11 +154,56 @@ const StationDetailsPage = () => {
                 <Navigation className="mr-2" size={16} />
                 Navigate
               </Button>
-              <Button variant="secondary">Start swapping</Button>
+              {station.isElectica ? (
+                <Button variant="secondary" onClick={handleStartSwap} disabled={swapState !== null}>
+                  {swapState === 'starting' ? 'Starting...' : 'Start swapping'}
+                </Button>
+              ) : (
+                <Button variant="secondary">Start charging</Button>
+              )}
             </div>
           </section>
         </div>
       </div>
+
+      {/* Live Swap Modal */}
+      {swapState && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold mb-4">Battery Swap</h2>
+            
+            {swapState === 'starting' && <p>Connecting to station...</p>}
+            
+            {swapState === 'polling' && swapData && (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-50 text-blue-800 rounded-xl font-medium">
+                  {swapData.step === 'insert' && `Put your battery in pod ${swapData.pod}`}
+                  {swapData.step === 'pickup' && `Take the battery from pod ${swapData.pod}`}
+                </div>
+                <p className="text-sm text-gray-500">Status: {swapData.status}</p>
+              </div>
+            )}
+            
+            {swapState === 'completed' && (
+              <div className="p-4 bg-green-50 text-green-800 rounded-xl font-medium">
+                Swap complete!
+              </div>
+            )}
+            
+            {swapState === 'failed' && (
+              <div className="p-4 bg-red-50 text-red-800 rounded-xl font-medium">
+                Swap failed: {errorMessage}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <Button onClick={closeSwapModal}>
+                {swapState === 'completed' || swapState === 'failed' ? 'Close' : 'Cancel'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

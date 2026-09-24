@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'crypto';
 import env from '../../config/env.js';
 import redisClient from '../../config/redis.js';
 import logger from '../../utils/logger.js';
@@ -106,6 +107,23 @@ const getApiClient = () => {
     headers: {
       'Content-Type': 'application/json',
       'X-API-Key': apiKey,
+    },
+  });
+};
+
+const getApiWriteClient = () => {
+  const baseURL = env.ELECTICA_BASE_URL || 'https://bss.electica.in/api/partner';
+  const writeKey = env.ELECTICA_WRITE_KEY;
+  if (!writeKey) {
+    throw new ApiError(500, 'Electica write key is not configured');
+  }
+
+  return axios.create({
+    baseURL,
+    timeout: 10000,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': writeKey,
     },
   });
 };
@@ -307,5 +325,71 @@ export const getSwaps = async (limit = 100) => {
     return data;
   } catch (error) {
     return handleUpstreamError(error, 'Failed to fetch swaps');
+  }
+};
+
+/**
+ * Start a battery swap
+ */
+export const startSwap = async (stationId, entitlementRef) => {
+  if (!stationId) {
+    throw new ApiError(400, 'Station ID is required');
+  }
+  if (!entitlementRef) {
+    throw new ApiError(400, 'Entitlement Reference is required');
+  }
+
+  const idempotencyKey = crypto.randomUUID();
+
+  try {
+    const client = getApiWriteClient();
+    const response = await client.post('/swaps', 
+      {
+        station_id: stationId,
+        entitlement_ref: entitlementRef
+      },
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    return handleUpstreamError(error, 'Failed to start swap');
+  }
+};
+
+/**
+ * Get swap status
+ */
+export const getSwapStatus = async (swapId) => {
+  if (!swapId) {
+    throw new ApiError(400, 'Swap ID is required');
+  }
+
+  try {
+    const client = getApiWriteClient();
+    const response = await client.get(`/swaps/${swapId}`);
+    return response.data;
+  } catch (error) {
+    return handleUpstreamError(error, `Failed to fetch status for swap ${swapId}`);
+  }
+};
+
+/**
+ * Cancel a swap
+ */
+export const cancelSwap = async (swapId) => {
+  if (!swapId) {
+    throw new ApiError(400, 'Swap ID is required');
+  }
+
+  try {
+    const client = getApiWriteClient();
+    const response = await client.post(`/swaps/${swapId}/cancel`);
+    return response.data;
+  } catch (error) {
+    return handleUpstreamError(error, `Failed to cancel swap ${swapId}`);
   }
 };

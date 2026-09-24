@@ -21,5 +21,8 @@ router.get('/batteries/:id', electicaController.getBattery);
 
 // Swap activity routes
 router.get('/swaps', electicaController.getSwaps);
+router.post('/swaps/start', electicaController.startSwap);
+router.get('/swaps/:id', electicaController.getSwapStatus);
+router.post('/swaps/:id/cancel', electicaController.cancelSwap);
 
 export default router;

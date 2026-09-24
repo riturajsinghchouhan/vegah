@@ -58,6 +58,16 @@ export const updateProfile = async (req, res, next) => {
   }
 };
 
+export const updateKycDetails = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const user = await usersService.updateKycDetails(userId, req.body);
+    sendSuccess(res, 200, 'KYC Details updated successfully', user);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const uploadDocument = async (req, res, next) => {
   try {
     const document = await usersService.uploadDocument(req.user.id, req.body, req.file);

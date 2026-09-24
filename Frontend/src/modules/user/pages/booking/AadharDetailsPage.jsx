@@ -8,9 +8,12 @@ import { useBooking } from "../../../../hooks/useBooking";
 import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
 import { compressImageToBase64 } from "../../../../utils/imageUtils";
 
+import { useAuth } from "../../../../hooks/useAuth";
+
 const AadharDetailsPage = () => {
   const navigate = useNavigate();
   const { booking, pricing, updateBookingField } = useBooking();
+  const { user } = useAuth();
   const [error, setError] = useState("");
 
   if (!booking.vehicle) {
@@ -31,6 +34,14 @@ const AadharDetailsPage = () => {
         setError("Failed to process image. Please try another one.");
       }
     }
+  };
+
+  const handleUseSaved = () => {
+    updateBookingField("aadharNumber", user.kycDetails.aadharNumber);
+    // In a real scenario, we might also use the saved image URL, 
+    // but we can just bypass the image validation if aadharNumber is populated from saved details.
+    updateBookingField("aadharFile", { dataUrl: user.kycDetails.aadharFrontImage });
+    navigate("/user/booking/license");
   };
 
   const handleNext = () => {
@@ -55,6 +66,8 @@ const AadharDetailsPage = () => {
     setError("");
     navigate("/user/booking/license");
   };
+
+  const hasSavedAadhar = Boolean(user?.kycDetails?.aadharNumber);
 
   return (
     <main className="page-padding">
@@ -123,9 +136,21 @@ const AadharDetailsPage = () => {
         </section>
 
         <PriceBreakdown pricing={pricing} />
-        <Button className="w-full" onClick={handleNext}>
-          Next
-        </Button>
+        
+        {hasSavedAadhar ? (
+          <div className="space-y-3">
+            <Button className="w-full" onClick={handleNext}>
+              Save & Continue
+            </Button>
+            <Button variant="outline" className="w-full border-app-primary text-app-primary" onClick={handleUseSaved}>
+              Skip & Use Saved Aadhar
+            </Button>
+          </div>
+        ) : (
+          <Button className="w-full" onClick={handleNext}>
+            Next
+          </Button>
+        )}
       </div>
     </main>
   );

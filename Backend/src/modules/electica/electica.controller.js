@@ -79,3 +79,35 @@ export const getSwaps = async (req, res, next) => {
     next(error);
   }
 };
+
+export const startSwap = async (req, res, next) => {
+  try {
+    const { stationId } = req.body;
+    // For testing, we use a dummy entitlementRef if not provided
+    const entitlementRef = req.body.entitlementRef || `VM-PLAN-${Math.floor(Math.random() * 10000)}`;
+    const swap = await electicaService.startSwap(stationId, entitlementRef);
+    sendSuccess(res, 201, 'Swap started successfully', swap);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSwapStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const swap = await electicaService.getSwapStatus(id);
+    sendSuccess(res, 200, 'Swap status fetched successfully', swap);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelSwap = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const swap = await electicaService.cancelSwap(id);
+    sendSuccess(res, 200, 'Swap cancelled successfully', swap);
+  } catch (error) {
+    next(error);
+  }
+};
