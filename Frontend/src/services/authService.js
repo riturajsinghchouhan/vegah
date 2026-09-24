@@ -29,6 +29,7 @@ export const authService = {
   async requestOtp(phone) {
     const response = await api.post('/auth/request-otp', { phone });
     return response.data; // { success: true, message: 'OTP sent' }
+    return response.data;
   },
   
 
