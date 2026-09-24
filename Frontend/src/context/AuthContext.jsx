@@ -1,5 +1,6 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { authService } from "../services/authService";
+import { authService, sanitizeUserForStorage } from "../services/authService";
 
 export const AuthContext = createContext(null);
 
@@ -37,6 +38,7 @@ export const AuthProvider = ({ children }) => {
               : session.user.kycDetails,
           }
         : session.user,
+      user: sanitizeUserForStorage(session.user),
     };
 
     try {
@@ -70,6 +72,17 @@ export const AuthProvider = ({ children }) => {
     if (session && session.accessToken) {
       session.user = userData;
       window.localStorage.setItem("evora-session", JSON.stringify(session));
+    const sessionStr = window.localStorage.getItem("evora-session");
+    if (sessionStr) {
+      try {
+        const session = JSON.parse(sessionStr);
+        if (session && session.accessToken) {
+          session.user = sanitizeUserForStorage(userData);
+          window.localStorage.setItem("evora-session", JSON.stringify(session));
+        }
+      } catch (err) {
+        console.warn("Failed to update user in localStorage", err);
+      }
     }
   };
 
