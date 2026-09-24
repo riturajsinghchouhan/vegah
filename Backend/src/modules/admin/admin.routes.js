@@ -37,6 +37,9 @@ router.get('/dashboard/charts', async (req, res, next) => {
   }
 });
 
+// Reports Analytics
+router.get('/reports/analytics', adminController.getReportsAnalytics);
+
 // Example Admin Profile
 router.get('/profile', (req, res) => {
   sendSuccess(res, 200, 'Admin profile fetched', req.user);

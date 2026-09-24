@@ -100,9 +100,11 @@ export default function AdminReports() {
   }, [dateFilter]);
 
   const summary = reportsData?.summary || {};
-  const dailyRevenue = reportsData?.dailyRevenueChart?.length > 0 
-    ? reportsData.dailyRevenueChart 
-    : revenueData;
+  const dailyRevenue = reportsData?.dailyRevenueChart?.length > 0 ? reportsData.dailyRevenueChart : revenueData;
+  const bookingsStatus = reportsData?.bookingsStatusData || bookingsStatusData;
+  const revenueSource = reportsData?.revenueSourceData || revenueSourceData;
+  const recentBks = reportsData?.recentBookings || recentBookings;
+  const topScts = reportsData?.topScooties || topScooties;
 
   const tabs = ["Overview", "Bookings", "Revenue", "Customers", "Scooties", "Payments", "Refunds"];
   const dateOptions = ["Today", "7 Days", "This Month", "Custom Date"];
@@ -193,12 +195,12 @@ export default function AdminReports() {
         <div className="space-y-6">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <StatCard className="bg-blue-50/80 border-blue-100" title="Total Bookings" value="1,265" icon={<CalendarIcon className="text-blue-600" />} trend="+12.5% vs Apr 2025" trendDirection="up" />
-            <StatCard className="bg-green-50/80 border-green-100" title="Completed Bookings" value="1,032" icon={<CheckCircle className="text-green-600" />} trend="+10.8% vs Apr 2025" trendDirection="up" />
-            <StatCard className="bg-red-50/80 border-red-100" title="Cancelled Bookings" value="233" icon={<XCircle className="text-red-500" />} trend="-4.3% vs Apr 2025" trendDirection="down" />
-            <StatCard className="bg-amber-50/80 border-amber-100" title="Total Revenue" value="₹7,85,420" icon={<IndianRupee className="text-amber-600" />} trend="+15.6% vs Apr 2025" trendDirection="up" />
-            <StatCard className="bg-purple-50/80 border-purple-100" title="Total Refunds" value="₹42,680" icon={<RefreshCcw className="text-purple-500" />} trend="-6.2% vs Apr 2025" trendDirection="down" />
-            <StatCard className="bg-indigo-50/80 border-indigo-100" title="Active Customers" value="2,843" icon={<Users className="text-indigo-500" />} trend="+9.7% vs Apr 2025" trendDirection="up" />
+            <StatCard className="bg-blue-50/80 border-blue-100" title="Total Bookings" value={summary.totalBookings || 0} icon={<CalendarIcon className="text-blue-600" />} />
+            <StatCard className="bg-green-50/80 border-green-100" title="Completed Bookings" value={summary.completedBookings || 0} icon={<CheckCircle className="text-green-600" />} />
+            <StatCard className="bg-red-50/80 border-red-100" title="Cancelled Bookings" value={summary.cancelledBookings || 0} icon={<XCircle className="text-red-500" />} />
+            <StatCard className="bg-amber-50/80 border-amber-100" title="Total Revenue" value={summary.totalRevenue || "₹0"} icon={<IndianRupee className="text-amber-600" />} />
+            <StatCard className="bg-purple-50/80 border-purple-100" title="Total Refunds" value={summary.totalRefunds || "₹0"} icon={<RefreshCcw className="text-purple-500" />} />
+            <StatCard className="bg-indigo-50/80 border-indigo-100" title="Total Customers" value={summary.totalCustomers || 0} icon={<Users className="text-indigo-500" />} />
           </div>
 
           {/* Charts Row */}
@@ -209,8 +211,7 @@ export default function AdminReports() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Revenue Overview</h3>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-2xl font-bold text-gray-900">₹7,85,420</span>
-                    <span className="text-sm font-medium text-green-600">↑ 15.6% vs Apr 2025</span>
+                    <span className="text-2xl font-bold text-gray-900">{summary.totalRevenue || "₹0"}</span>
                   </div>
                 </div>
                 <select className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
@@ -221,7 +222,7 @@ export default function AdminReports() {
               </div>
               <div className="h-[250px] w-full mt-auto">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                  <AreaChart data={dailyRevenue} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -230,7 +231,7 @@ export default function AdminReports() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} tickFormatter={(val) => `₹${val/1000}K`} dx={-10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#888', fontSize: 12 }} tickFormatter={(val) => `₹${val}`} dx={-10} />
                     <RechartsTooltip 
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       formatter={(value) => [`₹${value.toLocaleString()}`, 'Revenue']}
@@ -248,7 +249,7 @@ export default function AdminReports() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={bookingsStatusData}
+                      data={bookingsStatus}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -256,7 +257,7 @@ export default function AdminReports() {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {bookingsStatusData.map((entry, index) => (
+                      {bookingsStatus.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -267,7 +268,7 @@ export default function AdminReports() {
                 </ResponsiveContainer>
               </div>
               <div className="mt-4 space-y-3">
-                {bookingsStatusData.map((item, idx) => (
+                {bookingsStatus.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
@@ -275,7 +276,7 @@ export default function AdminReports() {
                     </div>
                     <div className="flex gap-2">
                       <span className="text-gray-900 font-semibold">{item.value}</span>
-                      <span className="text-gray-400">({((item.value / 1393) * 100).toFixed(1)}%)</span>
+                      <span className="text-gray-400">({summary.totalBookings ? ((item.value / summary.totalBookings) * 100).toFixed(1) : 0}%)</span>
                     </div>
                   </div>
                 ))}
@@ -289,7 +290,7 @@ export default function AdminReports() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={revenueSourceData}
+                      data={revenueSource}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -297,7 +298,7 @@ export default function AdminReports() {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {revenueSourceData.map((entry, index) => (
+                      {revenueSource.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -309,7 +310,7 @@ export default function AdminReports() {
                 </ResponsiveContainer>
               </div>
               <div className="mt-4 space-y-3">
-                {revenueSourceData.map((item, idx) => (
+                {revenueSource.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
@@ -345,7 +346,7 @@ export default function AdminReports() {
                     </tr>
                   </thead>
                   <tbody className="text-sm">
-                    {recentBookings.map((booking, idx) => (
+                    {recentBks.map((booking, idx) => (
                       <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                         <td className="py-4 px-2 font-medium text-gray-900">{booking.id}</td>
                         <td className="py-4 px-2 text-gray-700">{booking.customer}</td>
@@ -379,7 +380,7 @@ export default function AdminReports() {
                   <button className="text-sm text-blue-600 font-medium hover:text-blue-700">View All</button>
                 </div>
                 <div className="space-y-4">
-                  {topScooties.map((item, idx) => (
+                  {topScts.map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
@@ -429,8 +430,8 @@ export default function AdminReports() {
                     <p className="text-xs font-medium text-gray-500 uppercase">Top Zone</p>
                  </div>
                  <div className="flex justify-between items-center">
-                    <p className="text-sm font-bold text-gray-900 truncate pr-2">{zoneBookings[0].zone}</p>
-                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{zoneBookings[0].bookings} bks</span>
+                    <p className="text-sm font-bold text-gray-900 truncate pr-2">Koramangala, BLR</p>
+                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{summary.totalBookings || 0} bks</span>
                  </div>
               </div>
           </div>
@@ -462,7 +463,7 @@ export default function AdminReports() {
                     </tr>
                   </thead>
                   <tbody className="text-sm">
-                    {recentBookings.map((booking, idx) => (
+                    {recentBks.map((booking, idx) => (
                       <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                         <td className="py-4 px-2 font-medium text-gray-900">{booking.id}</td>
                         <td className="py-4 px-2 text-gray-700">{booking.customer}</td>
