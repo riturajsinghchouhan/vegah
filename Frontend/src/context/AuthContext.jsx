@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
     
     // Strip large binary data (base64 images in kycDetails) before saving to localStorage
     // to prevent QuotaExceededError. Tokens + lightweight user info are enough.
+
     const sessionToStore = {
       ...session,
       user: session.user
