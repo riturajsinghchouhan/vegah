@@ -1,5 +1,4 @@
 import { Bell, ChevronRight, CircleHelp, MapPin, ShieldCheck, User, Wallet } from "lucide-react";
-import { Link } from "react-router-dom";
 
 const iconMap = {
   "user": User,
@@ -10,7 +9,7 @@ const iconMap = {
   "shield-check": ShieldCheck
 };
 
-const AccountSettings = ({ settings }) => {
+const AccountSettings = ({ settings, onItemClick }) => {
   if (!settings || settings.length === 0) return null;
 
   return (
@@ -21,10 +20,11 @@ const AccountSettings = ({ settings }) => {
           const isLast = index === settings.length - 1;
 
           return (
-            <Link 
+            <button 
               key={item.id} 
-              to={`/settings/${item.id}`}
-              className={`flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors ${
+              type="button"
+              onClick={() => onItemClick && onItemClick(item.id)}
+              className={`w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors text-left ${
                 !isLast ? "border-b border-gray-50" : ""
               }`}
             >
@@ -37,7 +37,7 @@ const AccountSettings = ({ settings }) => {
                 </span>
               </div>
               <ChevronRight size={18} className="text-gray-400" />
-            </Link>
+            </button>
           );
         })}
       </div>

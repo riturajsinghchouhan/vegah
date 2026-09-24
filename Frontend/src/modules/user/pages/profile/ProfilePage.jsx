@@ -8,6 +8,9 @@ import ProfileHeader from "../../../../components/profile/ProfileHeader";
 import ProfileHero from "../../../../components/profile/ProfileHero";
 import QuickActions from "../../../../components/profile/QuickActions";
 import WalletSummary from "../../../../components/profile/WalletSummary";
+import PersonalInfoModal from "../../../../components/profile/PersonalInfoModal";
+import PaymentMethodsModal from "../../../../components/profile/PaymentMethodsModal";
+import NotificationsModal from "../../../../components/profile/NotificationsModal";
 import { accountSettings, quickActions } from "../../../../data/profileData";
 import { useAuth } from "../../../../hooks/useAuth";
 import { env } from "../../../../config/env";
@@ -75,6 +78,9 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [latestBooking, setLatestBooking] = useState(null);
   const [bookingStats, setBookingStats] = useState({ total: 0, completed: 0 });
 
@@ -98,6 +104,31 @@ const ProfilePage = () => {
     setIsLogoutOpen(false);
     await logout();
     navigate("/user/login", { replace: true });
+  };
+
+  const handleAccountSettingClick = (itemId) => {
+    switch (itemId) {
+      case "personal":
+        setIsPersonalModalOpen(true);
+        break;
+      case "addresses":
+        navigate("/user/select-location");
+        break;
+      case "payment":
+        setIsPaymentModalOpen(true);
+        break;
+      case "notifications":
+        setIsNotificationsModalOpen(true);
+        break;
+      case "help":
+        navigate("/user/support");
+        break;
+      case "privacy":
+        navigate("/user/profile/privacy");
+        break;
+      default:
+        break;
+    }
   };
 
   const mappedUser = {
@@ -125,7 +156,7 @@ const ProfilePage = () => {
       
       <QuickActions actions={quickActions} />
       
-      <AccountSettings settings={accountSettings} />
+      <AccountSettings settings={accountSettings} onItemClick={handleAccountSettingClick} />
       
       {/* Manage Details Section */}
       <div className="px-5 mb-8">
@@ -172,6 +203,21 @@ const ProfilePage = () => {
           <span className="text-[14px] font-bold text-[#DC2626]">Logout</span>
         </button>
       </div>
+
+      <PersonalInfoModal 
+        isOpen={isPersonalModalOpen} 
+        onClose={() => setIsPersonalModalOpen(false)} 
+      />
+
+      <PaymentMethodsModal 
+        isOpen={isPaymentModalOpen} 
+        onClose={() => setIsPaymentModalOpen(false)} 
+      />
+
+      <NotificationsModal 
+        isOpen={isNotificationsModalOpen} 
+        onClose={() => setIsNotificationsModalOpen(false)} 
+      />
 
       <LogoutConfirmationSheet 
         isOpen={isLogoutOpen}

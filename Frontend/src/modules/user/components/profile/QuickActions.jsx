@@ -8,7 +8,14 @@ const iconMap = {
   "heart": Heart
 };
 
-const QuickActions = ({ actions }) => {
+const routeMap = {
+  "bookings": "/user/bookings",
+  "payments": "/user/bookings",
+  "offers": "/user/vehicles",
+  "saved": "/user/vehicles"
+};
+
+const QuickActions = ({ actions, onActionClick }) => {
   if (!actions || actions.length === 0) return null;
 
   return (
@@ -21,11 +28,17 @@ const QuickActions = ({ actions }) => {
         <div className="flex items-center gap-3 w-max pr-5">
           {actions.map((action) => {
             const Icon = iconMap[action.icon] || Calendar;
-            
+            const route = routeMap[action.id] || "/user/bookings";
+
             return (
               <Link 
                 key={action.id} 
-                to={`/${action.id}`}
+                to={route}
+                onClick={(e) => {
+                  if (onActionClick) {
+                    onActionClick(action.id);
+                  }
+                }}
                 className={`w-[110px] h-[100px] rounded-[20px] flex flex-col items-center justify-center p-3 transition-transform hover:-translate-y-0.5 active:scale-95 shadow-sm border border-gray-50 ${action.bg}`}
               >
                 <div className={`mb-3 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm ${action.color}`}>
