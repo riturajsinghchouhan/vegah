@@ -4,14 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import AccountSettings from "../../../../components/profile/AccountSettings";
 import BookingSummary from "../../../../components/profile/BookingSummary";
 import LogoutConfirmationSheet from "../../../../components/profile/LogoutConfirmationSheet";
-import Preferences from "../../../../components/profile/Preferences";
 import ProfileHeader from "../../../../components/profile/ProfileHeader";
 import ProfileHero from "../../../../components/profile/ProfileHero";
 import QuickActions from "../../../../components/profile/QuickActions";
-import ReferEarnCard from "../../../../components/profile/ReferEarnCard";
-import SupportCard from "../../../../components/profile/SupportCard";
 import WalletSummary from "../../../../components/profile/WalletSummary";
-import { accountSettings, preferences, quickActions } from "../../../../data/profileData";
+import { accountSettings, quickActions } from "../../../../data/profileData";
 import { useAuth } from "../../../../hooks/useAuth";
 import { env } from "../../../../config/env";
 import { bookingService } from "../../../../services/bookingService";
@@ -165,12 +162,6 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <Preferences preferences={preferences} />
-      
-      <ReferEarnCard />
-      
-      <SupportCard />
-      
       {/* Logout Button */}
       <div className="px-5 mt-2">
         <button 
