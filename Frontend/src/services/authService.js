@@ -28,18 +28,13 @@ export const sanitizeUserForStorage = (user) => {
 export const authService = {
   async requestOtp(phone) {
     const response = await api.post('/auth/request-otp', { phone });
-    return response.data; // { success: true, message: 'OTP sent' }
     return response.data;
   },
-  
 
   async verifyOtp(phone, otp) {
     const response = await api.post('/auth/verify-otp', { phone, otp });
-    // Returns: { success: true, data: { accessToken, refreshToken, user, isNewUser } }
-    return response.data.data; 
     return response.data.data;
   },
-  
 
   async restoreSession() {
     const rawSession = window.localStorage.getItem("evora-session");
@@ -47,7 +42,6 @@ export const authService = {
 
     let session;
     try {
-      const session = JSON.parse(rawSession);
       session = JSON.parse(rawSession);
     } catch (err) {
       console.error("Session restore failed to parse JSON:", err);
@@ -65,10 +59,6 @@ export const authService = {
       const endpoint = isAdmin ? '/admin/profile' : '/users/me';
 
       const response = await api.get(endpoint);
-      if (response.data.success) {
-        // Update user data from server
-        session.user = response.data.data;
-        window.localStorage.setItem("evora-session", JSON.stringify(session));
       if (response.data && response.data.success && response.data.data) {
         const freshUser = response.data.data;
         session.user = freshUser;
@@ -86,12 +76,9 @@ export const authService = {
 
         return session;
       }
-      return null;
     } catch (err) {
-      console.error("Session restore failed", err);
       console.warn("Session restore profile fetch failed:", err?.message || err);
 
-      // If network error / offline / server hiccup, fallback to stored session if user exists
       if (session && session.user) {
         console.info("Using cached session fallback");
         return session;
@@ -104,7 +91,6 @@ export const authService = {
 
     return session;
   },
-  
 
   async logout() {
     try {
