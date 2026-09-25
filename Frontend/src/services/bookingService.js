@@ -59,6 +59,11 @@ export const bookingService = {
     return response.data.data;
   },
 
+  async payWithWallet(bookingId) {
+    const response = await api.post('/payments/pay-with-wallet', { bookingId });
+    return response.data.data;
+  },
+
   async updateBookingStatus(bookingId, status) {
     const response = await api.patch(`/bookings/${bookingId}/status`, { status });
     return response.data.data;

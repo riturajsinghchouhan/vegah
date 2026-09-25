@@ -63,10 +63,19 @@ const StationDetailsPage = () => {
     return null;
   }
 
-  const connectorTypes = station.connectorTypes ?? [station.connector].filter(Boolean);
+  const connectorTypes = station.connectorTypes ?? (station.connector ? [station.connector] : []);
   const chargers = station.chargers ?? [];
-  const supportedVehicles = station.supportedVehicles ?? ["All electric scoots"];
-  const paymentMethods = station.paymentMethods ?? ["UPI"];
+  const supportedVehicles = station.supportedVehicles ?? [];
+  const paymentMethods = station.paymentMethods ?? [];
+  const amenities = station.amenities ?? [];
+
+  const handleNavigate = () => {
+    if (station.lat && station.lng) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`, '_blank');
+    } else if (station.address) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(station.address)}`, '_blank');
+    }
+  };
 
   return (
     <main className="page-padding relative">
@@ -75,118 +84,166 @@ const StationDetailsPage = () => {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
           <section className="surface-card overflow-hidden p-4">
-            <div className="rounded-[1.75rem] bg-[#0B1320] p-4">
-              <img alt={station.name} className="h-72 w-full object-contain sm:h-96" src={station.image} />
+            <div className="rounded-[1.75rem] bg-[#0B1320] p-4 flex items-center justify-center">
+              <img alt={station.name} className="h-64 w-full object-contain sm:h-80" src={station.image || '/assets/battery_swap.png'} />
             </div>
           </section>
 
           <section className="surface-card p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-subtle">Battery swapping hub</p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-app-text">{station.name}</h2>
-                <p className="mt-2 text-sm text-app-subtle">{station.address}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-subtle">
+                  {station.isElectica ? 'Battery Swapping Hub' : 'EV Charging Station'}
+                </p>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-app-text">{station.name}</h2>
+                <p className="mt-1 text-sm text-app-subtle">{station.address}</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <div className="rounded-[1.5rem] bg-orange-50 px-4 py-3">
-                  <p className="text-sm text-orange-600 font-medium">Price</p>
-                  <p className="mt-1 text-xl font-semibold text-[#272664]">
-                    ₹{station.pricePerKwh?.toFixed(2) || "0.00"}<span className="text-sm font-medium text-orange-600/70">/kWh</span>
+                <div className="rounded-2xl bg-orange-50 px-4 py-2.5">
+                  <p className="text-xs text-orange-600 font-medium">Pricing</p>
+                  <p className="mt-0.5 text-lg font-bold text-[#272664]">
+                    ₹{(Number(station.pricePerKwh || station.price) || 18.0).toFixed(2)}
+                    <span className="text-xs font-normal text-gray-500">/kWh</span>
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] bg-emerald-50 px-4 py-3">
-                  <p className="text-sm text-emerald-700 font-medium">{station.openStatus}</p>
-                  <p className="mt-1 text-xl font-semibold text-emerald-600">{station.availableChargers}/{station.totalChargers} open</p>
+                <div className="rounded-2xl bg-emerald-50 px-4 py-2.5">
+                  <p className="text-xs text-emerald-700 font-medium">{station.openStatus || 'Operational'}</p>
+                  <p className="mt-0.5 text-lg font-bold text-emerald-600">
+                    {station.availableChargers ?? station.availablePorts ?? 0}/{station.totalChargers ?? station.totalPorts ?? 0} Available
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 text-sm text-app-subtle sm:grid-cols-3">
-              <div className="rounded-3xl border border-app-border bg-app-card p-4">
-                <Star size={18} className="text-amber-500" />
-                <p className="mt-3 text-sm font-medium text-app-text">{station.rating} rating</p>
-                <p className="mt-1">{station.distanceKm} km away</p>
-              </div>
-              <div className="rounded-3xl border border-app-border bg-app-card p-4">
-                <Clock3 size={18} className="text-app-primary" />
-                <p className="mt-3 text-sm font-medium text-app-text">{station.driveMinutes} min drive</p>
-                <p className="mt-1">Route-ready travel estimate</p>
-              </div>
-              <div className="rounded-3xl border border-app-border bg-app-card p-4">
-                <Zap size={18} className="text-app-primary" />
-                <p className="mt-3 text-sm font-medium text-app-text">{station.speedLabel}</p>
-                <p className="mt-1">Connector types: {connectorTypes.join(", ")}</p>
-              </div>
+            <div className="mt-5 grid gap-3 text-sm text-app-subtle sm:grid-cols-2 lg:grid-cols-3">
+              {station.rating > 0 && (
+                <div className="rounded-2xl border border-app-border bg-app-card p-3.5">
+                  <div className="flex items-center gap-1.5 text-amber-500 font-bold">
+                    <Star size={16} fill="currentColor" />
+                    <span>{station.rating} / 5</span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">User Satisfaction Score</p>
+                </div>
+              )}
+              {station.distanceKm > 0 && (
+                <div className="rounded-2xl border border-app-border bg-app-card p-3.5">
+                  <p className="text-xs text-gray-500 font-medium">Distance</p>
+                  <p className="mt-1 text-sm font-bold text-app-text">{station.distanceKm} km away</p>
+                </div>
+              )}
+              {station.speedLabel && (
+                <div className="rounded-2xl border border-app-border bg-app-card p-3.5">
+                  <div className="flex items-center gap-1.5 text-indigo-600 font-bold">
+                    <Zap size={16} />
+                    <span>{station.speedLabel}</span>
+                  </div>
+                  {connectorTypes.length > 0 && (
+                    <p className="mt-1 text-xs text-gray-500">Type: {connectorTypes.join(", ")}</p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         </div>
 
         <div className="space-y-6">
           <section className="surface-card p-5">
-            <h3 className="text-lg font-semibold text-app-text">Battery status (Live)</h3>
+            <h3 className="text-lg font-semibold text-app-text">Live Battery Status</h3>
             <div className="mt-4 space-y-3">
               {pods && Object.keys(pods).length > 0 ? (
-                Object.entries(pods).map(([podNumber, podData]) => (
-                  <div key={podNumber} className="rounded-3xl border border-app-border bg-app-card p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-app-text">Pod {podNumber}</p>
-                        <p className="mt-1 text-sm text-app-subtle">
-                          Status: {podData.status} {podData.battery_id ? `• Battery ID: ${podData.battery_id}` : ''}
-                        </p>
+                Object.entries(pods).map(([podNumber, podData]) => {
+                  const rawState = (podData.state || podData.status || 'unknown').toLowerCase();
+                  const bmsId = podData.bmsId || podData.battery_id || null;
+                  const isAvailable = rawState === 'available' || rawState === 'fully_charged' || rawState === 'ready';
+                  const isCharging = rawState === 'charging';
+                  const isEmpty = rawState === 'empty';
+
+                  const statusText = isAvailable 
+                    ? 'Available for Swap' 
+                    : isCharging 
+                      ? 'Charging' 
+                      : isEmpty 
+                        ? 'Empty (Ready for battery insertion)' 
+                        : rawState.replace('_', ' ');
+
+                  const badgeColor = isAvailable 
+                    ? 'bg-emerald-100 text-emerald-800' 
+                    : isCharging 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-gray-100 text-gray-700';
+
+                  const badgeText = (podData.soc !== undefined && podData.soc !== null)
+                    ? `${podData.soc}%` 
+                    : isAvailable 
+                      ? 'Available' 
+                      : isCharging 
+                        ? 'Charging' 
+                        : 'Empty';
+
+                  return (
+                    <div key={podNumber} className="rounded-2xl border border-app-border bg-app-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-app-text">Pod {podNumber}</p>
+                          <p className="mt-0.5 text-xs text-app-subtle capitalize">
+                            Status: <span className="font-semibold text-gray-700">{statusText}</span>
+                            {bmsId ? ` • Tag: ${bmsId.slice(-8)}` : ''}
+                          </p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${badgeColor}`}>
+                          {badgeText}
+                        </span>
                       </div>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        podData.status === 'fully_charged' ? 'bg-emerald-100 text-emerald-700' :
-                        podData.status === 'charging' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {podData.soc ? `${podData.soc}%` : podData.status}
-                      </span>
+                      {podData.health && podData.health !== 'unknown' && (
+                        <p className="mt-2 text-xs text-app-subtle">
+                          Health Condition: <span className="font-semibold text-gray-700">{podData.health}</span>
+                        </p>
+                      )}
                     </div>
-                    {podData.battery_id && (
-                      <p className="mt-3 text-sm text-app-subtle">Health: {podData.health || '--'}%</p>
-                    )}
-                  </div>
-                ))
-              ) : (
+                  );
+                })
+              ) : chargers.length > 0 ? (
                 chargers.map((charger) => (
-                  <div key={charger.name + charger.connector} className="rounded-3xl border border-app-border bg-app-card p-4">
+                  <div key={charger.name + charger.connector} className="rounded-2xl border border-app-border bg-app-card p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-app-text">{charger.name}</p>
-                        <p className="mt-1 text-sm text-app-subtle">
+                        <p className="text-sm font-bold text-app-text">{charger.name}</p>
+                        <p className="mt-0.5 text-xs text-app-subtle">
                           {charger.speed} • {charger.connector}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-app-primary">{charger.status}</span>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{charger.status}</span>
                     </div>
-                    <p className="mt-3 text-sm text-app-subtle">Rs {charger.price}/kWh</p>
                   </div>
                 ))
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-2xl text-center">
+                  <p className="text-xs text-gray-500 font-medium">All charging pods online & operational</p>
+                </div>
               )}
             </div>
           </section>
 
           <section className="surface-card p-5">
-            <h3 className="text-lg font-semibold text-app-text">Station info</h3>
-            <div className="mt-4 space-y-3 text-sm text-app-subtle">
-              <p>Amenities: {station.amenities.join(", ")}</p>
-              <p>Supported vehicles: {supportedVehicles.join(", ")}</p>
-              <p>Payment methods: {paymentMethods.join(", ")}</p>
-              <p>Pricing starts at Rs {station.pricePerKwh}/kWh</p>
+            <h3 className="text-lg font-semibold text-app-text">Station Overview</h3>
+            <div className="mt-4 space-y-2 text-sm text-app-subtle">
+              {amenities.length > 0 && <p><span className="font-semibold text-gray-700">Amenities:</span> {amenities.join(", ")}</p>}
+              {supportedVehicles.length > 0 && <p><span className="font-semibold text-gray-700">Supported EVs:</span> {supportedVehicles.join(", ")}</p>}
+              {paymentMethods.length > 0 && <p><span className="font-semibold text-gray-700">Payment Modes:</span> {paymentMethods.join(", ")}</p>}
+              <p><span className="font-semibold text-gray-700">Pricing:</span> ₹{(Number(station.pricePerKwh || station.price) || 18.0).toFixed(2)}/kWh</p>
             </div>
 
             <div className="mt-5 grid gap-3">
-              <Button>
+              <Button onClick={handleNavigate}>
                 <Navigation className="mr-2" size={16} />
-                Navigate
+                Get Directions on Map
               </Button>
               {station.isElectica ? (
                 <Button variant="secondary" onClick={handleStartSwap} disabled={swapState !== null}>
-                  {swapState === 'starting' ? 'Starting...' : 'Start swapping'}
+                  {swapState === 'starting' ? 'Connecting to Station...' : 'Start Battery Swap'}
                 </Button>
               ) : (
-                <Button variant="secondary">Start charging</Button>
+                <Button variant="secondary" onClick={handleNavigate}>View Station Details</Button>
               )}
             </div>
           </section>
@@ -196,30 +253,35 @@ const StationDetailsPage = () => {
       {/* Live Swap Modal */}
       {swapState && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm">
-            <h2 className="text-xl font-bold mb-4">Battery Swap</h2>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
+            <h2 className="text-xl font-bold mb-3 text-gray-900">Battery Swap Process</h2>
             
-            {swapState === 'starting' && <p>Connecting to station...</p>}
+            {swapState === 'starting' && (
+              <div className="p-4 bg-blue-50 text-blue-800 rounded-2xl text-sm font-medium animate-pulse">
+                Initiating handshake with station hardware...
+              </div>
+            )}
             
             {swapState === 'polling' && swapData && (
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 text-blue-800 rounded-xl font-medium">
-                  {swapData.step === 'insert' && `Put your battery in pod ${swapData.pod}`}
-                  {swapData.step === 'pickup' && `Take the battery from pod ${swapData.pod}`}
+              <div className="space-y-3">
+                <div className="p-4 bg-indigo-50 text-indigo-900 rounded-2xl text-sm font-bold border border-indigo-100">
+                  {swapData.step === 'insert' && `📥 Put your discharged battery in Pod ${swapData.pod || 1}`}
+                  {swapData.step === 'pickup' && `📤 Take your fully charged battery from Pod ${swapData.pod || 2}`}
+                  {!swapData.step && `Swap Status: ${swapData.status}`}
                 </div>
-                <p className="text-sm text-gray-500">Status: {swapData.status}</p>
+                <p className="text-xs text-gray-500 text-center">Do not close window until swap completes.</p>
               </div>
             )}
             
             {swapState === 'completed' && (
-              <div className="p-4 bg-green-50 text-green-800 rounded-xl font-medium">
-                Swap complete!
+              <div className="p-4 bg-emerald-50 text-emerald-800 rounded-2xl text-sm font-bold border border-emerald-200">
+                🎉 Battery Swap Complete! You're good to go.
               </div>
             )}
             
             {swapState === 'failed' && (
-              <div className="p-4 bg-red-50 text-red-800 rounded-xl font-medium">
-                Swap failed: {errorMessage}
+              <div className="p-4 bg-red-50 text-red-800 rounded-2xl text-sm font-medium border border-red-200">
+                ⚠️ Swap Error: {errorMessage}
               </div>
             )}
 

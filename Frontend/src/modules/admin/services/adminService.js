@@ -196,6 +196,14 @@ export const adminService = {
     const res = await adminApi.get('/wallet/admin/summary', { params });
     return res.data.data;
   },
+  async getCustomerWallets(params = {}) {
+    const res = await adminApi.get('/wallet/admin/customers', { params });
+    return res.data.data;
+  },
+  async adjustCustomerWallet(payload) {
+    const res = await adminApi.post('/wallet/admin/adjust', payload);
+    return res.data.data;
+  },
   async getRefunds(params = {}) {
     const res = await adminApi.get('/wallet/admin/refunds', { params });
     return res.data.data;

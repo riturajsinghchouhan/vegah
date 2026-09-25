@@ -83,7 +83,7 @@ const ChargingStationCard = ({ station }) => {
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
             <div className="text-right">
               <p className="text-[14px] font-bold text-gray-900 leading-none">
-                ₹{station.pricePerKwh.toFixed(2)}<span className="text-[11px] text-gray-500 font-medium">/kWh</span>
+                ₹{(Number(station?.pricePerKwh || station?.price) || 18.0).toFixed(2)}<span className="text-[11px] text-gray-500 font-medium">/kWh</span>
               </p>
             </div>
 

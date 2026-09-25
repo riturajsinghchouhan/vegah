@@ -2,6 +2,8 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Payment from '../../models/Payment.js';
 import Booking from '../../models/Booking.js';
+import Wallet from '../../models/Wallet.js';
+import WalletTransaction from '../../models/WalletTransaction.js';
 import env from '../../config/env.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { handleStatusTransition } from '../bookings/bookings.service.js';
@@ -78,7 +80,6 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
   const booking = await Booking.findById(bookingId);
   if (!booking) throw new NotFoundError('Booking not found');
 
-  // Find the exact payment record for this Razorpay order, or the latest payment attempt if not using Razorpay
   const paymentQuery = razorpayOrderId 
     ? { booking: bookingId, razorpayOrderId }
     : { booking: bookingId };
@@ -89,7 +90,6 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
   let signatureVerified = false;
 
   if (razorpayOrderId && razorpayPaymentId && razorpaySignature && env.RAZORPAY_KEY_SECRET) {
-    // Verify Razorpay signature
     const expectedSignature = crypto
       .createHmac('sha256', env.RAZORPAY_KEY_SECRET)
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
@@ -104,11 +104,9 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
       throw new BadRequestError('Payment verification failed: Invalid signature');
     }
   } else {
-    // Dev mode: no Razorpay configured, auto-verify
     signatureVerified = true;
   }
 
-  // Update payment record
   payment.status = 'SUCCESS';
   payment.razorpayOrderId = razorpayOrderId || payment.razorpayOrderId;
   payment.razorpayPaymentId = razorpayPaymentId;
@@ -118,7 +116,62 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
   payment.paidAt = new Date();
   await payment.save();
 
-  // Set booking to PENDING_VERIFICATION (Payment successful, awaiting Admin approval to confirm/start ride)
+  const updatedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);
+
+  return { payment, booking: updatedBooking };
+};
+
+export const payWithWallet = async (bookingId, userId) => {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new NotFoundError('Booking not found');
+
+  if (booking.user.toString() !== userId) {
+    throw new BadRequestError('Unauthorized access to this booking');
+  }
+
+  if (
+    booking.status !== BOOKING_STATUS.RESERVED &&
+    booking.status !== BOOKING_STATUS.PENDING_VERIFICATION &&
+    booking.status !== BOOKING_STATUS.PAYMENT_INITIATED &&
+    booking.status !== BOOKING_STATUS.PAYMENT_FAILED
+  ) {
+    throw new BadRequestError(`Cannot pay for a booking with status: ${booking.status}`);
+  }
+
+  let wallet = await Wallet.findOne({ user: userId });
+  if (!wallet) {
+    wallet = await Wallet.create({ user: userId, balance: 0 });
+  }
+
+  if (wallet.balance < booking.totalAmount) {
+    throw new BadRequestError(`Insufficient wallet balance (₹${wallet.balance}). Booking total is ₹${booking.totalAmount}. Please add funds to your wallet.`);
+  }
+
+  // Deduct amount from wallet
+  wallet.balance -= booking.totalAmount;
+  await wallet.save();
+
+  // Create Wallet Transaction
+  await WalletTransaction.create({
+    wallet: wallet._id,
+    type: 'DEBIT',
+    amount: booking.totalAmount,
+    description: `Paid for Booking #${booking.bookingId}`,
+    referenceType: 'BOOKING_PAYMENT',
+    referenceId: booking._id,
+  });
+
+  // Create Payment record
+  const payment = await Payment.create({
+    booking: booking._id,
+    amount: booking.totalAmount,
+    method: 'WALLET',
+    status: 'SUCCESS',
+    paidAt: new Date(),
+    idempotencyKey: `pay-wallet-${booking._id}-${Date.now()}`,
+  });
+
+  // Transition Booking to PENDING_VERIFICATION
   const updatedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);
 
   return { payment, booking: updatedBooking };

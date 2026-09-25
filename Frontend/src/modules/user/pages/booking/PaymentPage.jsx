@@ -12,7 +12,8 @@ import { useState } from "react";
 
 const paymentMethods = [
   { id: "ONLINE", title: "Pay Online", description: "UPI, Credit/Debit Cards, Net Banking", icon: Landmark },
-  { id: "CASH", title: "Pay with Cash", description: "Pay when you pick up the vehicle", icon: Wallet },
+  { id: "WALLET", title: "Vegah Wallet", description: "Instant payment using your wallet balance", icon: Wallet },
+  { id: "CASH", title: "Pay with Cash", description: "Pay when you pick up the vehicle", icon: CreditCard },
 ];
 
 const PaymentPage = () => {
@@ -51,6 +52,14 @@ const PaymentPage = () => {
       };
 
       if (paymentMode === "CASH") {
+        setLatestBooking(fullBookingInfo);
+        resetBooking();
+        navigate("/user/booking/success");
+        return;
+      }
+
+      if (paymentMode === "WALLET") {
+        await bookingService.payWithWallet(createdBooking.id);
         setLatestBooking(fullBookingInfo);
         resetBooking();
         navigate("/user/booking/success");

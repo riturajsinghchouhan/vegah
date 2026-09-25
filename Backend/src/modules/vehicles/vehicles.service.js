@@ -98,7 +98,6 @@ export const getVehicleById = async (id) => {
   if (!vehicle) {
     throw new NotFoundError('Vehicle not found');
   }
-  return vehicle;
 
   const activeBookings = await Booking.countDocuments({
     vehicle: id,
@@ -220,7 +219,6 @@ export const listVehicles = async (query) => {
   });
 
   return {
-    vehicles,
     vehicles: updatedVehicles,
     meta: {
       total,

@@ -38,6 +38,26 @@ export const getAdminWalletSummary = async (req, res, next) => {
   }
 };
 
+export const listCustomerWallets = async (req, res, next) => {
+  try {
+    const result = await walletService.listCustomerWallets(req.query);
+    sendSuccess(res, 200, 'Customer wallets fetched successfully', result.customers, result.meta);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const adminAdjustWallet = async (req, res, next) => {
+  try {
+    const { userId, amount, type, description } = req.body;
+    const adminId = req.user._id;
+    const result = await walletService.adminAdjustWallet({ userId, amount, type, description }, adminId);
+    sendSuccess(res, 200, `Wallet ${type === 'CREDIT' ? 'credited' : 'debited'} successfully`, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const listRefunds = async (req, res, next) => {
   try {
     const result = await walletService.listRefunds(req.query);
