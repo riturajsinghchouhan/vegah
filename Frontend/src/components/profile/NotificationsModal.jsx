@@ -130,3 +130,4 @@ const NotificationsModal = ({ isOpen, onClose }) => {
 };
 
 export default NotificationsModal;
+

@@ -55,16 +55,29 @@ export const reserveVehicle = async (userId, data) => {
       }
     }
 
-    // 2. Fetch Vehicle with Optimistic Locking Check
-    const vehicle = await Vehicle.findOneAndUpdate(
-      { _id: data.vehicleId, status: 'AVAILABLE' },
-      { $set: { status: 'RESERVED' }, $inc: { __v_lock: 1 } },
-      { session, new: true }
-    );
+    // 2. Fetch Vehicle with Optimistic Locking Check & Update Available Stock
+    const vehicleDoc = await Vehicle.findOne({ _id: data.vehicleId, status: 'AVAILABLE' }).session(session);
 
-    if (!vehicle) {
-      throw new ConflictError('Vehicle is no longer available');
+    if (!vehicleDoc || (vehicleDoc.availableStock !== undefined && vehicleDoc.availableStock <= 0)) {
+      throw new ConflictError('Vehicle is no longer available or out of stock');
     }
+
+    const currentAvail = vehicleDoc.availableStock ?? 1;
+    const newAvailableStock = Math.max(0, currentAvail - 1);
+    let newStockStatus = 'IN_STOCK';
+    if (newAvailableStock === 0) {
+      newStockStatus = 'OUT_OF_STOCK';
+    } else if (newAvailableStock < 3) {
+      newStockStatus = 'LOW_STOCK';
+    }
+
+    vehicleDoc.status = 'RESERVED';
+    vehicleDoc.availableStock = newAvailableStock;
+    vehicleDoc.stockStatus = newStockStatus;
+    vehicleDoc.__v_lock = (vehicleDoc.__v_lock || 0) + 1;
+    await vehicleDoc.save({ session });
+
+    const vehicle = vehicleDoc;
 
     // 3. Validate Coupon if provided
     let discountAmount = 0;
@@ -500,28 +513,47 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
     }
 
     // --- Vehicle state effects ---
-    if (
-      newStatus === BOOKING_STATUS.RESERVATION_EXPIRED ||
-      newStatus === BOOKING_STATUS.CANCELLED_BY_USER ||
-      newStatus === BOOKING_STATUS.CANCELLED_BY_ADMIN ||
-      newStatus === BOOKING_STATUS.CANCELLED_BY_SYSTEM ||
-      newStatus === BOOKING_STATUS.PAYMENT_FAILED ||
-      newStatus === BOOKING_STATUS.COMPLETED
-    ) {
-      // Only an admin-verified return (or a dead booking) frees the vehicle.
-      await Vehicle.updateOne(
-        { _id: booking.vehicle?._id || booking.vehicle },
-        { $set: { status: 'AVAILABLE' } },
-        { session }
-      );
-    } else if (newStatus === BOOKING_STATUS.CONFIRMED || IN_TRIP_STATUSES.includes(newStatus)) {
-      // Reserved -> booked, and it stays booked for the whole trip including
-      // PENDING_RETURN, because the vehicle is not confirmed back yet.
-      await Vehicle.updateOne(
-        { _id: booking.vehicle?._id || booking.vehicle },
-        { $set: { status: 'BOOKED' } },
-        { session }
-      );
+    const targetVehicleId = booking.vehicle?._id || booking.vehicle;
+    const targetVehicle = await Vehicle.findById(targetVehicleId).session(session);
+
+    if (targetVehicle) {
+      if (
+        newStatus === BOOKING_STATUS.RESERVATION_EXPIRED ||
+        newStatus === BOOKING_STATUS.CANCELLED_BY_USER ||
+        newStatus === BOOKING_STATUS.CANCELLED_BY_ADMIN ||
+        newStatus === BOOKING_STATUS.CANCELLED_BY_SYSTEM ||
+        newStatus === BOOKING_STATUS.PAYMENT_FAILED ||
+        newStatus === BOOKING_STATUS.COMPLETED
+      ) {
+        // Only an admin-verified return (or a dead booking) frees the vehicle.
+        const total = targetVehicle.totalStock ?? 1;
+        const currentAvail = targetVehicle.availableStock ?? 0;
+        const newAvailableStock = Math.min(total, currentAvail + 1);
+        let newStockStatus = 'IN_STOCK';
+        if (newAvailableStock === 0) {
+          newStockStatus = 'OUT_OF_STOCK';
+        } else if (newAvailableStock < 3) {
+          newStockStatus = 'LOW_STOCK';
+        }
+
+        targetVehicle.status = 'AVAILABLE';
+        targetVehicle.availableStock = newAvailableStock;
+        targetVehicle.stockStatus = newStockStatus;
+        await targetVehicle.save({ session });
+      } else if (newStatus === BOOKING_STATUS.CONFIRMED || IN_TRIP_STATUSES.includes(newStatus)) {
+        // Reserved -> booked, and it stays booked for the whole trip including
+        // PENDING_RETURN, because the vehicle is not confirmed back yet.
+        let newStockStatus = targetVehicle.stockStatus || 'IN_STOCK';
+        if ((targetVehicle.availableStock ?? 1) === 0) {
+          newStockStatus = 'OUT_OF_STOCK';
+        } else if ((targetVehicle.availableStock ?? 1) < 3) {
+          newStockStatus = 'LOW_STOCK';
+        }
+
+        targetVehicle.status = 'BOOKED';
+        targetVehicle.stockStatus = newStockStatus;
+        await targetVehicle.save({ session });
+      }
     }
 
     booking.statusHistory.push({

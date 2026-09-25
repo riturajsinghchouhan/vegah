@@ -173,3 +173,4 @@ const PersonalInfoModal = ({ isOpen, onClose }) => {
 };
 
 export default PersonalInfoModal;
+

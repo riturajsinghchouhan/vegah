@@ -119,3 +119,4 @@ const PaymentMethodsModal = ({ isOpen, onClose }) => {
 };
 
 export default PaymentMethodsModal;
+

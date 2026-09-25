@@ -20,6 +20,13 @@ export const updateVehicleStatus = async (vehicleId, status) => {
   }
 
   vehicle.status = status;
+  if (['MAINTENANCE', 'INACTIVE'].includes(status)) {
+    vehicle.availableStock = 0;
+    vehicle.stockStatus = 'OUT_OF_STOCK';
+  } else if (status === 'AVAILABLE') {
+    vehicle.availableStock = vehicle.totalStock ?? 1;
+    vehicle.stockStatus = vehicle.availableStock < 3 ? (vehicle.availableStock === 0 ? 'OUT_OF_STOCK' : 'LOW_STOCK') : 'IN_STOCK';
+  }
   await vehicle.save();
 
   return vehicle;

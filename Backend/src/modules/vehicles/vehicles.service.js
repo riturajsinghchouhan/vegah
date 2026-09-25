@@ -1,4 +1,5 @@
 import Vehicle from '../../models/Vehicle.js';
+import Booking from '../../models/Booking.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
 import cloudinary from '../../config/cloudinary.js';
 
@@ -98,6 +99,38 @@ export const getVehicleById = async (id) => {
     throw new NotFoundError('Vehicle not found');
   }
   return vehicle;
+
+  const activeBookings = await Booking.countDocuments({
+    vehicle: id,
+    status: { $in: ['RESERVED', 'CONFIRMED', 'ACTIVE', 'PENDING_RETURN', 'OVERDUE'] }
+  });
+
+  const total = vehicle.totalStock ?? 1;
+  const computedAvailable = Math.max(0, total - activeBookings);
+  let computedStockStatus = 'IN_STOCK';
+  if (computedAvailable === 0) {
+    computedStockStatus = 'OUT_OF_STOCK';
+  } else if (computedAvailable < 3) {
+    computedStockStatus = 'LOW_STOCK';
+  }
+
+  let computedStatus = vehicle.status;
+  if (['MAINTENANCE', 'INACTIVE'].includes(vehicle.status)) {
+    computedStatus = vehicle.status;
+  } else if (computedAvailable === 0) {
+    computedStatus = 'Booked';
+  } else if (activeBookings > 0 && total === 1) {
+    computedStatus = 'Booked';
+  } else {
+    computedStatus = 'Available';
+  }
+
+  const obj = vehicle.toObject();
+  obj.availableStock = computedAvailable;
+  obj.stockStatus = computedStockStatus;
+  obj.status = computedStatus;
+
+  return obj;
 };
 
 export const listVehicles = async (query) => {
@@ -136,8 +169,59 @@ export const listVehicles = async (query) => {
     Vehicle.countDocuments(filter)
   ]);
 
+  const vehicleIds = vehicles.map(v => v._id);
+  const activeBookingsGroup = await Booking.aggregate([
+    {
+      $match: {
+        vehicle: { $in: vehicleIds },
+        status: { $in: ['RESERVED', 'CONFIRMED', 'ACTIVE', 'PENDING_RETURN', 'OVERDUE'] }
+      }
+    },
+    {
+      $group: {
+        _id: '$vehicle',
+        activeCount: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const activeCountMap = {};
+  activeBookingsGroup.forEach(g => {
+    activeCountMap[g._id.toString()] = g.activeCount;
+  });
+
+  const updatedVehicles = vehicles.map(v => {
+    const activeCount = activeCountMap[v._id.toString()] || 0;
+    const totalStock = v.totalStock ?? 1;
+    const computedAvailable = Math.max(0, totalStock - activeCount);
+    let computedStockStatus = 'IN_STOCK';
+    if (computedAvailable === 0) {
+      computedStockStatus = 'OUT_OF_STOCK';
+    } else if (computedAvailable < 3) {
+      computedStockStatus = 'LOW_STOCK';
+    }
+
+    let computedStatus = v.status;
+    if (['MAINTENANCE', 'INACTIVE'].includes(v.status)) {
+      computedStatus = v.status;
+    } else if (computedAvailable === 0) {
+      computedStatus = 'BOOKED';
+    } else if (activeCount > 0 && totalStock === 1) {
+      computedStatus = 'BOOKED';
+    } else {
+      computedStatus = 'AVAILABLE';
+    }
+
+    const obj = v.toObject();
+    obj.availableStock = computedAvailable;
+    obj.stockStatus = computedStockStatus;
+    obj.status = computedStatus;
+    return obj;
+  });
+
   return {
     vehicles,
+    vehicles: updatedVehicles,
     meta: {
       total,
       page,
