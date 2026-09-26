@@ -781,6 +781,11 @@ export const listBookings = async (query) => {
 
   const [bookings, total] = await Promise.all([
     Booking.find(filter)
+      // Each booking carries ~2MB of base64 KYC images, so 8 rows was a 15.7MB
+      // response that took 5s and blew past the client's HTTP timeout -- the
+      // admin bookings list simply never rendered. The images are fetched
+      // on demand from GET /bookings/:id when a booking is opened.
+      .select('-kycDocuments')
       .populate({
         path: 'vehicle',
         populate: { path: 'zone' }

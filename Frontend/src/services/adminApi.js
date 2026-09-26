@@ -3,7 +3,8 @@ import { env } from "../config/env";
 
 const adminApi = axios.create({
   baseURL: env.apiUrl,
-  timeout: 10000,
+  // Admin screens pull large lists and detail records with document images.
+  timeout: 45000,
 });
 
 adminApi.interceptors.request.use(

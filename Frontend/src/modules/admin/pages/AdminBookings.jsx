@@ -31,6 +31,23 @@ export default function AdminBookings() {
     }
   };
 
+  // The list response no longer carries the multi-MB base64 KYC images (it was
+  // 15MB for 8 rows and timed out). Open the modal straight away from the row we
+  // already have, then pull the full record in for the document previews.
+  const openDetail = async (row, setter) => {
+    setter(row);
+    const id = row?.raw?._id || row?.raw?.id || row?.id;
+    if (!id) return;
+    try {
+      const full = await adminService.getBookingById(id);
+      setter((current) => (current && (current.raw?._id || current.id) === id
+        ? { ...current, raw: { ...current.raw, ...full } }
+        : current));
+    } catch (err) {
+      console.error("Failed to load booking details", err);
+    }
+  };
+
   const fetchAllBookings = async () => {
     try {
       setLoading(true);
@@ -558,7 +575,7 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
                       <button 
                         title="View Details" 
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        onClick={() => setSelectedBooking(item)}
+                        onClick={() => openDetail(item, setSelectedBooking)}
                       >
                         <Eye size={18} />
                       </button>
@@ -979,7 +996,7 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
                       <button 
                         title="View Details" 
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        onClick={() => setSelectedPickup(pickup)}
+                        onClick={() => openDetail(pickup, setSelectedPickup)}
                       >
                         <Eye size={18} />
                       </button>

@@ -95,12 +95,21 @@ export const confirmReturnSchema = {
   }).default({}),
 };
 
+// Aliases the admin panel sends that the service already understands.
+const STATUS_ALIASES = ['pending_approval'];
+
+// Operational tabs in the admin bookings screen. These were missing from the
+// schema, and because validate() runs with stripUnknown they were silently
+// dropped -- every ops tab quietly returned the unfiltered list.
+const OPS_FILTERS = ['live', 'pickups', 'returns', 'late', 'extensions', 'cancelled'];
+
 export const listBookingsSchema = {
   query: Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
-    // Accepts one status or a comma-separated list, e.g. "ACTIVE,OVERDUE,PENDING_RETURN".
+    // Accepts one status, a comma-separated list ("ACTIVE,OVERDUE"), or an alias.
     status: Joi.string().custom((value, helpers) => {
+      if (STATUS_ALIASES.includes(value)) return value;
       const allowed = Object.values(BOOKING_STATUS);
       const parts = value.split(',').map((part) => part.trim()).filter(Boolean);
       if (!parts.length || parts.some((part) => !allowed.includes(part))) {
@@ -108,6 +117,8 @@ export const listBookingsSchema = {
       }
       return parts.join(',');
     }, 'booking status list'),
+    ops: Joi.string().valid(...OPS_FILTERS),
+    depositStatus: Joi.string().valid('pending_collection', 'PENDING', 'COLLECTED', 'REFUNDED'),
     userId: Joi.string().hex().length(24),
     vehicleId: Joi.string().hex().length(24),
   }),
