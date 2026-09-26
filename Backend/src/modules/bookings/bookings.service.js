@@ -87,20 +87,53 @@ export const reserveVehicle = async (userId, data) => {
     const idempotencyKey = `${userId}:${data.vehicleId}:${startDateTimeStr}`;
 
     // 1. Check idempotency first (did they just click twice or retry payment?)
-    let existingBooking = await Booking.findOne({ idempotencyKey }).session(session);
-    
+    //
+    // The key is `user:vehicle:startDateTime`, so it is reused every time the same
+    // customer picks the same slot again. Three cases, and only the first is real
+    // idempotency:
+    //
+    //   FINISHED    the previous rental is over or dead -> free the slot, book again.
+    //               COMPLETED used to be missing here, which permanently locked a
+    //               customer out of re-booking a vehicle they had already rented:
+    //               the old COMPLETED booking came back with 201, and the payment
+    //               call on it then failed with "Cannot initiate payment for a
+    //               booking with status: COMPLETED".
+    //   UNPAID      the same attempt being retried (double tap, payment retry)
+    //               -> hand the same booking back, which is the point of the key.
+    //   IN PROGRESS they already have a live booking for this exact slot -> say so
+    //               plainly instead of returning a booking they cannot pay for.
+    const existingBooking = await Booking.findOne({ idempotencyKey })
+      .select('-kycDocuments')
+      .session(session);
+
     if (existingBooking) {
-      // If the existing booking is in a terminal/cancelled state, we should allow a new booking.
-      // We can do this by appending a random string to the old booking's idempotency key to free up the slot.
-      const terminalStatuses = ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED', 'PAYMENT_FAILED'];
-      if (terminalStatuses.includes(existingBooking.status)) {
+      const FINISHED = [
+        BOOKING_STATUS.COMPLETED,
+        BOOKING_STATUS.CANCELLED_BY_USER,
+        BOOKING_STATUS.CANCELLED_BY_ADMIN,
+        BOOKING_STATUS.CANCELLED_BY_SYSTEM,
+        BOOKING_STATUS.RESERVATION_EXPIRED,
+        BOOKING_STATUS.PAYMENT_FAILED,
+        'CANCELLED',
+        'REJECTED',
+      ];
+      const AWAITING_PAYMENT = [BOOKING_STATUS.RESERVED, BOOKING_STATUS.PAYMENT_INITIATED];
+
+      if (FINISHED.includes(existingBooking.status)) {
+        // Park the old key aside so this slot can be booked again.
         existingBooking.idempotencyKey = `${idempotencyKey}_old_${Date.now()}`;
         await existingBooking.save({ session });
-        existingBooking = null; // Proceed to create a new booking
-      } else {
+      } else if (AWAITING_PAYMENT.includes(existingBooking.status)) {
         await session.abortTransaction();
-        session.endSession();
-        return existingBooking;
+        // Shaped like the normal response so the client can treat both the same.
+        return Booking.findById(existingBooking._id)
+          .select('-kycDocuments')
+          .populate({ path: 'vehicle', populate: { path: 'zone' } })
+          .populate('user', 'fullName phone email');
+      } else {
+        throw new ConflictError(
+          `You already have a booking for this vehicle at this time (${existingBooking.bookingId}, ${existingBooking.status}). Check My Bookings, or pick a different slot.`
+        );
       }
     }
 
@@ -263,7 +296,14 @@ export const reserveVehicle = async (userId, data) => {
     delete response.kycDocuments;
     return response;
   } catch (error) {
-    await session.abortTransaction();
+    // Both of these run work after commitTransaction() (socket fan-out, push
+    // notifications, re-fetches). A throw from that tail used to reach here and
+    // call abortTransaction() on an already-committed session, which raises
+    // "Cannot call abortTransaction after calling commitTransaction" and buries
+    // the real error behind it.
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     throw error;
   } finally {
     session.endSession();
@@ -622,7 +662,14 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
 
     return updatedBooking || booking;
   } catch (error) {
-    await session.abortTransaction();
+    // Both of these run work after commitTransaction() (socket fan-out, push
+    // notifications, re-fetches). A throw from that tail used to reach here and
+    // call abortTransaction() on an already-committed session, which raises
+    // "Cannot call abortTransaction after calling commitTransaction" and buries
+    // the real error behind it.
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     throw error;
   } finally {
     session.endSession();
