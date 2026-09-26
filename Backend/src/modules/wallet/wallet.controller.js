@@ -3,7 +3,7 @@ import { sendSuccess } from '../../utils/response.js';
 
 export const getUserWallet = async (req, res, next) => {
   try {
-    const result = await walletService.getUserWallet(req.user._id);
+    const result = await walletService.getUserWallet(req.user.id || req.user._id);
     sendSuccess(res, 200, 'User wallet fetched successfully', result);
   } catch (error) {
     next(error);
@@ -22,7 +22,7 @@ export const getAdminUserWallet = async (req, res, next) => {
 export const addFunds = async (req, res, next) => {
   try {
     const { amount, description } = req.body;
-    const result = await walletService.addFundsToWallet(req.user._id, amount, description);
+    const result = await walletService.addFundsToWallet(req.user.id || req.user._id, amount, description);
     sendSuccess(res, 200, 'Funds added to wallet successfully', result);
   } catch (error) {
     next(error);
@@ -50,7 +50,7 @@ export const listCustomerWallets = async (req, res, next) => {
 export const adminAdjustWallet = async (req, res, next) => {
   try {
     const { userId, amount, type, description } = req.body;
-    const adminId = req.user._id;
+    const adminId = req.user.id || req.user._id;
     const result = await walletService.adminAdjustWallet({ userId, amount, type, description }, adminId);
     sendSuccess(res, 200, `Wallet ${type === 'CREDIT' ? 'credited' : 'debited'} successfully`, result);
   } catch (error) {
@@ -70,7 +70,7 @@ export const listRefunds = async (req, res, next) => {
 export const updateRefundStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
-    const adminId = req.user._id;
+    const adminId = req.user.id || req.user._id;
     const refund = await walletService.updateRefundStatus(req.params.id, status, adminId);
     sendSuccess(res, 200, 'Refund status updated successfully', refund);
   } catch (error) {

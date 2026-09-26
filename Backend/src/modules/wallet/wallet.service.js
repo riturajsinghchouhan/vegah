@@ -2,6 +2,7 @@ import Wallet from '../../models/Wallet.js';
 import WalletTransaction from '../../models/WalletTransaction.js';
 import Refund from '../../models/Refund.js';
 import User from '../../models/User.js';
+import { BadRequestError } from '../../utils/errors.js';
 
 export const getUserWallet = async (userId) => {
   let wallet = await Wallet.findOne({ user: userId });
@@ -20,18 +21,28 @@ export const getUserWallet = async (userId) => {
 };
 
 export const addFundsToWallet = async (userId, amount, description = 'Wallet Top Up') => {
+  // The endpoint took whatever it was given: a negative or NaN amount silently
+  // corrupted the balance instead of being rejected.
+  const credit = Number(amount);
+  if (!Number.isFinite(credit) || credit <= 0) {
+    throw new BadRequestError('Top-up amount must be a positive number');
+  }
+  if (credit > 100000) {
+    throw new BadRequestError('Top-up amount cannot exceed Rs 1,00,000 in one transaction');
+  }
+
   let wallet = await Wallet.findOne({ user: userId });
   if (!wallet) {
     wallet = await Wallet.create({ user: userId, balance: 0 });
   }
 
-  wallet.balance += Number(amount);
+  wallet.balance += credit;
   await wallet.save();
 
   const transaction = await WalletTransaction.create({
     wallet: wallet._id,
     type: 'CREDIT',
-    amount: Number(amount),
+    amount: credit,
     description,
     referenceType: 'TOP_UP',
   });

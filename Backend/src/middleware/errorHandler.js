@@ -7,7 +7,11 @@ const errorHandler = (err, req, res, next) => {
   let error = err;
 
   if (!(error instanceof ApiError)) {
-    const statusCode = error.statusCode || error.name === 'ValidationError' ? 400 : 500;
+    // NB: this used to read `error.statusCode || error.name === 'ValidationError' ? 400 : 500`,
+    // which parses as `(statusCode || name === 'ValidationError') ? 400 : 500` -- so any
+    // error carrying a statusCode (a 413 payload-too-large, a 404, ...) was reported as 400.
+    const statusCode = error.statusCode
+      || (error.name === 'ValidationError' ? 400 : 500);
     const message = error.message || 'Internal Server Error';
     error = new ApiError(statusCode, message, false, err.stack);
   }
@@ -33,7 +37,12 @@ const errorHandler = (err, req, res, next) => {
   if (error.statusCode >= 500) {
     logger.error(`[${req.id}] ${error.message}\n${error.stack}`);
   } else {
-    logger.warn(`[${req.id}] ${error.message}`);
+    // Include the field-level details: a bare "Validation failed" in the log
+    // says nothing about which field the client actually got wrong.
+    const detail = err.errors?.length
+      ? ` (${err.errors.map((e) => `${e.location}.${e.field}: ${e.message}`).join('; ')})`
+      : '';
+    logger.warn(`[${req.id}] ${req.method} ${req.originalUrl} -> ${error.statusCode} ${error.message}${detail}`);
   }
 
   sendError(res, error.statusCode, error.message, responseError);

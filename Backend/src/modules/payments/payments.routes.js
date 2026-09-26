@@ -10,6 +10,9 @@ router.use(authenticate);
 // POST /api/payments/pay-with-wallet — Pay for booking using wallet balance
 router.post('/pay-with-wallet', paymentsController.payWithWallet);
 
+// POST /api/payments/pay-with-cash — Mark a booking as pay-at-pickup (cash)
+router.post('/pay-with-cash', paymentsController.payWithCash);
+
 // POST /api/payments/:bookingId/initiate — Create payment order for a booking
 router.post('/:bookingId/initiate', paymentsController.initiatePayment);
 

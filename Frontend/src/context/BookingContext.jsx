@@ -1,8 +1,22 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { calculateBookingPricing } from "../utils/pricing";
 
-const today = new Date();
-const formattedToday = today.toISOString().split('T')[0];
+// Calendar date in the *browser's* timezone. toISOString() would shift to UTC,
+// which in IST (UTC+5:30) yields yesterday's date any time before 05:30 and gets
+// the booking rejected by the server's "start date cannot be in the past" rule.
+const toLocalDateString = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const formattedToday = toLocalDateString(new Date());
+
+// A draft restored from localStorage (or an app left open past midnight) can carry
+// a date that is now in the past. The server rejects those, so roll them forward.
+const withFreshDates = (draft) => {
+  const today = toLocalDateString(new Date());
+  const startDate = !draft.startDate || draft.startDate < today ? today : draft.startDate;
+  const endDate = !draft.endDate || draft.endDate < startDate ? startDate : draft.endDate;
+  return { ...draft, startDate, endDate };
+};
 
 const initialState = {
   vehicle: null,
@@ -32,13 +46,13 @@ export const BookingProvider = ({ children }) => {
         // Check if draft is older than 30 minutes (30 * 60 * 1000 ms) or if it's old data without a timestamp
         if (!parsed.lastUpdated || (now - parsed.lastUpdated > 30 * 60 * 1000)) {
           localStorage.removeItem("vegah_draft_booking");
-          return initialState;
+          return withFreshDates(initialState);
         }
-        return parsed;
+        return withFreshDates(parsed);
       }
-      return initialState;
+      return withFreshDates(initialState);
     } catch {
-      return initialState;
+      return withFreshDates(initialState);
     }
   });
 
@@ -84,7 +98,7 @@ export const BookingProvider = ({ children }) => {
   };
 
   const resetBooking = () => {
-    setBooking(initialState);
+    setBooking(withFreshDates(initialState));
     localStorage.removeItem("vegah_draft_booking");
   };
 

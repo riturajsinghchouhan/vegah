@@ -3,7 +3,9 @@ import { env } from "../config/env";
 
 const api = axios.create({
   baseURL: env.apiUrl,
-  timeout: 10000,
+  // A booking POST carries a few MB of base64 KYC images; 10s was not enough on
+  // a mobile connection and the request aborted mid-upload.
+  timeout: 45000,
 });
 
 api.interceptors.request.use(

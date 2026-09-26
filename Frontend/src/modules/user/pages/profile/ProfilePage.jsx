@@ -15,6 +15,7 @@ import { accountSettings, quickActions } from "../../../../data/profileData";
 import { useAuth } from "../../../../hooks/useAuth";
 import { env } from "../../../../config/env";
 import { bookingService } from "../../../../services/bookingService";
+import { walletService } from "../../../../services/walletService";
 
 // Backend base URL (strip "/api" suffix if present)
 const BACKEND_BASE = env.apiUrl.replace(/\/api\/?$/, "");
@@ -83,6 +84,15 @@ const ProfilePage = () => {
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [latestBooking, setLatestBooking] = useState(null);
   const [bookingStats, setBookingStats] = useState({ total: 0, completed: 0 });
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  useEffect(() => {
+    // This was hardcoded to 0, so the card never showed the real balance.
+    walletService
+      .getWallet()
+      .then((w) => setWalletBalance(w.balance))
+      .catch((err) => console.error("Failed to fetch wallet:", err));
+  }, []);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -138,7 +148,7 @@ const ProfilePage = () => {
     email: user?.email || "No email added",
     location: "Indore, Madhya Pradesh",
     avatar: user?.avatarUrl || `https://ui-avatars.com/api/?name=${user?.fullName || "Guest"}&background=FF5A1F&color=fff`,
-    walletBalance: 0,
+    walletBalance,
     totalBookings: bookingStats.total,
     completedTrips: bookingStats.completed,
     savedCars: 0,

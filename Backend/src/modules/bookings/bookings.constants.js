@@ -37,6 +37,21 @@ export const OVERDUE_GRACE_MS = 5 * 60 * 1000;
 // Late returns are billed at this multiple of the vehicle's hourly rate, per started hour.
 export const LATE_FEE_MULTIPLIER = 1.5;
 
+/**
+ * Booking states that occupy a unit of a vehicle's stock. Shared by the booking
+ * write path and the vehicle listing/detail read path so the app can never
+ * advertise a vehicle it would then refuse to book.
+ */
+export const ACTIVE_BOOKING_STATUSES = [
+  BOOKING_STATUS.RESERVED,
+  BOOKING_STATUS.PENDING_VERIFICATION,
+  BOOKING_STATUS.PAYMENT_INITIATED,
+  BOOKING_STATUS.CONFIRMED,
+  BOOKING_STATUS.ACTIVE,
+  BOOKING_STATUS.PENDING_RETURN,
+  BOOKING_STATUS.OVERDUE,
+];
+
 // Booking states a trip can be running in (timer ticking / vehicle out with the user).
 export const IN_TRIP_STATUSES = [
   BOOKING_STATUS.ACTIVE,

@@ -6,9 +6,36 @@ import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { useBooking } from "../../../../hooks/useBooking";
 import { bookingService } from "../../../../services/bookingService";
+import { walletService } from "../../../../services/walletService";
 import { formatCurrency } from "../../../../utils/formatters";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const RAZORPAY_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+
+// One shared promise for the whole app: the SDK is fetched at most once, and every
+// caller after the first resolves instantly instead of injecting another <script>.
+let razorpayScriptPromise = null;
+const loadRazorpayScript = () => {
+  if (window.Razorpay) return Promise.resolve(true);
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+
+  razorpayScriptPromise = new Promise((resolve) => {
+    const existing = document.querySelector(`script[src="${RAZORPAY_SRC}"]`);
+    const script = existing || document.createElement("script");
+    script.addEventListener("load", () => resolve(true));
+    script.addEventListener("error", () => {
+      razorpayScriptPromise = null; // let a retry re-attempt the download
+      resolve(false);
+    });
+    if (!existing) {
+      script.src = RAZORPAY_SRC;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  });
+  return razorpayScriptPromise;
+};
 
 const paymentMethods = [
   { id: "ONLINE", title: "Pay Online", description: "UPI, Credit/Debit Cards, Net Banking", icon: Landmark },
@@ -22,18 +49,39 @@ const PaymentPage = () => {
 
   const [paymentMode, setPaymentMode] = useState("ONLINE");
   const [processing, setProcessing] = useState(false);
+  const sdkReady = useRef(null);
+  const [wallet, setWallet] = useState({ balance: 0, loading: true });
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+  // Warm the checkout SDK while the user is still picking a payment method. It
+  // used to be fetched only after the booking POST returned, so its download sat
+  // squarely on the critical path between the tap and the modal appearing.
+  useEffect(() => {
+    sdkReady.current = loadRazorpayScript();
+  }, []);
+
+  // The wallet option used to show no balance at all, so picking it was a coin
+  // flip that usually ended in "Insufficient wallet balance" after the booking
+  // had already been created.
+  useEffect(() => {
+    let cancelled = false;
+    walletService
+      .getWallet()
+      .then((w) => { if (!cancelled) setWallet({ balance: w.balance, loading: false }); })
+      .catch(() => { if (!cancelled) setWallet({ balance: 0, loading: false }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const walletShort = Math.max(0, pricing.total - wallet.balance);
+  const walletUsable = !wallet.loading && walletShort === 0;
 
   const handlePay = async () => {
+    // Check this before creating the booking: failing afterwards left an orphan
+    // RESERVED booking that quietly expired.
+    if (paymentMode === "WALLET" && !walletUsable) {
+      toast.error(`Wallet balance ${formatCurrency(wallet.balance)} is short by ${formatCurrency(walletShort)}. Add money or pick another method.`);
+      return;
+    }
+
     try {
       setProcessing(true);
       const createdBooking = await bookingService.createBooking({
@@ -52,6 +100,9 @@ const PaymentPage = () => {
       };
 
       if (paymentMode === "CASH") {
+        // Without this the booking sits in RESERVED and the server's 15-minute
+        // reservation TTL silently expires it after the user sees "success".
+        await bookingService.payWithCash(createdBooking.id);
         setLatestBooking(fullBookingInfo);
         resetBooking();
         navigate("/user/booking/success");
@@ -66,14 +117,17 @@ const PaymentPage = () => {
         return;
       }
 
-      const res = await loadRazorpayScript();
-      if (!res) {
-        alert("Razorpay SDK failed to load. Are you online?");
-        setProcessing(false);
+      // The SDK has been downloading since this screen mounted, so this usually
+      // resolves immediately; the order call runs alongside it rather than after.
+      const [sdkLoaded, paymentData] = await Promise.all([
+        sdkReady.current || loadRazorpayScript(),
+        bookingService.initiatePayment(createdBooking.id, 'ONLINE'),
+      ]);
+
+      if (!sdkLoaded || !window.Razorpay) {
+        toast.error("Could not load the payment window. Please check your connection and try again.");
         return;
       }
-
-      const paymentData = await bookingService.initiatePayment(createdBooking.id, 'ONLINE');
       
       const options = {
         key: paymentData.razorpayKeyId || "rzp_test_dummy",
@@ -161,7 +215,17 @@ const PaymentPage = () => {
       <section className="mt-5 surface-card p-4">
         <h2 className="text-base font-semibold text-app-text">Recommended</h2>
         <div className="mt-4 space-y-3">
-          {paymentMethods.map(({ id, title, description, icon: Icon }) => (
+          {paymentMethods.map(({ id, title, description, icon: Icon }) => {
+            const isWallet = id === "WALLET";
+            const subtitle = !isWallet
+              ? description
+              : wallet.loading
+                ? "Checking balance..."
+                : walletUsable
+                  ? `Balance ${formatCurrency(wallet.balance)} - enough for this booking`
+                  : `Balance ${formatCurrency(wallet.balance)} - ${formatCurrency(walletShort)} short`;
+
+            return (
             <button
               key={id}
               onClick={() => setPaymentMode(id)}
@@ -176,14 +240,17 @@ const PaymentPage = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-app-text">{title}</p>
-                  <p className="text-xs text-app-subtle">{description}</p>
+                  <p className={`text-xs ${isWallet && !wallet.loading && !walletUsable ? "text-red-600" : "text-app-subtle"}`}>
+                    {subtitle}
+                  </p>
                 </div>
               </div>
               <div className={`h-5 w-5 flex items-center justify-center rounded-full border-2 ${paymentMode === id ? "border-app-primary bg-app-primary" : "border-gray-300"}`}>
                 {paymentMode === id && <div className="h-2 w-2 rounded-full bg-white" />}
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -191,8 +258,14 @@ const PaymentPage = () => {
         <PriceBreakdown pricing={pricing} />
       </div>
 
-      <Button className="mt-5 w-full" onClick={handlePay} disabled={processing}>
-        {processing ? "Processing..." : paymentMode === "ONLINE" ? `Pay Now ${formatCurrency(pricing.total)}` : "Confirm Booking"}
+      <Button className="mt-5 w-full" onClick={handlePay} disabled={processing || (paymentMode === "WALLET" && !walletUsable)}>
+        {processing
+          ? "Processing..."
+          : paymentMode === "WALLET" && !walletUsable
+            ? wallet.loading ? "Checking wallet..." : `Add ${formatCurrency(walletShort)} to your wallet`
+            : paymentMode === "ONLINE"
+              ? `Pay Now ${formatCurrency(pricing.total)}`
+              : "Confirm Booking"}
       </Button>
     </main>
   );

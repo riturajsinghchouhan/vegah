@@ -1,6 +1,7 @@
 import Vehicle from '../../models/Vehicle.js';
 import Booking from '../../models/Booking.js';
 import { NotFoundError, ConflictError } from '../../utils/errors.js';
+import { ACTIVE_BOOKING_STATUSES } from '../bookings/bookings.constants.js';
 import cloudinary from '../../config/cloudinary.js';
 
 export const createVehicle = async (data, files) => {
@@ -101,7 +102,7 @@ export const getVehicleById = async (id) => {
 
   const activeBookings = await Booking.countDocuments({
     vehicle: id,
-    status: { $in: ['RESERVED', 'CONFIRMED', 'ACTIVE', 'PENDING_RETURN', 'OVERDUE'] }
+    status: { $in: ACTIVE_BOOKING_STATUSES }
   });
 
   const total = vehicle.totalStock ?? 1;
@@ -117,11 +118,11 @@ export const getVehicleById = async (id) => {
   if (['MAINTENANCE', 'INACTIVE'].includes(vehicle.status)) {
     computedStatus = vehicle.status;
   } else if (computedAvailable === 0) {
-    computedStatus = 'Booked';
+    computedStatus = 'BOOKED';
   } else if (activeBookings > 0 && total === 1) {
-    computedStatus = 'Booked';
+    computedStatus = 'BOOKED';
   } else {
-    computedStatus = 'Available';
+    computedStatus = 'AVAILABLE';
   }
 
   const obj = vehicle.toObject();
@@ -173,7 +174,7 @@ export const listVehicles = async (query) => {
     {
       $match: {
         vehicle: { $in: vehicleIds },
-        status: { $in: ['RESERVED', 'CONFIRMED', 'ACTIVE', 'PENDING_RETURN', 'OVERDUE'] }
+        status: { $in: ACTIVE_BOOKING_STATUSES }
       }
     },
     {

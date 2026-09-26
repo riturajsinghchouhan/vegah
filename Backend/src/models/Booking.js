@@ -35,6 +35,10 @@ const bookingSchema = new Schema({
 
   coupon: { type: Schema.Types.ObjectId, ref: 'Coupon', default: null },
 
+  // How the customer chose to pay. CASH is settled at the hub during pickup, so
+  // the admin needs to see it on the booking.
+  paymentMethod: { type: String, enum: ['ONLINE', 'WALLET', 'CASH'], default: 'ONLINE' },
+
   kycDocuments: {
     aadharFile: { type: String, default: null },
     licenseFile: { type: String, default: null },

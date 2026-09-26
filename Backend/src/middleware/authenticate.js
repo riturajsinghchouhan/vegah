@@ -13,7 +13,9 @@ const authenticate = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
-    req.user = decoded; // { id, role, ... }
+    // The JWT payload uses `id`. `_id` is mirrored onto it because several
+    // controllers reach for the Mongoose-style name and silently got undefined.
+    req.user = { ...decoded, _id: decoded.id };
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

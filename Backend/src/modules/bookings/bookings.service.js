@@ -13,6 +13,7 @@ import {
   OVERDUE_GRACE_MS,
   LATE_FEE_MULTIPLIER,
   IN_TRIP_STATUSES,
+  ACTIVE_BOOKING_STATUSES,
 } from './bookings.constants.js';
 import { calculateRentalCost, calculateTotalAmount } from '../../utils/pricing.js';
 import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '../../utils/errors.js';
@@ -23,6 +24,54 @@ import logger from '../../utils/logger.js';
 
 const generateBookingId = () => {
   return `EVR-${Math.floor(10000 + Math.random() * 90000)}`;
+};
+
+/**
+ * Writes the derived stock fields onto a vehicle doc. `status` is only ever
+ * BOOKED when every unit is taken -- MAINTENANCE/INACTIVE are set by admins and
+ * are left untouched.
+ */
+export const applyStockState = (vehicleDoc, availableStock, totalStock) => {
+  const total = totalStock ?? vehicleDoc.totalStock ?? 1;
+  const available = Math.max(0, Math.min(total, availableStock));
+
+  vehicleDoc.availableStock = available;
+  if (available === 0) {
+    vehicleDoc.stockStatus = 'OUT_OF_STOCK';
+  } else if (available < 3) {
+    vehicleDoc.stockStatus = 'LOW_STOCK';
+  } else {
+    vehicleDoc.stockStatus = 'IN_STOCK';
+  }
+
+  if (!['MAINTENANCE', 'INACTIVE'].includes(vehicleDoc.status)) {
+    vehicleDoc.status = available === 0 ? 'BOOKED' : 'AVAILABLE';
+  }
+
+  return vehicleDoc;
+};
+
+/**
+ * Recomputes a vehicle's stock from the bookings that currently hold it, so the
+ * counter can never drift out of sync with reality.
+ */
+export const syncVehicleStock = async (vehicleId, session = null) => {
+  const query = Vehicle.findById(vehicleId);
+  if (session) query.session(session);
+  const vehicleDoc = await query;
+  if (!vehicleDoc) return null;
+
+  const countQuery = Booking.countDocuments({
+    vehicle: vehicleDoc._id,
+    status: { $in: ACTIVE_BOOKING_STATUSES },
+  });
+  if (session) countQuery.session(session);
+  const activeBookings = await countQuery;
+
+  const total = vehicleDoc.totalStock ?? 1;
+  applyStockState(vehicleDoc, total - activeBookings, total);
+  await vehicleDoc.save(session ? { session } : undefined);
+  return vehicleDoc;
 };
 
 export const reserveVehicle = async (userId, data) => {
@@ -55,25 +104,39 @@ export const reserveVehicle = async (userId, data) => {
       }
     }
 
-    // 2. Fetch Vehicle with Optimistic Locking Check & Update Available Stock
-    const vehicleDoc = await Vehicle.findOne({ _id: data.vehicleId, status: 'AVAILABLE' }).session(session);
+    // 2. Fetch the vehicle and check live availability.
+    //
+    // The gate used to be `findOne({ status: 'AVAILABLE' })`, but `status` is a
+    // single flag on a model that carries `totalStock` units. The first booking
+    // flipped it to RESERVED/BOOKED and it was only reset to AVAILABLE when a
+    // booking ended -- so a vehicle with 9 of 10 units free still rejected every
+    // new booking, while the listing APIs (which compute availability from live
+    // booking counts) happily advertised it as available. Only MAINTENANCE and
+    // INACTIVE are genuine "cannot be booked" states.
+    const vehicleDoc = await Vehicle.findOne({
+      _id: data.vehicleId,
+      deletedAt: null,
+      status: { $nin: ['MAINTENANCE', 'INACTIVE'] },
+    }).session(session);
 
-    if (!vehicleDoc || (vehicleDoc.availableStock !== undefined && vehicleDoc.availableStock <= 0)) {
-      throw new ConflictError('Vehicle is no longer available or out of stock');
+    if (!vehicleDoc) {
+      throw new ConflictError('Vehicle is not available for booking');
     }
 
-    const currentAvail = vehicleDoc.availableStock ?? 1;
-    const newAvailableStock = Math.max(0, currentAvail - 1);
-    let newStockStatus = 'IN_STOCK';
-    if (newAvailableStock === 0) {
-      newStockStatus = 'OUT_OF_STOCK';
-    } else if (newAvailableStock < 3) {
-      newStockStatus = 'LOW_STOCK';
+    // Single source of truth for availability, matching vehicles.service.js.
+    const activeBookings = await Booking.countDocuments({
+      vehicle: vehicleDoc._id,
+      status: { $in: ACTIVE_BOOKING_STATUSES },
+    }).session(session);
+
+    const totalStock = vehicleDoc.totalStock ?? 1;
+    const newAvailableStock = totalStock - activeBookings - 1; // -1 for the booking being made
+
+    if (newAvailableStock < 0) {
+      throw new ConflictError('Vehicle is fully booked for this period');
     }
 
-    vehicleDoc.status = 'RESERVED';
-    vehicleDoc.availableStock = newAvailableStock;
-    vehicleDoc.stockStatus = newStockStatus;
+    applyStockState(vehicleDoc, newAvailableStock, totalStock);
     vehicleDoc.__v_lock = (vehicleDoc.__v_lock || 0) + 1;
     await vehicleDoc.save({ session });
 
@@ -122,6 +185,7 @@ export const reserveVehicle = async (userId, data) => {
       endTime: data.endTime,
       pickupLocation: data.pickupLocation,
       batteryPackage: data.batteryPackage,
+      paymentMethod: data.paymentMethod || 'ONLINE',
       
       ...pricing,
 
@@ -191,7 +255,13 @@ export const reserveVehicle = async (userId, data) => {
       }, RESERVATION_TTL_MS);
     }
 
-    return populatedBooking || booking;
+    // The customer's app never reads kycDocuments back, and those three base64
+    // data URLs are several MB. Echoing them doubled the round trip on the slowest
+    // request in the whole booking flow, so they are dropped from the response only
+    // -- the socket/FCM payloads above still carry them for the admin console.
+    const response = (populatedBooking || booking).toObject();
+    delete response.kycDocuments;
+    return response;
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -458,7 +528,12 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
   session.startTransaction();
 
   try {
-    const booking = await Booking.findById(bookingId).populate('vehicle').session(session);
+    // Without -kycDocuments this pulls several MB of base64 on every transition.
+    // Mongoose only writes modified paths on save(), so the field is untouched.
+    const booking = await Booking.findById(bookingId)
+      .select('-kycDocuments')
+      .populate('vehicle')
+      .session(session);
 
     if (!booking) {
       throw new NotFoundError('Booking not found');
@@ -512,50 +587,6 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       booking.cancelledAt = now;
     }
 
-    // --- Vehicle state effects ---
-    const targetVehicleId = booking.vehicle?._id || booking.vehicle;
-    const targetVehicle = await Vehicle.findById(targetVehicleId).session(session);
-
-    if (targetVehicle) {
-      if (
-        newStatus === BOOKING_STATUS.RESERVATION_EXPIRED ||
-        newStatus === BOOKING_STATUS.CANCELLED_BY_USER ||
-        newStatus === BOOKING_STATUS.CANCELLED_BY_ADMIN ||
-        newStatus === BOOKING_STATUS.CANCELLED_BY_SYSTEM ||
-        newStatus === BOOKING_STATUS.PAYMENT_FAILED ||
-        newStatus === BOOKING_STATUS.COMPLETED
-      ) {
-        // Only an admin-verified return (or a dead booking) frees the vehicle.
-        const total = targetVehicle.totalStock ?? 1;
-        const currentAvail = targetVehicle.availableStock ?? 0;
-        const newAvailableStock = Math.min(total, currentAvail + 1);
-        let newStockStatus = 'IN_STOCK';
-        if (newAvailableStock === 0) {
-          newStockStatus = 'OUT_OF_STOCK';
-        } else if (newAvailableStock < 3) {
-          newStockStatus = 'LOW_STOCK';
-        }
-
-        targetVehicle.status = 'AVAILABLE';
-        targetVehicle.availableStock = newAvailableStock;
-        targetVehicle.stockStatus = newStockStatus;
-        await targetVehicle.save({ session });
-      } else if (newStatus === BOOKING_STATUS.CONFIRMED || IN_TRIP_STATUSES.includes(newStatus)) {
-        // Reserved -> booked, and it stays booked for the whole trip including
-        // PENDING_RETURN, because the vehicle is not confirmed back yet.
-        let newStockStatus = targetVehicle.stockStatus || 'IN_STOCK';
-        if ((targetVehicle.availableStock ?? 1) === 0) {
-          newStockStatus = 'OUT_OF_STOCK';
-        } else if ((targetVehicle.availableStock ?? 1) < 3) {
-          newStockStatus = 'LOW_STOCK';
-        }
-
-        targetVehicle.status = 'BOOKED';
-        targetVehicle.stockStatus = newStockStatus;
-        await targetVehicle.save({ session });
-      }
-    }
-
     booking.statusHistory.push({
       status: newStatus,
       at: now,
@@ -563,11 +594,24 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       note: options.note || options.notes || null,
     });
 
+    // Save the booking first so the stock recount below sees its new status.
     await booking.save({ session });
+
+    // --- Vehicle state effects ---
+    // Recomputed from the bookings that actually hold the vehicle rather than
+    // incremented/decremented by hand: the old +1/-1 arithmetic drifted whenever
+    // a transition was missed, and it pinned `status` to BOOKED even when other
+    // units were still free, which made the vehicle unbookable for everyone.
+    const targetVehicleId = booking.vehicle?._id || booking.vehicle;
+    await syncVehicleStock(targetVehicleId, session);
+
     await session.commitTransaction();
 
     // Populate updated booking for notifications
+    // The admin console merges socket updates with `{ ...row, ...payload }`, so an
+    // absent kycDocuments key leaves the row's existing images in place.
     const updatedBooking = await Booking.findById(booking._id)
+      .select('-kycDocuments')
       .populate({
         path: 'vehicle',
         populate: { path: 'zone' }

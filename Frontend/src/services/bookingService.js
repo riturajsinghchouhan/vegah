@@ -28,6 +28,7 @@ export const bookingService = {
       endTime: payload.endTime,
       pickupLocation: payload.pickupLocation || 'Default Hub',
       batteryPackage: payload.batteryPackage ? payload.batteryPackage.toUpperCase() : 'SINGLE',
+      paymentMethod: payload.paymentMethod || 'ONLINE',
       couponCode: payload.couponCode || undefined,
       aadharFile: payload.aadharFile?.dataUrl || payload.aadharFile || undefined,
       licenseFile: payload.licenseFile?.dataUrl || payload.licenseFile || undefined,
@@ -61,6 +62,13 @@ export const bookingService = {
 
   async payWithWallet(bookingId) {
     const response = await api.post('/payments/pay-with-wallet', { bookingId });
+    return response.data.data;
+  },
+
+  // Cash is collected at the hub, but the booking still has to leave RESERVED or
+  // the server's 15-minute reservation TTL expires it.
+  async payWithCash(bookingId) {
+    const response = await api.post('/payments/pay-with-cash', { bookingId });
     return response.data.data;
   },
 

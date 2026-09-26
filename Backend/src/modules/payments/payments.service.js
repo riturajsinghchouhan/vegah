@@ -9,6 +9,14 @@ import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { handleStatusTransition } from '../bookings/bookings.service.js';
 import { BOOKING_STATUS } from '../bookings/bookings.constants.js';
 
+// Booking states that still accept a payment attempt.
+const PAYABLE_BOOKING_STATUSES = [
+  BOOKING_STATUS.RESERVED,
+  BOOKING_STATUS.PENDING_VERIFICATION,
+  BOOKING_STATUS.PAYMENT_INITIATED,
+  BOOKING_STATUS.PAYMENT_FAILED,
+];
+
 const getRazorpayInstance = () => {
   if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
     return null;
@@ -20,19 +28,14 @@ const getRazorpayInstance = () => {
 };
 
 export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
-  const booking = await Booking.findById(bookingId);
+  const booking = await Booking.findById(bookingId).select('-kycDocuments');
   if (!booking) throw new NotFoundError('Booking not found');
 
   if (booking.user.toString() !== userId) {
     throw new BadRequestError('Unauthorized access to this booking');
   }
 
-  if (
-    booking.status !== BOOKING_STATUS.RESERVED &&
-    booking.status !== BOOKING_STATUS.PENDING_VERIFICATION &&
-    booking.status !== BOOKING_STATUS.PAYMENT_INITIATED &&
-    booking.status !== BOOKING_STATUS.PAYMENT_FAILED
-  ) {
+  if (!PAYABLE_BOOKING_STATUSES.includes(booking.status)) {
     throw new BadRequestError(`Cannot initiate payment for a booking with status: ${booking.status}`);
   }
 
@@ -77,7 +80,7 @@ export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
 };
 
 export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature, method }) => {
-  const booking = await Booking.findById(bookingId);
+  const booking = await Booking.findById(bookingId).select('-kycDocuments');
   if (!booking) throw new NotFoundError('Booking not found');
 
   const paymentQuery = razorpayOrderId 
@@ -121,20 +124,52 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
   return { payment, booking: updatedBooking };
 };
 
-export const payWithWallet = async (bookingId, userId) => {
-  const booking = await Booking.findById(bookingId);
+/**
+ * "Pay with Cash" -- money changes hands at the hub, but the booking still has to
+ * leave RESERVED or the 15-minute reservation TTL quietly expires it. This records
+ * a PENDING cash payment and moves the booking into the same PENDING_VERIFICATION
+ * queue the online and wallet flows use, so an admin can approve it.
+ */
+export const payWithCash = async (bookingId, userId) => {
+  const booking = await Booking.findById(bookingId).select('-kycDocuments');
   if (!booking) throw new NotFoundError('Booking not found');
 
   if (booking.user.toString() !== userId) {
     throw new BadRequestError('Unauthorized access to this booking');
   }
 
-  if (
-    booking.status !== BOOKING_STATUS.RESERVED &&
-    booking.status !== BOOKING_STATUS.PENDING_VERIFICATION &&
-    booking.status !== BOOKING_STATUS.PAYMENT_INITIATED &&
-    booking.status !== BOOKING_STATUS.PAYMENT_FAILED
-  ) {
+  if (!PAYABLE_BOOKING_STATUSES.includes(booking.status)) {
+    throw new BadRequestError(`Cannot pay for a booking with status: ${booking.status}`);
+  }
+
+  const existing = await Payment.findOne({ booking: booking._id, method: 'CASH', status: 'PENDING' });
+  const payment = existing || await Payment.create({
+    booking: booking._id,
+    amount: booking.totalAmount,
+    method: 'CASH',
+    status: 'PENDING', // settled by the admin at handover
+    idempotencyKey: `pay-cash-${booking._id}`,
+  });
+
+  booking.paymentMethod = 'CASH';
+  await booking.save();
+
+  const updatedBooking = booking.status === BOOKING_STATUS.PENDING_VERIFICATION
+    ? booking
+    : await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);
+
+  return { payment, booking: updatedBooking };
+};
+
+export const payWithWallet = async (bookingId, userId) => {
+  const booking = await Booking.findById(bookingId).select('-kycDocuments');
+  if (!booking) throw new NotFoundError('Booking not found');
+
+  if (booking.user.toString() !== userId) {
+    throw new BadRequestError('Unauthorized access to this booking');
+  }
+
+  if (!PAYABLE_BOOKING_STATUSES.includes(booking.status)) {
     throw new BadRequestError(`Cannot pay for a booking with status: ${booking.status}`);
   }
 

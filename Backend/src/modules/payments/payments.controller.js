@@ -21,6 +21,17 @@ export const verifyPayment = async (req, res, next) => {
   }
 };
 
+export const payWithCash = async (req, res, next) => {
+  try {
+    const { bookingId } = req.body;
+    const userId = (req.user.id || req.user._id).toString();
+    const result = await paymentsService.payWithCash(bookingId, userId);
+    sendSuccess(res, 200, 'Cash payment selected. Pay at the hub during pickup.', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const payWithWallet = async (req, res, next) => {
   try {
     const { bookingId } = req.body;
