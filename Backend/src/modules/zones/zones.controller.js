@@ -49,11 +49,12 @@ export const deleteZone = async (req, res, next) => {
 // Public version — returns id, name, address and location coordinates for user-facing pages
 export const listZonesPublic = async (req, res, next) => {
   try {
-    const result = await zonesService.listZones({ limit: 100 });
+    const result = await zonesService.listZones({ limit: 100, status: 'ACTIVE' });
     const publicZones = result.zones.map(z => ({
       _id: z._id,
       name: z.name,
-      address: z.address,
+      subtitle: z.subtitle || '',
+      address: z.address || z.pickupLocation?.address || '',
       pickupLocation: z.pickupLocation || null,
       dropLocation: z.dropLocation || null,
     }));

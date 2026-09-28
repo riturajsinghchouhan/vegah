@@ -74,6 +74,7 @@ import { BATTERY_PACKAGES } from './modules/bookings/bookings.constants.js';
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/admin/categories', categoriesRoutes);
+app.use('/api/zones', zonesRoutes);
 app.use('/api/admin/zones', zonesRoutes);
 app.use('/api/admin/inventory', inventoryRoutes);
 app.use('/api/admin/inspections', inspectionsRoutes);
