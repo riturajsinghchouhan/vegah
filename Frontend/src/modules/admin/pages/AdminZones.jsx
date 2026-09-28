@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import Pagination from '@/shared/components/ui/Pagination';
 import { MapPin, Map, Plus, Eye, Edit3, Trash2, Power, Search, Bike } from 'lucide-react';
 import { adminService } from '../services/adminService';
 
@@ -13,34 +14,57 @@ export default function AdminZones() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchZones = async () => {
-      try {
-        setLoading(true);
-        const data = await adminService.getZones();
-        
-        // Map backend data to frontend format
-        const mappedZones = data.map(z => ({
-          id: z._id,
-          name: z.name,
-          subtitle: z.subtitle || z.city || '',
-          unit: 'kilometer',
-          status: z.isActive ? 'Active' : 'Inactive',
-          totalScooties: z.vehicleCount || 0,
-          availableScooties: z.vehicleCount || 0, // Mock available until inventory merges
-          pickupLocation: z.pickupLocation?.address || 'Not Set',
-          dropLocation: z.dropLocation?.address || 'Not Set',
-        }));
-        setZones(mappedZones);
-      } catch (error) {
-        console.error("Failed to load zones", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
+  const fetchZones = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page,
+        limit: pageSize,
+        search: searchTerm || undefined,
+      };
+      const res = await adminService.getZones(params);
+      const data = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      const meta = res?.meta || {};
+      
+      const mappedZones = data.map(z => ({
+        id: z._id,
+        name: z.name,
+        subtitle: z.subtitle || z.city || '',
+        unit: 'kilometer',
+        status: z.isActive ? 'Active' : 'Inactive',
+        totalScooties: z.vehicleCount || 0,
+        availableScooties: z.vehicleCount || 0,
+        pickupLocation: z.pickupLocation?.address || 'Not Set',
+        dropLocation: z.dropLocation?.address || 'Not Set',
+      }));
+      setZones(mappedZones);
+      setTotal(meta.total ?? mappedZones.length);
+      setTotalPages(meta.totalPages ?? (Math.ceil((meta.total ?? mappedZones.length) / pageSize) || 1));
+    } catch (error) {
+      console.error("Failed to load zones", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchZones();
-  }, []);
+  }, [page, pageSize]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchZones();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleToggleStatus = async (zoneId, currentStatus) => {
     try {
@@ -119,92 +143,107 @@ export default function AdminZones() {
 
       {/* Grid of Cards */}
       {loading ? (
-        <div className="p-8 text-center text-gray-500">Loading zones...</div>
-      ) : filteredZones.length === 0 ? (
+        <div className="p-8 text-center text-gray-500 font-medium">Loading zones...</div>
+      ) : zones.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500">
-          No zones found. Click "Add Zone" to create one!
+          No zones found matching your search. Click "Add Zone" to create one!
         </div>
       ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredZones.map((zone) => (
-          <div key={zone.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-            
-            {/* Card Header */}
-            <div className="p-5 pb-0 flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 leading-tight">{zone.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{zone.subtitle}</p>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {zones.map((zone) => (
+            <div key={zone.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+              
+              {/* Card Header */}
+              <div className="p-5 pb-0 flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight">{zone.name}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{zone.subtitle}</p>
+                </div>
+                <div className="flex items-center gap-3 text-gray-400">
+                  <button 
+                    className="hover:text-blue-600 transition-colors"
+                    onClick={() => setSelectedZone(zone)}
+                    title="View Zone"
+                  >
+                    <Eye size={18} strokeWidth={2.5} />
+                  </button>
+                  <button 
+                    className="hover:text-green-600 transition-colors"
+                    onClick={() => navigate(`/admin/zones/${zone.id}`)}
+                    title="Edit Zone"
+                  >
+                    <Edit3 size={18} strokeWidth={2.5} />
+                  </button>
+                  <button 
+                    className="hover:text-red-600 transition-colors"
+                    onClick={() => handleDeleteZone(zone.id)}
+                    title="Delete Zone"
+                  >
+                    <Trash2 size={18} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-gray-400">
-                <button 
-                  className="hover:text-blue-600 transition-colors"
-                  onClick={() => setSelectedZone(zone)}
-                  title="View Zone"
-                >
-                  <Eye size={18} strokeWidth={2.5} />
-                </button>
-                <button 
-                  className="hover:text-green-600 transition-colors"
-                  onClick={() => navigate(`/admin/zones/${zone.id}`)}
-                  title="Edit Zone"
-                >
-                  <Edit3 size={18} strokeWidth={2.5} />
-                </button>
-                <button 
-                  className="hover:text-red-600 transition-colors"
-                  onClick={() => handleDeleteZone(zone.id)}
-                  title="Delete Zone"
-                >
-                  <Trash2 size={18} strokeWidth={2.5} />
-                </button>
-              </div>
-            </div>
 
-            {/* Card Body */}
-            <div className="p-5 space-y-4 flex-1">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Pickup:</span>
-                <span className="font-medium text-gray-900 text-right truncate w-40" title={zone.pickupLocation}>{zone.pickupLocation}</span>
+              {/* Card Body */}
+              <div className="p-5 space-y-4 flex-1">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Pickup:</span>
+                  <span className="font-medium text-gray-900 text-right truncate w-40" title={zone.pickupLocation}>{zone.pickupLocation}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Drop:</span>
+                  <span className="font-medium text-gray-900 text-right truncate w-40" title={zone.dropLocation}>{zone.dropLocation}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Status:</span>
+                  <StatusBadge status={zone.status} />
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Total Scooties:</span>
+                  <span className="font-semibold text-gray-900">{zone.totalScooties}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Available:</span>
+                  <span className="font-semibold text-gray-900">{zone.availableScooties}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Drop:</span>
-                <span className="font-medium text-gray-900 text-right truncate w-40" title={zone.dropLocation}>{zone.dropLocation}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Status:</span>
-                <StatusBadge status={zone.status} />
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Total Scooties:</span>
-                <span className="font-semibold text-gray-900">{zone.totalScooties}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Available:</span>
-                <span className="font-semibold text-gray-900">{zone.availableScooties}</span>
-              </div>
-            </div>
 
-            {/* Card Footer (Action) */}
-            <div className="p-5 pt-0">
-              {zone.status === 'Active' ? (
-                <button 
-                  onClick={() => handleToggleStatus(zone.id, zone.status)}
-                  className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors"
-                >
-                  <Power size={18} /> Deactivate Zone
-                </button>
-              ) : (
-                <button 
-                  onClick={() => handleToggleStatus(zone.id, zone.status)}
-                  className="w-full flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 font-medium py-2.5 rounded-lg transition-colors"
-                >
-                  <Power size={18} /> Activate Zone
-                </button>
-              )}
+              {/* Card Footer (Action) */}
+              <div className="p-5 pt-0">
+                {zone.status === 'Active' ? (
+                  <button 
+                    onClick={() => handleToggleStatus(zone.id, zone.status)}
+                    className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors"
+                  >
+                    <Power size={18} /> Deactivate Zone
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => handleToggleStatus(zone.id, zone.status)}
+                    className="w-full flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 font-medium py-2.5 rounded-lg transition-colors"
+                  >
+                    <Power size={18} /> Activate Zone
+                  </button>
+                )}
+              </div>
+              
             </div>
-            
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* Pagination Bar */}
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            loading={loading}
+          />
+        </div>
       </div>
       )}
 

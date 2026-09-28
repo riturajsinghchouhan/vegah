@@ -18,7 +18,8 @@ export const adminService = {
   // --- Zones ---
   async getZones(params = {}) {
     const res = await adminApi.get('/admin/zones', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.zones || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getZoneById(id) {
     const res = await adminApi.get(`/admin/zones/${id}`);
@@ -40,7 +41,8 @@ export const adminService = {
   // --- Categories ---
   async getCategories(params = {}) {
     const res = await adminApi.get('/admin/categories', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.categories || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getCategoryById(id) {
     const res = await adminApi.get(`/admin/categories/${id}`);
@@ -61,9 +63,9 @@ export const adminService = {
 
   // --- Vehicles ---
   async getVehicles(params = {}) {
-    // Admin uses standard vehicle GET with optional params
     const res = await adminApi.get('/vehicles', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.vehicles || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getVehicleById(id) {
     const res = await adminApi.get(`/vehicles/${id}`);
@@ -99,7 +101,8 @@ export const adminService = {
   // --- Inspections ---
   async getInspections(params = {}) {
     const res = await adminApi.get('/admin/inspections', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.inspections || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getInspectionById(id) {
     const res = await adminApi.get(`/admin/inspections/${id}`);
@@ -117,7 +120,8 @@ export const adminService = {
   // --- Users ---
   async getUsers(params = {}) {
     const res = await adminApi.get('/users', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.users || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getUserById(id) {
     const res = await adminApi.get(`/users/${id}`);
@@ -134,9 +138,9 @@ export const adminService = {
 
   // --- Bookings ---
   async getBookings(params = {}) {
-    // Calling GET /bookings as an Admin returns ALL bookings in our backend
-    const res = await adminApi.get('/bookings', { params: { limit: 100, ...params } });
-    return res.data.data;
+    const res = await adminApi.get('/bookings', { params: { limit: 20, ...params } });
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.bookings || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getBookingById(id) {
     const res = await adminApi.get(`/bookings/${id}`);
@@ -168,7 +172,8 @@ export const adminService = {
   // --- Coupons ---
   async getCoupons(params = {}) {
     const res = await adminApi.get('/coupons/admin', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.coupons || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async createCoupon(data) {
     const res = await adminApi.post('/coupons/admin', data);
@@ -198,7 +203,8 @@ export const adminService = {
   },
   async getCustomerWallets(params = {}) {
     const res = await adminApi.get('/wallet/admin/customers', { params });
-    return res.data.data;
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.transactions || []);
+    return { items, data: items, summary: res.data.data?.summary || {}, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async adjustCustomerWallet(payload) {
     const res = await adminApi.post('/wallet/admin/adjust', payload);

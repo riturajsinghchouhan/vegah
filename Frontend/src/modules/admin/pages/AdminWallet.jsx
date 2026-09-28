@@ -3,6 +3,7 @@ import { Plus, Minus, Search, Loader2, Check, X, Wallet, Users, ArrowUpRight, Ar
 import { adminService } from "../services/adminService";
 import Modal from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
+import Pagination from "@/shared/components/ui/Pagination";
 
 export default function AdminWallet() {
   const [activeTab, setActiveTab] = useState("Customers");
@@ -12,6 +13,12 @@ export default function AdminWallet() {
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Modal State for Add/Deduct Funds
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -28,8 +35,13 @@ export default function AdminWallet() {
       setTransactions(summaryRes.transactions || []);
 
       if (activeTab === "Customers") {
-        const custRes = await adminService.getCustomerWallets({ search: searchTerm });
-        setCustomerWallets(custRes || []);
+        const custRes = await adminService.getCustomerWallets({ search: searchTerm || undefined, page, limit: pageSize });
+        const items = custRes?.data || custRes?.items || (Array.isArray(custRes) ? custRes : []);
+        const meta = custRes?.meta || {};
+        
+        setCustomerWallets(items);
+        setTotal(meta.total ?? items.length);
+        setTotalPages(meta.totalPages || meta.pages || Math.ceil((meta.total ?? items.length) / pageSize) || 1);
       } else if (activeTab === "Refunds") {
         const refundRes = await adminService.getRefunds();
         setRefunds(refundRes || []);
@@ -43,7 +55,7 @@ export default function AdminWallet() {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, page, pageSize]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -267,6 +279,17 @@ export default function AdminWallet() {
                     )}
                   </tbody>
                 </table>
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  <Pagination 
+                    page={page}
+                    totalPages={totalPages}
+                    total={total}
+                    pageSize={pageSize}
+                    onPageChange={(p) => setPage(p)}
+                    onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+                    loading={loading}
+                  />
+                </div>
               </div>
             )}
 

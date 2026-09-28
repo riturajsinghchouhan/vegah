@@ -5,6 +5,7 @@ import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import Pagination from '@/shared/components/ui/Pagination';
 import { adminService } from '../services/adminService';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
@@ -52,6 +53,7 @@ export default function AdminBookings() {
     try {
       setLoading(true);
       const params = Object.fromEntries(searchParams.entries());
+      delete params.ops;
       const data = await adminService.getBookings(params);
       const bookingList = Array.isArray(data) ? data : (data?.bookings || []);
       setBookings(bookingList);
@@ -409,13 +411,14 @@ export default function AdminBookings() {
       ) : activeTab === 'live' ? (
         <LiveRentalsTable
           allBookings={bookings}
+          ops={ops}
           onConfirmReturn={handleConfirmReturn}
           onRejectReturn={handleRejectReturn}
           actionLoading={actionLoading}
         />
       ) : activeTab === 'cancelled' ? (
         <AllBookingsTable
-          allBookings={bookings}
+          allBookings={bookings.filter(b => ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED'].includes(b.status))}
           onApprove={handleApproveBooking}
           onReject={handleRejectBooking}
           onConfirmPickup={handleConfirmPickup}
@@ -439,6 +442,8 @@ export default function AdminBookings() {
 function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const formattedBookings = allBookings.map(b => ({
     raw: b,
@@ -464,6 +469,8 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
     r.user.phone.includes(searchTerm) ||
     r.scooty.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const paginatedList = searchFiltered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-4">
@@ -491,7 +498,7 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {searchFiltered.map((item) => {
+            {paginatedList.map((item) => {
               const bId = item.raw._id || item.raw.id;
               const isNeedsApproval = item.status === 'RESERVED' || item.status === 'PENDING_VERIFICATION' || item.status === 'PAYMENT_INITIATED';
               const isAwaitingHandover = item.status === 'CONFIRMED';
@@ -596,6 +603,16 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
             )}
           </tbody>
         </table>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <Pagination 
+            page={page}
+            totalPages={Math.ceil(searchFiltered.length / pageSize) || 1}
+            total={searchFiltered.length}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+          />
+        </div>
       </div>
 
       <Modal 
@@ -680,15 +697,23 @@ const fmtDateTime = (value) => {
 };
 
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ allBookings, onConfirmReturn, onRejectReturn, actionLoading }) {
+function LiveRentalsTable({ allBookings, ops, onConfirmReturn, onRejectReturn, actionLoading }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   // A booking awaiting return verification is still a live rental - the EV is
   // not back in the fleet until an admin confirms it.
-  const liveBookings = allBookings.filter(b =>
+  const rawLive = allBookings.filter(b =>
     ['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(b.status)
-  ).map(b => ({
+  );
+
+  const filteredRaw = ops === 'late'
+    ? rawLive.filter(b => b.status === 'OVERDUE')
+    : ops === 'returns'
+    ? rawLive.filter(b => b.status === 'PENDING_RETURN')
+    : rawLive;
+
+  const liveBookings = filteredRaw.map(b => ({
     raw: b,
     id: b.bookingId || (typeof b._id === 'string' ? b._id.substring(0, 12).toUpperCase() : 'EVR-NEW'),
     user: { name: b.user?.fullName || 'Unknown', phone: b.user?.phone || 'Unknown' },

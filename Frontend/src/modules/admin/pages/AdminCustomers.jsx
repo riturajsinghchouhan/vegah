@@ -4,53 +4,73 @@ import PageHeader from '@/shared/components/admin/PageHeader';
 import { Search, ChevronRight, Ban, CheckCircle, Eye, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import Pagination from '@/shared/components/ui/Pagination';
 import AdminCustomerDetails from './AdminCustomerDetails';
 import { adminService } from '../services/adminService';
 
 export default function AdminCustomers() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const data = await adminService.getUsers();
-        
-        const mappedUsers = data.map(u => ({
-          id: u._id,
-          name: u.fullName,
-          email: u.email,
-          phone: u.phone,
-          totalBookings: u.stats?.totalBookings || 0,
-          activeRental: u.stats?.activeBookings > 0,
-          totalSpent: `₹ ${u.stats?.totalSpent || 0}`,
-          walletBalance: `₹ ${u.walletBalance || 0}`,
-          regDate: new Date(u.createdAt).toLocaleDateString(),
-          status: u.isBlocked ? 'Blocked' : 'Active',
-          avatar: u.avatarUrl || ''
-        }));
-        
-        setCustomers(mappedUsers);
-      } catch (error) {
-        console.error("Failed to load customers", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUsers();
-  }, []);
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const filtered = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone.includes(searchTerm) ||
-    c.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page,
+        limit: pageSize,
+        search: searchTerm || undefined,
+        isBlocked: statusFilter === 'blocked' ? true : statusFilter === 'active' ? false : undefined,
+      };
+      const res = await adminService.getUsers(params);
+      const data = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      const meta = res?.meta || {};
+      
+      const mappedUsers = data.map(u => ({
+        id: u._id,
+        name: u.fullName || 'User',
+        email: u.email || '-',
+        phone: u.phone || '-',
+        totalBookings: u.stats?.totalBookings || 0,
+        activeRental: u.stats?.activeBookings > 0,
+        totalSpent: `₹ ${u.stats?.totalSpent || 0}`,
+        walletBalance: `₹ ${u.walletBalance || 0}`,
+        regDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-',
+        status: u.isBlocked ? 'Blocked' : 'Active',
+        avatar: u.avatarUrl || ''
+      }));
+      
+      setCustomers(mappedUsers);
+      setTotal(meta.total ?? mappedUsers.length);
+      setTotalPages(meta.totalPages ?? (Math.ceil((meta.total ?? mappedUsers.length) / pageSize) || 1));
+    } catch (error) {
+      console.error("Failed to load customers", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [page, pageSize, statusFilter]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchUsers();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6 pb-8 max-w-[1600px] mx-auto">
@@ -72,22 +92,21 @@ export default function AdminCustomers() {
           />
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <select className="border border-gray-200 text-sm rounded-lg py-2 px-3 bg-gray-50 text-gray-700 outline-none">
+          <select 
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="border border-gray-200 text-sm rounded-lg py-2 px-3 bg-gray-50 text-gray-700 outline-none"
+          >
             <option value="all">All Status</option>
             <option value="active">Active Only</option>
             <option value="blocked">Blocked Only</option>
-          </select>
-          <select className="border border-gray-200 text-sm rounded-lg py-2 px-3 bg-gray-50 text-gray-700 outline-none">
-            <option value="recent">Most Recent</option>
-            <option value="spent">Highest Spenders</option>
-            <option value="bookings">Most Bookings</option>
           </select>
         </div>
       </div>
 
       {/* Customers Table */}
       {loading ? (
-        <div className="p-8 text-center text-gray-500">Loading customers...</div>
+        <div className="p-8 text-center text-gray-500 font-medium">Loading customers...</div>
       ) : (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -105,7 +124,7 @@ export default function AdminCustomers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((customer) => (
+              {customers.map((customer) => (
                 <tr 
                   key={customer.id} 
                   className="hover:bg-blue-50/30 transition-colors"
@@ -183,7 +202,6 @@ export default function AdminCustomers() {
                             } else {
                               await adminService.unblockUser(customer.id);
                             }
-                            // Optimistically update the list
                             setCustomers(prev => prev.map(c => 
                               c.id === customer.id ? { ...c, status: c.status === 'Active' ? 'Blocked' : 'Active' } : c
                             ));
@@ -199,15 +217,28 @@ export default function AdminCustomers() {
                 </tr>
               ))}
               
-              {filtered.length === 0 && (
+              {customers.length === 0 && (
                 <tr>
                   <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                    No customers found for "{searchTerm}".
+                    No customers found.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+        
+        {/* Pagination Bar */}
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <Pagination 
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            loading={loading}
+          />
         </div>
       </div>
       )}

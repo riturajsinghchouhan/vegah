@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
+import Pagination from '@/shared/components/ui/Pagination';
 import { Search, ChevronRight, CheckCircle, AlertTriangle, Wrench, RefreshCw } from 'lucide-react';
 import { adminService } from '../services/adminService';
 
@@ -10,21 +11,41 @@ export default function AdminInspections() {
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchInspections();
-  }, [searchTerm]);
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchInspections = async () => {
     try {
       setLoading(true);
-      const data = await adminService.getInspections({ search: searchTerm });
-      setInspections(data || []);
+      const res = await adminService.getInspections({ search: searchTerm || undefined, page, limit: pageSize });
+      const items = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      const meta = res?.meta || {};
+      
+      setInspections(items);
+      setTotal(meta.total ?? items.length);
+      setTotalPages(meta.totalPages || meta.pages || Math.ceil((meta.total ?? items.length) / pageSize) || 1);
     } catch (error) {
       console.error("Failed to load inspections", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInspections();
+  }, [page, pageSize]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchInspections();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6 pb-8 max-w-6xl mx-auto">
@@ -106,6 +127,18 @@ export default function AdminInspections() {
             )}
           </tbody>
         </table>
+        
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+          <Pagination 
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   );

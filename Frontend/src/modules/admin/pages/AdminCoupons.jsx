@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Filter, Trash2, Power, PowerOff, X, Loader2 } from "lucide-react";
+import Pagination from "@/shared/components/ui/Pagination";
 import { adminService } from "../services/adminService";
 
 export default function AdminCoupons() {
@@ -8,6 +9,12 @@ export default function AdminCoupons() {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [formData, setFormData] = useState({
     code: "",
@@ -23,8 +30,13 @@ export default function AdminCoupons() {
   const fetchCoupons = async () => {
     try {
       setLoading(true);
-      const res = await adminService.getCoupons({ search });
-      setCoupons(res || []);
+      const res = await adminService.getCoupons({ search: search || undefined, page, limit: pageSize });
+      const items = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      const meta = res?.meta || {};
+      
+      setCoupons(items);
+      setTotal(meta.total ?? items.length);
+      setTotalPages(meta.totalPages || meta.pages || Math.ceil((meta.total ?? items.length) / pageSize) || 1);
     } catch (err) {
       console.error("Error fetching coupons:", err);
     } finally {
@@ -34,6 +46,15 @@ export default function AdminCoupons() {
 
   useEffect(() => {
     fetchCoupons();
+  }, [page, pageSize]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchCoupons();
+    }, 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const toggleStatus = async (id) => {
@@ -124,70 +145,84 @@ export default function AdminCoupons() {
               <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading coupons...
             </div>
           ) : (
-            <table className="w-full text-left border-collapse min-w-[1200px] relative">
-              <thead className="sticky top-0 z-10 shadow-sm">
-                <tr className="bg-gray-800 text-sm text-white">
-                  <th className="py-4 px-6 font-medium">Code</th>
-                  <th className="py-4 px-6 font-medium">Type</th>
-                  <th className="py-4 px-6 font-medium">Value</th>
-                  <th className="py-4 px-6 font-medium">Min Booking</th>
-                  <th className="py-4 px-6 font-medium">Max Discount</th>
-                  <th className="py-4 px-6 font-medium">Used</th>
-                  <th className="py-4 px-6 font-medium">Validity</th>
-                  <th className="py-4 px-6 font-medium">Status</th>
-                  <th className="py-4 px-6 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {coupons.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="text-center py-8 text-gray-500">No coupons found</td>
+            <>
+              <table className="w-full text-left border-collapse min-w-[1200px] relative">
+                <thead className="sticky top-0 z-10 shadow-sm">
+                  <tr className="bg-gray-800 text-sm text-white">
+                    <th className="py-4 px-6 font-medium">Code</th>
+                    <th className="py-4 px-6 font-medium">Type</th>
+                    <th className="py-4 px-6 font-medium">Value</th>
+                    <th className="py-4 px-6 font-medium">Min Booking</th>
+                    <th className="py-4 px-6 font-medium">Max Discount</th>
+                    <th className="py-4 px-6 font-medium">Used</th>
+                    <th className="py-4 px-6 font-medium">Validity</th>
+                    <th className="py-4 px-6 font-medium">Status</th>
+                    <th className="py-4 px-6 font-medium text-right">Actions</th>
                   </tr>
-                ) : (
-                  coupons.map((coupon) => (
-                    <tr key={coupon._id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                      <td className="py-4 px-6 font-semibold text-blue-600">{coupon.code}</td>
-                      <td className="py-4 px-6 text-gray-700">{coupon.type}</td>
-                      <td className="py-4 px-6 font-medium text-gray-900">
-                        {coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : `₹${coupon.value}`}
-                      </td>
-                      <td className="py-4 px-6 text-gray-600">₹{coupon.minBookingAmount || 0}</td>
-                      <td className="py-4 px-6 text-gray-600">{coupon.maxDiscountAmount ? `₹${coupon.maxDiscountAmount}` : 'N/A'}</td>
-                      <td className="py-4 px-6 font-medium text-gray-900">{coupon.usedCount || 0}</td>
-                      <td className="py-4 px-6 text-gray-500 text-xs">
-                        <div>{new Date(coupon.startDate).toLocaleDateString()}</div>
-                        <div className="text-gray-400">to {new Date(coupon.expiryDate).toLocaleDateString()}</div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                          coupon.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'
-                        }`}>
-                          {coupon.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => toggleStatus(coupon._id)}
-                            className={`p-1.5 rounded-lg transition-colors ${coupon.status === 'ACTIVE' ? 'text-orange-500 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
-                            title={coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                          >
-                            {coupon.status === 'ACTIVE' ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(coupon._id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+                </thead>
+                <tbody className="text-sm">
+                  {coupons.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" className="text-center py-8 text-gray-500">No coupons found</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    coupons.map((coupon) => (
+                      <tr key={coupon._id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                        <td className="py-4 px-6 font-semibold text-blue-600">{coupon.code}</td>
+                        <td className="py-4 px-6 text-gray-700">{coupon.type}</td>
+                        <td className="py-4 px-6 font-medium text-gray-900">
+                          {coupon.type === 'PERCENTAGE' ? `${coupon.value}%` : `₹${coupon.value}`}
+                        </td>
+                        <td className="py-4 px-6 text-gray-600">₹{coupon.minBookingAmount || 0}</td>
+                        <td className="py-4 px-6 text-gray-600">{coupon.maxDiscountAmount ? `₹${coupon.maxDiscountAmount}` : 'N/A'}</td>
+                        <td className="py-4 px-6 font-medium text-gray-900">{coupon.usedCount || 0}</td>
+                        <td className="py-4 px-6 text-gray-500 text-xs">
+                          <div>{new Date(coupon.startDate).toLocaleDateString()}</div>
+                          <div className="text-gray-400">to {new Date(coupon.expiryDate).toLocaleDateString()}</div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                            coupon.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'
+                          }`}>
+                            {coupon.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => toggleStatus(coupon._id)}
+                              className={`p-1.5 rounded-lg transition-colors ${coupon.status === 'ACTIVE' ? 'text-orange-500 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                              title={coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                            >
+                              {coupon.status === 'ACTIVE' ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(coupon._id)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                <Pagination 
+                  page={page}
+                  totalPages={totalPages}
+                  total={total}
+                  pageSize={pageSize}
+                  onPageChange={(p) => setPage(p)}
+                  onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+                  loading={loading}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>

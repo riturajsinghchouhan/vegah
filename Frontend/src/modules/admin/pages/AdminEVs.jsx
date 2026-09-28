@@ -4,6 +4,7 @@ import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
+import Pagination from '@/shared/components/ui/Pagination';
 import { PlusIcon as Plus, EyeIcon as Eye, SquarePenIcon as Edit3, ArchiveIcon as Trash2, SearchIcon as Search, BatteryIcon as Battery, MapPinIcon as MapPin, BookmarkIcon as Tag, LayersIcon as Layers } from 'lucide-animated';
 import { cn } from '@/lib/utils';
 import { adminService } from '../services/adminService';
@@ -18,14 +19,24 @@ export default function AdminEVs() {
   const [selectedScooty, setSelectedScooty] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchVehicles();
-  }, []);
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const data = await adminService.getVehicles();
+      const params = {
+        page,
+        limit: pageSize,
+        search: searchTerm || undefined,
+        status: activeFilter !== 'All' ? activeFilter.toUpperCase() : undefined,
+      };
+      const res = await adminService.getVehicles(params);
+      const data = res?.data || res?.items || (Array.isArray(res) ? res : []);
+      const meta = res?.meta || {};
       
       const mappedVehicles = (data || []).map(v => ({
         id: v._id,
@@ -53,12 +64,27 @@ export default function AdminEVs() {
       }));
       
       setScooties(mappedVehicles);
+      setTotal(meta.total ?? mappedVehicles.length);
+      setTotalPages(meta.totalPages ?? (Math.ceil((meta.total ?? mappedVehicles.length) / pageSize) || 1));
     } catch (error) {
       console.error("Failed to load vehicles", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [page, pageSize, activeFilter]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchVehicles();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleDeleteVehicle = async (id) => {
     if (!window.confirm("Are you sure you want to delete this EV from fleet?")) return;
@@ -135,7 +161,7 @@ export default function AdminEVs() {
         <div className="p-8 text-center text-gray-500">Loading fleet...</div>
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredScooties.map((scooty) => (
+        {scooties.map((scooty) => (
           <div key={scooty.id} className="bg-indigo-50/30 rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col">
             
             {/* Image Section */}
@@ -245,13 +271,26 @@ export default function AdminEVs() {
           </div>
         ))}
         
-        {filteredScooties.length === 0 && (
-          <div className="col-span-full py-12 text-center text-gray-500">
-            No scooties found matching your current filters.
+        {scooties.length === 0 && (
+          <div className="col-span-full py-12 text-center text-gray-500 font-medium">
+            No scooties found matching your current search or filters.
           </div>
         )}
       </div>
       )}
+
+      {/* Pagination Bar */}
+      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={(p) => setPage(p)}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+          loading={loading}
+        />
+      </div>
 
       {/* Overview Modal */}
       <Modal
