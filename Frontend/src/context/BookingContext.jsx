@@ -5,8 +5,22 @@ import api from "../services/api";
 // Calendar date in the *browser's* timezone. toISOString() would shift to UTC,
 // which in IST (UTC+5:30) yields yesterday's date any time before 05:30 and gets
 // the booking rejected by the server's "start date cannot be in the past" rule.
-const toLocalDateString = (date) =>
+export const toLocalDateString = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+export const computeEndDate = (startDateStr, rentalType) => {
+  if (!startDateStr) return "";
+  const d = new Date(`${startDateStr}T00:00:00`);
+  if (isNaN(d.getTime())) return "";
+  const isWeekly = rentalType === "daily" || rentalType === "weekly";
+  if (isWeekly) {
+    d.setDate(d.getDate() + 7);
+  } else {
+    // Monthly (30 days)
+    d.setDate(d.getDate() + 30);
+  }
+  return toLocalDateString(d);
+};
 
 const formattedToday = toLocalDateString(new Date());
 
@@ -15,17 +29,24 @@ const formattedToday = toLocalDateString(new Date());
 const withFreshDates = (draft) => {
   const today = toLocalDateString(new Date());
   const startDate = !draft.startDate || draft.startDate < today ? today : draft.startDate;
-  const endDate = !draft.endDate || draft.endDate < startDate ? startDate : draft.endDate;
-  return { ...draft, startDate, endDate };
+  const rentalType = draft.rentalType || "daily";
+  let endDate = draft.endDate;
+  // If endDate is missing, or in the past, or equal to startDate (old 0-day draft):
+  if (!endDate || endDate <= startDate) {
+    endDate = computeEndDate(startDate, rentalType);
+  }
+  const startTime = draft.startTime || "10:00";
+  const endTime = draft.endTime || startTime;
+  return { ...draft, startDate, startTime, endDate, endTime, rentalType };
 };
 
 const initialState = {
   vehicle: null,
-  rentalType: "hourly",
+  rentalType: "daily",
   startDate: formattedToday,
   startTime: "10:00",
-  endDate: formattedToday,
-  endTime: "14:00",
+  endDate: computeEndDate(formattedToday, "daily"),
+  endTime: "10:00",
   pickupLocation: "",
   aadharNumber: "",
   aadharFile: null,
@@ -117,12 +138,39 @@ export const BookingProvider = ({ children }) => {
   };
 
   const updateBookingField = (field, value) => {
-    setBooking((current) => ({ ...current, [field]: value }));
+    setBooking((current) => {
+      const updated = { ...current, [field]: value };
+      if (field === "rentalType") {
+        updated.endDate = computeEndDate(updated.startDate, value);
+        updated.endTime = updated.startTime || "10:00";
+      } else if (field === "startDate") {
+        updated.endDate = computeEndDate(value, updated.rentalType);
+      } else if (field === "startTime") {
+        updated.endTime = value;
+      }
+      return updated;
+    });
   };
 
   const selectVehicle = (vehicle) => {
     const pickupLoc = vehicle?.zone?.pickupLocation?.address || vehicle?.location || "Main Station";
-    setBooking((current) => ({ ...current, vehicle, pickupLocation: pickupLoc }));
+    setBooking((current) => {
+      const startDate = current.startDate || toLocalDateString(new Date());
+      const rentalType = current.rentalType || "daily";
+      const endDate = computeEndDate(startDate, rentalType);
+      const startTime = current.startTime || "10:00";
+      const endTime = current.endTime || startTime;
+      return {
+        ...current,
+        vehicle,
+        pickupLocation: pickupLoc,
+        startDate,
+        rentalType,
+        endDate,
+        startTime,
+        endTime,
+      };
+    });
   };
 
   const resetBooking = () => {

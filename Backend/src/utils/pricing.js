@@ -17,13 +17,21 @@ export const calculateRentalCost = (pricePerHour, pricePerDay, startDate, endDat
   }
 
   const durationMs = end - start;
+  const DAY_IN_MS = 24 * 60 * 60 * 1000;
+  const WEEK_IN_MS = 7 * DAY_IN_MS;
+  const MONTH_IN_MS = 30 * DAY_IN_MS;
   
-  if (rentalType === 'HOURLY') {
-    const hours = Math.ceil(durationMs / (1000 * 60 * 60));
-    return hours * pricePerHour;
-  } else if (rentalType === 'DAILY') {
-    const days = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
-    return days * pricePerDay;
+  const type = String(rentalType).toUpperCase();
+  if (type === 'HOURLY' || type === 'MONTHLY') {
+    // Monthly calculation (30 days per unit)
+    const days = durationMs / DAY_IN_MS;
+    const months = Math.max(1, Math.ceil(Math.round(days * 10) / 300) || Math.ceil(durationMs / MONTH_IN_MS) || 1);
+    return months * pricePerHour;
+  } else if (type === 'DAILY' || type === 'WEEKLY') {
+    // Weekly calculation (7 days per unit)
+    const days = durationMs / DAY_IN_MS;
+    const weeks = Math.max(1, Math.ceil(Math.round(days * 10) / 70) || Math.ceil(durationMs / WEEK_IN_MS) || 1);
+    return weeks * pricePerDay;
   }
   
   throw new Error('Invalid rental type');

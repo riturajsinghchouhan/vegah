@@ -155,7 +155,8 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Categories from API */}
+      {/* Categories from API (Commented Out) */}
+      {/*
       <div className="px-4 mb-6 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-3 w-max">
           {loading
@@ -192,6 +193,7 @@ const HomePage = () => {
                 )}
         </div>
       </div>
+      */}
 
       {/* Hero Banner */}
       <div className="px-4 mb-6">
