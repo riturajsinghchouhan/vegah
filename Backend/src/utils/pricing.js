@@ -4,8 +4,9 @@
  * It serves as the final authority on all financial calculations.
  */
 
-const GST_RATE = 0.18; // 18% GST
-const SERVICE_FEE_RATE = 0.05; // 5% Service fee
+const DEFAULT_GST_RATE = 0.18; // 18% default fallback
+const DEFAULT_SERVICE_FEE_RATE = 0.05; // 5% default fallback
+const DEFAULT_PLATFORM_FEE = 20;
 
 export const calculateRentalCost = (pricePerHour, pricePerDay, startDate, endDate, rentalType) => {
   const start = new Date(startDate);
@@ -32,21 +33,29 @@ export const calculateTotalAmount = ({
   rentalBase,
   batteryPackagePrice = 0,
   securityDeposit = 0,
-  discountAmount = 0
+  discountAmount = 0,
+  gstRate,
+  serviceChargeRate,
+  platformFee,
 }) => {
-  // Service fee is 5% of rentalBase
-  const serviceFee = Math.round(rentalBase * SERVICE_FEE_RATE);
+  const effectiveGstRate = gstRate != null ? Number(gstRate) / 100 : DEFAULT_GST_RATE;
+  const effectiveServiceRate = serviceChargeRate != null ? Number(serviceChargeRate) / 100 : DEFAULT_SERVICE_FEE_RATE;
+  const effectivePlatformFee = platformFee != null ? Number(platformFee) : DEFAULT_PLATFORM_FEE;
+
+  // Service fee is X% of rentalBase
+  const serviceFee = Math.round(rentalBase * effectiveServiceRate);
   
-  // Tax is 18% on (rentalBase + serviceFee + batteryPackageFee - discountAmount)
-  const taxableAmount = rentalBase + serviceFee + batteryPackagePrice - discountAmount;
-  const taxAmount = Math.round(Math.max(0, taxableAmount) * GST_RATE);
+  // Tax is GST% on (rentalBase + serviceFee + platformFee + batteryPackageFee - discountAmount)
+  const taxableAmount = Math.max(0, rentalBase + serviceFee + effectivePlatformFee + batteryPackagePrice - discountAmount);
+  const taxAmount = Math.round(taxableAmount * effectiveGstRate);
   
-  const totalAmount = rentalBase + serviceFee + batteryPackagePrice + taxAmount + securityDeposit - discountAmount;
+  const totalAmount = rentalBase + serviceFee + effectivePlatformFee + batteryPackagePrice + taxAmount + securityDeposit - discountAmount;
 
   return {
     rentalBase,
     batteryPackageFee: batteryPackagePrice,
     serviceFee,
+    platformFee: effectivePlatformFee,
     taxAmount,
     discountAmount,
     securityDeposit,

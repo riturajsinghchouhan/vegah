@@ -30,8 +30,6 @@ const userSchema = new Schema({
   },
 }, { timestamps: true });
 
-userSchema.index({ phone: 1 });
-userSchema.index({ email: 1 });
 userSchema.index({ createdAt: -1 });
 
 const User = mongoose.model('User', userSchema);

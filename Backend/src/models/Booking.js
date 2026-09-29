@@ -28,6 +28,7 @@ const bookingSchema = new Schema({
   rentalBase: { type: Number, required: true },
   batteryPackageFee: { type: Number, default: 0 },
   serviceFee: { type: Number, default: 0 },
+  platformFee: { type: Number, default: 0 },
   taxAmount: { type: Number, default: 0 },
   discountAmount: { type: Number, default: 0 },
   securityDeposit: { type: Number, required: true },

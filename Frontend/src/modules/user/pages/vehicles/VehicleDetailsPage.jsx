@@ -52,7 +52,7 @@ const VehicleDetailsPage = () => {
               </div>
               <div className="rounded-[1.5rem] bg-emerald-50 px-4 py-3 text-right">
                 <p className="text-sm text-app-subtle">From</p>
-                <p className="text-2xl font-semibold text-app-primary">Rs {vehicle.prices.hour}/hr</p>
+                <p className="text-2xl font-semibold text-app-primary">Rs {vehicle.prices.day}/wk</p>
               </div>
             </div>
 
@@ -95,11 +95,11 @@ const VehicleDetailsPage = () => {
             </p>
             <div className="mt-4 rounded-3xl border border-app-border bg-app-card p-4">
               <div className="flex items-center justify-between text-sm text-app-subtle">
-                <span>Hourly price</span>
+                <span>Monthly price</span>
                 <span className="font-medium text-app-text">Rs {vehicle.prices.hour}</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm text-app-subtle">
-                <span>Daily price</span>
+                <span>Weekly price</span>
                 <span className="font-medium text-app-text">Rs {vehicle.prices.day}</span>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm text-app-subtle">

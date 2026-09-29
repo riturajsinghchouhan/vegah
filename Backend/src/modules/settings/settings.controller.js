@@ -17,6 +17,11 @@ export const getPublicSettings = async (req, res, next) => {
       termsContent: settings.termsContent || 'Terms and Conditions not yet updated.',
       privacyContent: settings.privacyContent || 'Privacy Policy not yet updated.',
       supportContent: settings.supportContent || 'Support information not yet updated.',
+      // Tax & fee configuration from Admin Tax & Billing
+      gstRate: Number(settings.gstRate ?? 18),
+      platformFee: Number(settings.platformFee ?? 20),
+      serviceCharge: Number(settings.serviceCharge ?? 5),
+      cancellationFee: Number(settings.cancellationFee ?? 100),
     };
     sendSuccess(res, 200, 'Public settings fetched successfully', publicSettings);
   } catch (error) {

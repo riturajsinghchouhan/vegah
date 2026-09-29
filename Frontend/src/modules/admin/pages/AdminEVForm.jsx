@@ -410,7 +410,7 @@ export default function AdminEVForm() {
           {/* Daily Price */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Price Per Day (₹) <span className="text-red-500">*</span>
+              Weekly Price (₹) <span className="text-red-500">*</span>
             </label>
             <input 
               type="number"
@@ -425,7 +425,7 @@ export default function AdminEVForm() {
           {/* Hourly Price */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Price Per Hour (₹) <span className="text-red-500">*</span>
+              Monthly Price (₹) <span className="text-red-500">*</span>
             </label>
             <input 
               type="number"

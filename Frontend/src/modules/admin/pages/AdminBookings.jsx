@@ -10,10 +10,44 @@ import { adminService } from '../services/adminService';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
 
+// The list response no longer carries the multi-MB base64 KYC images (it was
+// 15MB for 8 rows and timed out). Open the modal straight away from the row we
+// already have, then pull the full record in for the document previews.
+// Defined at module scope so all tables (AllBookingsTable, UpcomingPickupsTable, LiveRentalsTable) can use it.
+const openDetail = async (row, setter) => {
+  if (!row) return;
+  setter(row);
+  const targetId = row?.raw?._id || row?.raw?.id;
+  if (!targetId) return;
+  try {
+    const full = await adminService.getBookingById(targetId);
+    if (!full) return;
+    setter((current) => {
+      if (!current) return null;
+      const currentRawId = current.raw?._id || current.raw?.id;
+      if (currentRawId === targetId || current.id === row.id) {
+        return {
+          ...current,
+          raw: {
+            ...current.raw,
+            ...full,
+            kycDocuments: full.kycDocuments || current.raw?.kycDocuments,
+          },
+        };
+      }
+      return current;
+    });
+  } catch (err) {
+    console.error("Failed to load booking details", err);
+  }
+};
+
 export default function AdminBookings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const ops = searchParams.get('ops');
+  const depositStatus = searchParams.get('depositStatus');
+  const statusParam = searchParams.get('status');
   
   const activeTab = ['live', 'late', 'returns', 'extensions'].includes(ops) ? 'live' : ops === 'pickups' ? 'pickups' : ops === 'cancelled' ? 'cancelled' : 'all';
 
@@ -32,30 +66,13 @@ export default function AdminBookings() {
     }
   };
 
-  // The list response no longer carries the multi-MB base64 KYC images (it was
-  // 15MB for 8 rows and timed out). Open the modal straight away from the row we
-  // already have, then pull the full record in for the document previews.
-  const openDetail = async (row, setter) => {
-    setter(row);
-    const id = row?.raw?._id || row?.raw?.id || row?.id;
-    if (!id) return;
-    try {
-      const full = await adminService.getBookingById(id);
-      setter((current) => (current && (current.raw?._id || current.id) === id
-        ? { ...current, raw: { ...current.raw, ...full } }
-        : current));
-    } catch (err) {
-      console.error("Failed to load booking details", err);
-    }
-  };
-
   const fetchAllBookings = async () => {
     try {
       setLoading(true);
       const params = Object.fromEntries(searchParams.entries());
       delete params.ops;
       const data = await adminService.getBookings(params);
-      const bookingList = Array.isArray(data) ? data : (data?.bookings || []);
+      const bookingList = Array.isArray(data) ? data : (data?.items || data?.bookings || data?.data || []);
       setBookings(bookingList);
     } catch (error) {
       console.error("Failed to fetch bookings", error);
@@ -336,6 +353,24 @@ export default function AdminBookings() {
         </div>
       )}
 
+      {/* Active Filter Banner */}
+      {(depositStatus || statusParam) && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-xl text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-blue-600" />
+            <span>
+              Active Filter: <strong>{depositStatus === 'pending_collection' ? 'Deposit Collection Pending' : statusParam === 'pending_approval' ? 'Pending Approval' : (depositStatus || statusParam)}</strong> ({bookings.length} found)
+            </span>
+          </div>
+          <button 
+            onClick={() => setSearchParams({})}
+            className="text-xs bg-blue-200 hover:bg-blue-300 text-blue-900 px-3 py-1 rounded-lg font-bold transition"
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
+
       {/* Tabs Bar */}
       <div className="flex gap-3 border-b border-gray-200 pb-3">
         <button
@@ -412,6 +447,7 @@ export default function AdminBookings() {
         <LiveRentalsTable
           allBookings={bookings}
           ops={ops}
+          onSelectOps={(newOps) => setSearchParams({ ops: newOps })}
           onConfirmReturn={handleConfirmReturn}
           onRejectReturn={handleRejectReturn}
           actionLoading={actionLoading}
@@ -581,14 +617,21 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
 
                       <button 
                         title="View Details" 
+                        aria-label="View Details"
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         onClick={() => openDetail(item, setSelectedBooking)}
                       >
                         <Eye size={18} />
                       </button>
-                      <button title="Contact User" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                        <Phone size={18} />
-                      </button>
+                      {item.user.phone && item.user.phone !== '-' && (
+                        <a 
+                          href={`tel:${item.user.phone}`}
+                          title={`Call ${item.user.phone}`}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        >
+                          <Phone size={18} />
+                        </a>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -697,7 +740,7 @@ const fmtDateTime = (value) => {
 };
 
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ allBookings, ops, onConfirmReturn, onRejectReturn, actionLoading }) {
+function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRejectReturn, actionLoading }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -710,7 +753,9 @@ function LiveRentalsTable({ allBookings, ops, onConfirmReturn, onRejectReturn, a
   const filteredRaw = ops === 'late'
     ? rawLive.filter(b => b.status === 'OVERDUE')
     : ops === 'returns'
-    ? rawLive.filter(b => b.status === 'PENDING_RETURN')
+    ? rawLive.filter(b => b.status === 'PENDING_RETURN' || b.status === 'ACTIVE')
+    : ops === 'extensions'
+    ? rawLive.filter(b => b.status === 'ACTIVE' || b.status === 'OVERDUE' || b.statusHistory?.some(h => h.note?.includes('Extend') || h.status === 'EXTENDED'))
     : rawLive;
 
   const liveBookings = filteredRaw.map(b => ({
@@ -748,6 +793,50 @@ function LiveRentalsTable({ allBookings, ops, onConfirmReturn, onRejectReturn, a
 
   return (
     <div className="space-y-4">
+      {/* Sub-tabs for operational views */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onSelectOps?.('live')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            ops === 'live' || !ops
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          All Live ({rawLive.length})
+        </button>
+        <button
+          onClick={() => onSelectOps?.('returns')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            ops === 'returns'
+              ? 'bg-purple-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          Upcoming Returns ({rawLive.filter(b => b.status === 'PENDING_RETURN' || b.status === 'ACTIVE').length})
+        </button>
+        <button
+          onClick={() => onSelectOps?.('late')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            ops === 'late'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          Late / Overdue ({rawLive.filter(b => b.status === 'OVERDUE').length})
+        </button>
+        <button
+          onClick={() => onSelectOps?.('extensions')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            ops === 'extensions'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          Extensions ({rawLive.filter(b => b.status === 'ACTIVE' || b.status === 'OVERDUE' || b.statusHistory?.some(h => h.note?.includes('Extend') || h.status === 'EXTENDED')).length})
+        </button>
+      </div>
+
       <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex items-center px-4">
         <Search className="text-gray-400 mr-3" size={20} />
         <input 
@@ -839,14 +928,21 @@ function LiveRentalsTable({ allBookings, ops, onConfirmReturn, onRejectReturn, a
 
                     <button
                       title="View Details"
+                      aria-label="View Details"
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      onClick={() => setSelectedRental(rental)}
+                      onClick={() => openDetail(rental, setSelectedRental)}
                     >
                       <Eye size={18} />
                     </button>
-                    <button title="Contact User" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                      <Phone size={18} />
-                    </button>
+                    {rental.user.phone && rental.user.phone !== '-' && rental.user.phone !== 'Unknown' && (
+                      <a 
+                        href={`tel:${rental.user.phone}`}
+                        title={`Call ${rental.user.phone}`}
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      >
+                        <Phone size={18} />
+                      </a>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -888,6 +984,41 @@ function LiveRentalsTable({ allBookings, ops, onConfirmReturn, onRejectReturn, a
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedRental.financials.amount}</span></div>
               <div className="text-right"><strong className="text-gray-900 block">Deposit</strong> {selectedRental.financials.deposit}</div>
             </div>
+
+            {selectedRental.raw?.kycDocuments && (selectedRental.raw.kycDocuments.aadharFile || selectedRental.raw.kycDocuments.licenseFile || selectedRental.raw.kycDocuments.userPhotoFile) && (
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <strong className="text-gray-900 block mb-3">KYC Documents</strong>
+                <div className="flex gap-4 overflow-x-auto pb-2">
+                  {selectedRental.raw.kycDocuments.aadharFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedRental.raw.kycDocuments.aadharFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">Aadhar Card</p>
+                      <img src={selectedRental.raw.kycDocuments.aadharFile} alt="Aadhar" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  {selectedRental.raw.kycDocuments.licenseFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedRental.raw.kycDocuments.licenseFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">Driving License</p>
+                      <img src={selectedRental.raw.kycDocuments.licenseFile} alt="License" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                  {selectedRental.raw.kycDocuments.userPhotoFile && (
+                    <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition" onClick={() => {
+                        const w = window.open();
+                        w.document.write(`<img src="${selectedRental.raw.kycDocuments.userPhotoFile}" style="max-width: 100%;">`);
+                      }}>
+                      <p className="text-xs font-bold text-gray-500 mb-1">User Photo</p>
+                      <img src={selectedRental.raw.kycDocuments.userPhotoFile} alt="User Photo" className="h-24 object-cover rounded-lg border border-gray-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -901,7 +1032,7 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
   const [selectedPickup, setSelectedPickup] = useState(null);
 
   const upcomingBookings = allBookings.filter(b => 
-    !b.status || b.status === 'PENDING' || b.status === 'CONFIRMED' || b.status === 'RESERVED' || b.status === 'PENDING_VERIFICATION'
+    !b.status || ['PENDING', 'CONFIRMED', 'RESERVED', 'PENDING_VERIFICATION', 'PAYMENT_INITIATED'].includes(b.status)
   ).map(b => ({
     raw: b,
     id: b.bookingId || (typeof b._id === 'string' ? b._id.substring(0, 12).toUpperCase() : 'EVR-NEW'),
@@ -914,6 +1045,7 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
     },
     financials: { 
       amount: `₹${b.totalAmount || b.amount || b.pricing?.total || 0}`, 
+      deposit: `₹${b.securityDeposit || b.pricing?.securityDeposit || 0}`,
       depositStatus: b.depositStatus || b.paymentStatus || 'Pending', 
       paymentStatus: b.paymentStatus || 'Pending' 
     },
@@ -1012,6 +1144,16 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
                             Reject
                           </button>
                         </>
+                      ) : isAwaitingHandover ? (
+                        <button
+                          title="Customer has collected the EV - start the trip timer"
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                          onClick={() => onConfirmPickup(bId)}
+                          disabled={isLoadingThis}
+                        >
+                          <KeyRound size={16} />
+                          {isLoadingThis ? 'Starting trip...' : 'Confirm Pickup & Start Trip'}
+                        </button>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-extrabold">
                           <CheckCircle size={14} /> Approved
@@ -1020,11 +1162,21 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
 
                       <button 
                         title="View Details" 
+                        aria-label="View Details"
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         onClick={() => openDetail(pickup, setSelectedPickup)}
                       >
                         <Eye size={18} />
                       </button>
+                      {pickup.user?.phone && pickup.user.phone !== '-' && pickup.user.phone !== 'Unknown' && (
+                        <a 
+                          href={`tel:${pickup.user.phone}`} 
+                          title={`Call ${pickup.user.phone}`} 
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        >
+                          <Phone size={18} />
+                        </a>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1095,6 +1247,7 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
 
             <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <div><strong className="text-gray-900 block">Amount</strong> <span className="text-lg font-bold">{selectedPickup.financials.amount}</span></div>
+              <div className="text-right"><strong className="text-gray-900 block">Deposit</strong> {selectedPickup.financials.deposit}</div>
             </div>
             
             {(selectedPickup.raw.status === 'RESERVED' || selectedPickup.raw.status === 'PENDING_VERIFICATION' || selectedPickup.raw.status === 'PAYMENT_INITIATED') && (
@@ -1106,6 +1259,18 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
                 }}
               >
                 <CheckCircle className="mr-2" size={20} /> Approve Booking Now
+              </Button>
+            )}
+
+            {selectedPickup.raw.status === 'CONFIRMED' && (
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-base shadow-lg"
+                onClick={() => {
+                  onConfirmPickup(selectedPickup.raw._id || selectedPickup.raw.id);
+                  setSelectedPickup(null);
+                }}
+              >
+                <KeyRound className="mr-2" size={20} /> Confirm Pickup & Start Trip
               </Button>
             )}
           </div>

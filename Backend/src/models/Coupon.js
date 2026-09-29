@@ -16,7 +16,6 @@ const couponSchema = new Schema({
   status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
 }, { timestamps: true });
 
-couponSchema.index({ code: 1 });
 couponSchema.index({ startDate: 1, expiryDate: 1, status: 1 });
 
 const Coupon = mongoose.model('Coupon', couponSchema);

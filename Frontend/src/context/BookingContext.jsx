@@ -1,5 +1,6 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { calculateBookingPricing } from "../utils/pricing";
+import api from "../services/api";
 
 // Calendar date in the *browser's* timezone. toISOString() would shift to UTC,
 // which in IST (UTC+5:30) yields yesterday's date any time before 05:30 and gets
@@ -37,6 +38,33 @@ const initialState = {
 export const BookingContext = createContext(null);
 
 export const BookingProvider = ({ children }) => {
+  const [taxBillingSettings, setTaxBillingSettings] = useState({
+    gstRate: 18,
+    platformFee: 20,
+    serviceCharge: 5,
+    cancellationFee: 100,
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/settings/public').catch(() => api.get('/admin/settings/public'));
+        const data = res?.data?.data || res?.data;
+        if (data) {
+          setTaxBillingSettings({
+            gstRate: Number(data.gstRate ?? 18),
+            platformFee: Number(data.platformFee ?? 20),
+            serviceCharge: Number(data.serviceCharge ?? 5),
+            cancellationFee: Number(data.cancellationFee ?? 100),
+          });
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic tax/billing settings, using defaults.", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const [booking, setBooking] = useState(() => {
     try {
       const draft = localStorage.getItem("vegah_draft_booking");
@@ -102,19 +130,23 @@ export const BookingProvider = ({ children }) => {
     localStorage.removeItem("vegah_draft_booking");
   };
 
-  const pricing = useMemo(() => calculateBookingPricing(booking), [booking]);
+  const pricing = useMemo(
+    () => calculateBookingPricing(booking, taxBillingSettings),
+    [booking, taxBillingSettings]
+  );
 
   const value = useMemo(
     () => ({
       booking,
       pricing,
+      taxBillingSettings,
       latestBooking,
       updateBookingField,
       selectVehicle,
       setLatestBooking,
       resetBooking,
     }),
-    [booking, latestBooking, pricing]
+    [booking, latestBooking, pricing, taxBillingSettings]
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

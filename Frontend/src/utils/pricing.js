@@ -9,15 +9,25 @@ const parseDateTime = (date, time) => {
   return new Date(`${date}T${time}:00`);
 };
 
-export const calculateBookingPricing = ({ vehicle, rentalType, startDate, startTime, endDate, endTime, batteryPackage }) => {
+export const calculateBookingPricing = (
+  { vehicle, rentalType, startDate, startTime, endDate, endTime, batteryPackage },
+  settings = {}
+) => {
+  const gstRate = Number(settings?.gstRate ?? 18);
+  const serviceChargeRate = Number(settings?.serviceCharge ?? 5);
+  const platformFee = Number(settings?.platformFee ?? 20);
+
   if (!vehicle) {
     return {
       rentalBase: 0,
       durationLabel: "0h",
       securityDeposit: 0,
       serviceFee: 0,
+      platformFee: 0,
       batteryPackageFee: 0,
       taxes: 0,
+      gstRate,
+      serviceChargeRate,
       total: 0,
     };
   }
@@ -37,9 +47,14 @@ export const calculateBookingPricing = ({ vehicle, rentalType, startDate, startT
     batteryPackageFee = 150;
   }
 
-  const serviceFee = Math.round(rentalBase * 0.05);
-  const taxes = Math.round((rentalBase + serviceFee + batteryPackageFee) * 0.18);
-  const total = rentalBase + vehicle.deposit + serviceFee + batteryPackageFee + taxes;
+  // Dynamic Service Fee based on % from Admin Tax & Billing
+  const serviceFee = Math.round(rentalBase * (serviceChargeRate / 100));
+
+  // Dynamic Taxes based on % from Admin Tax & Billing
+  const taxable = Math.max(0, rentalBase + serviceFee + platformFee + batteryPackageFee);
+  const taxes = Math.round(taxable * (gstRate / 100));
+
+  const total = rentalBase + vehicle.deposit + serviceFee + platformFee + batteryPackageFee + taxes;
   const durationLabel = rentalType === "daily" ? `${units} day${units > 1 ? "s" : ""}` : `${units} hour${units > 1 ? "s" : ""}`;
 
   return {
@@ -47,8 +62,11 @@ export const calculateBookingPricing = ({ vehicle, rentalType, startDate, startT
     durationLabel,
     securityDeposit: vehicle.deposit,
     serviceFee,
+    platformFee,
     batteryPackageFee,
     taxes,
+    gstRate,
+    serviceChargeRate,
     total,
   };
 };

@@ -3,8 +3,9 @@ import { formatCurrency } from "../../utils/formatters";
 const rows = (pricing) => [
   { label: `Rental (${pricing.durationLabel})`, value: pricing.rentalBase },
   { label: "Security deposit", value: pricing.securityDeposit },
-  { label: "Service fee", value: pricing.serviceFee },
-  { label: "Taxes", value: pricing.taxes },
+  { label: `Service fee (${pricing.serviceChargeRate ?? 5}%)`, value: pricing.serviceFee },
+  ...(pricing.platformFee ? [{ label: "Platform fee", value: pricing.platformFee }] : []),
+  { label: `Taxes & GST (${pricing.gstRate ?? 18}%)`, value: pricing.taxes },
 ];
 
 const PriceBreakdown = ({ pricing }) => (

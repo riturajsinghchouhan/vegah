@@ -138,9 +138,9 @@ export const adminService = {
 
   // --- Bookings ---
   async getBookings(params = {}) {
-    const res = await adminApi.get('/bookings', { params: { limit: 20, ...params } });
+    const res = await adminApi.get('/bookings', { params: { limit: 50, ...params } });
     const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.bookings || []);
-    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
+    return { items, bookings: items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
   },
   async getBookingById(id) {
     const res = await adminApi.get(`/bookings/${id}`);

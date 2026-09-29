@@ -81,6 +81,7 @@ app.use('/api/admin/inspections', inspectionsRoutes);
 app.use('/api/admin/finance', financeRoutes);
 app.use('/api/admin/reports', reportsRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/users', usersRoutes);

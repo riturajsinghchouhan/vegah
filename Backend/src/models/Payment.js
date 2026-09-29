@@ -20,8 +20,5 @@ const paymentSchema = new Schema({
   paidAt: { type: Date, default: null },
 }, { timestamps: true });
 
-paymentSchema.index({ razorpayOrderId: 1 });
-paymentSchema.index({ razorpayPaymentId: 1 });
-
 const Payment = mongoose.model('Payment', paymentSchema);
 export default Payment;

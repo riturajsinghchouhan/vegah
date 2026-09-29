@@ -16,6 +16,7 @@ import {
   ACTIVE_BOOKING_STATUSES,
 } from './bookings.constants.js';
 import { calculateRentalCost, calculateTotalAmount } from '../../utils/pricing.js';
+import * as settingsService from '../settings/settings.service.js';
 import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '../../utils/errors.js';
 import env from '../../config/env.js';
 import { getIO } from '../../config/socket.js';
@@ -197,11 +198,19 @@ export const reserveVehicle = async (userId, data) => {
 
     const batteryPackage = BATTERY_PACKAGES[data.batteryPackage] || BATTERY_PACKAGES.SINGLE;
 
+    const pricingSettings = await settingsService.getSettings('pricing');
+    const gstRate = Number(pricingSettings.gstRate || 18);
+    const serviceChargeRate = Number(pricingSettings.serviceCharge || 5);
+    const platformFee = Number(pricingSettings.platformFee || 20);
+
     const pricing = calculateTotalAmount({
       rentalBase,
       batteryPackagePrice: batteryPackage.price,
       securityDeposit: vehicle.securityDeposit,
-      discountAmount
+      discountAmount,
+      gstRate,
+      serviceChargeRate,
+      platformFee,
     });
 
     // 4. Create Reservation
@@ -778,7 +787,7 @@ export const listBookings = async (query) => {
   if (status) {
     // Handle frontend mapped statuses or comma-separated raw statuses
     if (status === 'pending_approval') {
-      filter.status = 'PENDING_VERIFICATION';
+      filter.status = { $in: ['PENDING_VERIFICATION', 'RESERVED', 'PAYMENT_INITIATED'] };
     } else {
       const statuses = String(status).split(',').map((part) => part.trim()).filter(Boolean);
       filter.status = statuses.length > 1 ? { $in: statuses } : statuses[0];
@@ -792,19 +801,15 @@ export const listBookings = async (query) => {
         filter.status = { $in: ['ACTIVE', 'OVERDUE', 'PENDING_RETURN'] };
         break;
       case 'pickups':
-        filter.status = { $in: ['CONFIRMED', 'PENDING', 'RESERVED', 'PENDING_VERIFICATION'] };
+        filter.status = { $in: ['CONFIRMED', 'PENDING', 'RESERVED', 'PENDING_VERIFICATION', 'PAYMENT_INITIATED'] };
         break;
       case 'returns':
-        filter.status = 'ACTIVE';
-        filter.tripEndsAt = { $gte: now }; // active but not yet overdue
+        filter.status = { $in: ['ACTIVE', 'PENDING_RETURN'] };
         break;
       case 'late':
         filter.status = 'OVERDUE';
         break;
       case 'extensions':
-        // extensions might not be a standalone status, but let's assume PENDING_RETURN could be related, or something else.
-        // There is no explicit EXTENSION status. We can filter for bookings that have been extended if there is a way, 
-        // or just show OVERDUE or something. Let's return ACTIVE/OVERDUE for now.
         filter.status = { $in: ['ACTIVE', 'OVERDUE'] };
         break;
       case 'cancelled':
@@ -814,8 +819,8 @@ export const listBookings = async (query) => {
   }
 
   if (depositStatus) {
-    if (depositStatus === 'pending_collection') {
-      filter.depositStatus = 'PENDING';
+    if (depositStatus === 'pending_collection' || depositStatus === 'PENDING') {
+      filter.depositStatus = { $in: ['PENDING', 'pending_collection'] };
     } else {
       filter.depositStatus = depositStatus;
     }

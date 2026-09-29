@@ -57,7 +57,7 @@ const BookingPage = () => {
               >
                 <p className="text-sm font-semibold text-app-text">{type.label}</p>
                 <p className="mt-1 text-xs text-app-subtle">
-                  {type.value === "hourly" ? "Best for short city trips" : "Best for full-day flexibility"}
+                  {type.value === "hourly" ? "Best for long-term usage" : "Best for weekly commutes"}
                 </p>
               </button>
             ))}
