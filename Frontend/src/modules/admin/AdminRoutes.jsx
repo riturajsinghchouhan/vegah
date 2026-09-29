@@ -26,6 +26,7 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminProfile from "./pages/AdminProfile";
 import AdminLogin from "./pages/AdminLogin";
 import AdminElecticaDashboard from "./pages/AdminElecticaDashboard";
+import AdminInventoryMonitor from "./pages/AdminInventoryMonitor";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 
 export default function AdminRoutes() {
@@ -59,6 +60,9 @@ export default function AdminRoutes() {
 
         {/* Electica BSS Partner route */}
         <Route path="electica" element={<AdminElecticaDashboard />} />
+        
+        {/* Real-time Inventory & Port/Battery Monitor route */}
+        <Route path="inventory-monitor" element={<AdminInventoryMonitor />} />
 
         {/* Bookings route */}
         <Route path="bookings" element={<AdminBookings />} />

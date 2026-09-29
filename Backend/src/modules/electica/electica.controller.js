@@ -111,3 +111,13 @@ export const cancelSwap = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getInventoryMonitoring = async (req, res, next) => {
+  try {
+    const stationId = req.params.id || req.query.stationId;
+    const data = await electicaService.getInventoryMonitoringData(stationId);
+    sendSuccess(res, 200, 'Inventory monitoring data fetched successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};

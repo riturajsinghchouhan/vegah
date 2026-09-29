@@ -71,6 +71,15 @@ export const electicaService = {
     });
     return response.data?.data || response.data;
   },
+
+  /**
+   * Real-time Inventory & Port/Battery Monitoring with User Usage
+   */
+  async getInventoryMonitoring(stationId) {
+    const endpoint = stationId ? `/electica/inventory-monitoring?stationId=${stationId}` : `/electica/inventory-monitoring`;
+    const response = await api.get(endpoint);
+    return response.data?.data || response.data;
+  },
 };
 
 export default electicaService;

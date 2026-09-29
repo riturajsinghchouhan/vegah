@@ -7,7 +7,8 @@ const router = express.Router();
 // Apply authentication middleware to protect all Electica routes
 router.use(authenticate);
 
-// Station routes
+// Station & Inventory Monitoring routes
+router.get('/inventory-monitoring', electicaController.getInventoryMonitoring);
 router.get('/stations', electicaController.getStations);
 router.get('/station/:id', electicaController.getStation);
 router.get('/station', electicaController.getStation);
