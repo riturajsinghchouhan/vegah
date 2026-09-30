@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Battery, BatteryFull } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Button from "../../../../components/common/Button";
@@ -9,6 +10,12 @@ const BatteryPackagePage = () => {
   const navigate = useNavigate();
   const { booking, pricing, updateBookingField } = useBooking();
 
+  useEffect(() => {
+    if (booking.batteryPackage !== "unlimited") {
+      updateBookingField("batteryPackage", "unlimited");
+    }
+  }, [booking.batteryPackage, updateBookingField]);
+
   if (!booking.vehicle) {
     return <Navigate to="/user/vehicles" replace />;
   }
@@ -16,12 +23,6 @@ const BatteryPackagePage = () => {
   const steps = [1, 2, 3, 4, 5, 6];
 
   const packages = [
-    {
-      id: "single",
-      title: "Single Charge",
-      description: "One battery charge/swap per day.",
-      icon: Battery,
-    },
     {
       id: "unlimited",
       title: "Unlimited Package",

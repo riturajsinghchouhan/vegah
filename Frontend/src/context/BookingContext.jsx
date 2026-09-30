@@ -52,7 +52,7 @@ const initialState = {
   aadharFile: null,
   licenseNumber: "",
   licenseFile: null,
-  batteryPackage: "single", // default to single charge/swap per day
+  batteryPackage: "unlimited", // default to unlimited package
   userPhotoFile: null,
 };
 
