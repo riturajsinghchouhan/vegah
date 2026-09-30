@@ -9,6 +9,9 @@ const OtpPage = () => {
   const { verifyOtp, user } = useAuth();
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  // A rejected OTP used to be swallowed into console.error, so the screen looked
+  // identical whether the code was right or wrong.
+  const [error, setError] = useState("");
   const inputRefs = useRef([]);
   // Track whether OTP was actually submitted (not just mounted while already logged in)
   const otpSubmitted = useRef(false);
@@ -40,6 +43,7 @@ const OtpPage = () => {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+    if (error) setError("");
 
     // Auto-focus next input
     if (value && index < 3) {
@@ -74,9 +78,15 @@ const OtpPage = () => {
       // Navigation is now handled by the useEffect above
       // once the AuthContext properly updates the 'user' state.
 
-    } catch (error) {
-      console.error("OTP verification failed", error);
+    } catch (err) {
+      console.error("OTP verification failed", err);
       otpSubmitted.current = false; // Reset on failure
+      setError(
+        err?.response?.data?.message ||
+        "That code is not right. Check the OTP and try again."
+      );
+      setOtp(["", "", "", ""]);
+      inputRefs.current[0]?.focus();
       setLoading(false);
     }
   };
@@ -132,6 +142,12 @@ const OtpPage = () => {
               />
             ))}
           </div>
+
+          {error && (
+            <p role="alert" className="-mt-3 mb-5 text-[13px] font-semibold text-red-600">
+              {error}
+            </p>
+          )}
 
           <div className="flex items-center justify-between mb-8">
             <p className="text-[13px] text-gray-500 font-medium">Didn't receive code?</p>

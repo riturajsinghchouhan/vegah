@@ -88,7 +88,7 @@ export const adminService = {
     return res.data.data;
   },
   async updateVehicleStatus(id, status) {
-    const res = await adminApi.patch(`/admin/inventory/${id}/status`, { status });
+    const res = await adminApi.patch(`/admin/inventory/vehicles/${id}/status`, { status });
     return res.data.data;
   },
 

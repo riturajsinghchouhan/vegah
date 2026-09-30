@@ -20,11 +20,28 @@ export const getStation = async (req, res, next) => {
   }
 };
 
+/**
+ * The upstream BSS returns pods as an object keyed by pod number ("1".."6"),
+ * but every consumer of this endpoint renders a list. Returning the raw object
+ * meant `Array.isArray(...)` failed client-side and the pod grid silently showed
+ * zero pods while six were docked, so the keyed form is flattened here into a
+ * podNumber-carrying array.
+ */
+const podsToArray = (pods) => {
+  if (Array.isArray(pods)) {
+    return pods.map((pod, idx) => ({ podNumber: Number(pod?.podNumber ?? pod?.number ?? idx + 1), ...pod }));
+  }
+  if (!pods || typeof pods !== 'object') return [];
+  return Object.entries(pods)
+    .map(([key, pod]) => ({ podNumber: Number(pod?.podNumber ?? pod?.number ?? key), ...pod }))
+    .sort((a, b) => a.podNumber - b.podNumber);
+};
+
 export const getPods = async (req, res, next) => {
   try {
     const stationId = req.params.id || req.query.stationId;
     const pods = await electicaService.getPods(stationId);
-    sendSuccess(res, 200, 'Pods fetched successfully', pods);
+    sendSuccess(res, 200, 'Pods fetched successfully', podsToArray(pods));
   } catch (error) {
     next(error);
   }

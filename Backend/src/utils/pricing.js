@@ -8,6 +8,29 @@ const DEFAULT_GST_RATE = 0.18; // 18% default fallback
 const DEFAULT_SERVICE_FEE_RATE = 0.05; // 5% default fallback
 const DEFAULT_PLATFORM_FEE = 20;
 
+/**
+ * `pricePerHour` and `pricePerDay` are legacy field names. The product actually
+ * sells two plans -- Monthly and Weekly -- so `pricePerHour` holds the MONTHLY
+ * price and `pricePerDay` the WEEKLY one. (Confirmed by the admin EV form, which
+ * labels those two inputs "Monthly Price" and "Weekly Price", and by the rental
+ * type options, where value "hourly" is labelled Monthly and "daily" Weekly.)
+ * calculateRentalCost below is therefore correct in billing whole months/weeks.
+ *
+ * Anything billed by the hour -- a rental extension, a late-return fee -- must
+ * pro-rate off the plan price rather than read `pricePerHour` as a literal
+ * hourly rate, or one extra hour costs a whole month.
+ */
+const HOURS_PER_MONTH = 30 * 24;
+const HOURS_PER_WEEK = 7 * 24;
+
+export const deriveHourlyRate = (vehicle, rentalType) => {
+  const type = String(rentalType || '').toUpperCase();
+  if (type === 'DAILY' || type === 'WEEKLY') {
+    return (Number(vehicle?.pricePerDay) || 0) / HOURS_PER_WEEK;
+  }
+  return (Number(vehicle?.pricePerHour) || 0) / HOURS_PER_MONTH;
+};
+
 export const calculateRentalCost = (pricePerHour, pricePerDay, startDate, endDate, rentalType) => {
   const start = new Date(startDate);
   const end = new Date(endDate);

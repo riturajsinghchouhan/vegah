@@ -15,30 +15,68 @@ import {
 } from "recharts";
 import StatCard from "../../../shared/components/admin/StatCard";
 
-// Fallback Mock Data
-const revenueData = [
-  { date: "01 May", revenue: 25000 },
-  { date: "05 May", revenue: 42000 },
-  { date: "10 May", revenue: 38000 },
-  { date: "15 May", revenue: 85000 },
-  { date: "20 May", revenue: 65000 },
-  { date: "25 May", revenue: 75000 },
-  { date: "31 May", revenue: 95000 },
-];
+const formatChartDate = (value) => {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? String(value ?? "")
+    : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+};
+
+const formatAmount = (n) =>
+  Number.isFinite(Number(n))
+    ? `₹${Number(n).toLocaleString("en-IN")}`
+    : "—";
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+};
+
+const METHOD_COLORS = {
+  ONLINE: "#3b82f6",
+  UPI: "#6366f1",
+  CARD: "#8b5cf6",
+  NET_BANKING: "#0ea5e9",
+  WALLET: "#10b981",
+  CASH: "#f59e0b",
+  UNKNOWN: "#94a3b8",
+};
+
 
 export default function AdminFinance() {
   const [dateFilter, setDateFilter] = useState("This Month");
   const [financeData, setFinanceData] = useState(null);
+  // The revenue trend used to plot a hardcoded May series no matter what the
+  // business actually earned, which is not something to show on a finance screen.
+  const [revenueSeries, setRevenueSeries] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchFinance = async () => {
       try {
         setLoading(true);
-        const res = await adminService.getFinanceSummary();
-        setFinanceData(res);
-      } catch (err) {
-        console.error("Error fetching finance:", err);
+        const [res, charts, stats] = await Promise.allSettled([
+          adminService.getFinanceSummary(),
+          adminService.getDashboardCharts(),
+          adminService.getDashboardStats(),
+        ]);
+        if (res.status === "fulfilled") setFinanceData(res.value);
+        else console.error("Error fetching finance:", res.reason);
+        if (stats.status === "fulfilled") setDashboardStats(stats.value || {});
+
+        if (charts.status === "fulfilled") {
+          const series = charts.value?.revenueChart || [];
+          setRevenueSeries(
+            series.map((point) => ({
+              date: formatChartDate(point.date),
+              revenue: Number(point.revenue) || 0,
+            }))
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -51,12 +89,40 @@ export default function AdminFinance() {
     ? financeData.recentTransactions
     : [];
 
+  // The Payment Methods pie read a `paymentMethodsData` mock that no longer
+  // exists, so the whole page died with "paymentMethodsData is not defined".
+  // Derived from the real payment rows instead, as a share of amount.
+  const paymentMethodsData = (() => {
+    const totals = transactionsList.reduce((acc, t) => {
+      const key = String(t.method || 'UNKNOWN').toUpperCase();
+      acc[key] = (acc[key] || 0) + (Number(t.amount) || 0);
+      return acc;
+    }, {});
+    const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+    if (!grandTotal) return [];
+    return Object.entries(totals)
+      .map(([name, amount]) => ({
+        name: name.replace(/_/g, ' '),
+        value: Math.round((amount / grandTotal) * 100),
+        color: METHOD_COLORS[name] || METHOD_COLORS.UNKNOWN,
+      }))
+      .sort((a, b) => b.value - a.value);
+  })();
+
+  const pendingPayments = transactionsList
+    .filter((t) => ["PENDING", "INITIATED"].includes(String(t.status || "").toUpperCase()))
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  // Payment.status is upper-case on the API (SUCCESS/PENDING/...), so matching on
+  // title case left every badge grey.
   const getStatusBadge = (status) => {
-    switch (status) {
-      case "Success": return "bg-green-50 text-green-700 border-green-200";
-      case "Pending": return "bg-yellow-50 text-yellow-700 border-yellow-200";
-      case "Failed": return "bg-red-50 text-red-700 border-red-200";
-      case "Refunded": return "bg-purple-50 text-purple-700 border-purple-200";
+    switch (String(status || "").toUpperCase()) {
+      case "SUCCESS": return "bg-green-50 text-green-700 border-green-200";
+      case "PENDING":
+      case "INITIATED": return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "FAILED": return "bg-red-50 text-red-700 border-red-200";
+      case "REFUNDED":
+      case "PARTIALLY_REFUNDED": return "bg-purple-50 text-purple-700 border-purple-200";
       default: return "bg-gray-50 text-gray-700 border-gray-200";
     }
   };
@@ -97,14 +163,15 @@ export default function AdminFinance() {
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
+      {/* KPI Stats Grid — every figure here used to be a hardcoded literal, so the
+          finance screen reported invented revenue regardless of the real books. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard title="Total Revenue" value="₹12,45,000" icon={<IndianRupee />} trend="+15% vs Last Year" trendDirection="up" />
-        <StatCard title="Today's Revenue" value="₹24,500" icon={<IndianRupee />} trend="+5% vs Yesterday" trendDirection="up" />
-        <StatCard title="Monthly Revenue" value="₹4,25,000" icon={<Calendar />} trend="+8% vs Last Month" trendDirection="up" />
-        <StatCard title="Pending Payments" value="₹15,200" icon={<AlertCircle />} helper="Awaiting settlement" />
-        <StatCard title="Refunds Processed" value="₹42,680" icon={<ArrowDownRight />} trend="-2% vs Last Month" trendDirection="down" />
-        <StatCard title="Net Earnings" value="₹11,87,120" icon={<Wallet />} trend="+18% vs Last Year" trendDirection="up" />
+        <StatCard title="Gross Revenue" value={formatAmount(summary.grossRevenue ?? 0)} icon={<IndianRupee />} helper="All settled payments" />
+        <StatCard title="Today's Revenue" value={formatAmount(dashboardStats.todaysRevenue ?? 0)} icon={<IndianRupee />} helper="Since midnight" />
+        <StatCard title="Net Revenue" value={formatAmount(summary.netRevenue ?? 0)} icon={<Wallet />} helper="Gross less refunds" />
+        <StatCard title="Pending Payments" value={formatAmount(pendingPayments)} icon={<AlertCircle />} helper="Awaiting settlement" />
+        <StatCard title="Refunds Processed" value={formatAmount(summary.totalRefunded ?? 0)} icon={<ArrowDownRight />} helper="Paid back to customers" />
+        <StatCard title="Estimated Tax" value={formatAmount(Math.round(summary.estimatedTax ?? 0))} icon={<Calendar />} helper="GST on net revenue" />
       </div>
 
       {/* Charts Section */}
@@ -120,8 +187,13 @@ export default function AdminFinance() {
             </select>
           </div>
           <div className="h-[300px] w-full mt-auto">
+            {revenueSeries.length === 0 ? (
+              <div className="h-full w-full flex items-center justify-center text-sm text-gray-500">
+                {loading ? "Loading revenue…" : "No revenue recorded for this period"}
+              </div>
+            ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+              <AreaChart data={revenueSeries} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorFinanceRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -138,12 +210,19 @@ export default function AdminFinance() {
                 <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorFinanceRevenue)" />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         {/* Payment Methods Chart */}
         <div className="lg:col-span-1 bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Payment Methods</h3>
+          {paymentMethodsData.length === 0 ? (
+            <div className="h-[220px] w-full flex-1 flex items-center justify-center text-sm text-gray-500">
+              No payments recorded yet
+            </div>
+          ) : (
+          <>
           <div className="h-[220px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -178,6 +257,8 @@ export default function AdminFinance() {
               </div>
             ))}
           </div>
+          </>
+          )}
         </div>
       </div>
 
@@ -201,22 +282,29 @@ export default function AdminFinance() {
               </tr>
             </thead>
             <tbody className="text-sm">
-              {recentTransactions.map((txn, idx) => (
-                <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-2 font-medium text-gray-900">{txn.id}</td>
-                  <td className="py-4 px-2 text-blue-600 hover:underline cursor-pointer">{txn.bookingId}</td>
-                  <td className="py-4 px-2 text-gray-700">{txn.customer}</td>
-                  <td className="py-4 px-2 font-semibold text-gray-900">{txn.amount}</td>
+              {transactionsList.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-gray-500">No transactions yet</td>
+                </tr>
+              )}
+              {/* Rows come straight off the Payment documents: the old markup read
+                  txn.id / txn.customer / txn.date, which exist on none of them. */}
+              {transactionsList.map((txn, idx) => (
+                <tr key={txn._id || idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                  <td className="py-4 px-2 font-medium text-gray-900">{String(txn._id || "").slice(-8) || "—"}</td>
+                  <td className="py-4 px-2 text-blue-600 hover:underline cursor-pointer">{txn.booking?.bookingId || "—"}</td>
+                  <td className="py-4 px-2 text-gray-700">{txn.booking?.user?.fullName || txn.booking?.user?.name || "—"}</td>
+                  <td className="py-4 px-2 font-semibold text-gray-900">{formatAmount(txn.amount)}</td>
                   <td className="py-4 px-2 text-gray-600 flex items-center gap-1.5 mt-2.5">
                     <CreditCard className="w-4 h-4 text-gray-400" />
-                    {txn.method}
+                    {txn.method || "—"}
                   </td>
                   <td className="py-4 px-2">
                     <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusBadge(txn.status)}`}>
-                      {txn.status}
+                      {txn.status || "—"}
                     </span>
                   </td>
-                  <td className="py-4 px-2 text-gray-500">{txn.date}</td>
+                  <td className="py-4 px-2 text-gray-500">{formatDateTime(txn.paidAt || txn.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

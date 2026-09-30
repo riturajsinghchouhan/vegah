@@ -17,6 +17,21 @@ const PAYABLE_BOOKING_STATUSES = [
   BOOKING_STATUS.PAYMENT_FAILED,
 ];
 
+/**
+ * A booking must never be charged twice. handleStatusTransition is idempotent --
+ * it returns early when the booking is already in the target status -- so a
+ * repeated payment call used to sail through and report success while taking the
+ * money again. The payment record is the only reliable "already paid" marker.
+ */
+const assertNotAlreadyPaid = async (bookingId) => {
+  const settled = await Payment.findOne({ booking: bookingId, status: 'SUCCESS' });
+  if (settled) {
+    throw new BadRequestError('This booking has already been paid for.');
+  }
+};
+
+const isDuplicateKeyError = (error) => error?.code === 11000;
+
 const getRazorpayInstance = () => {
   if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
     return null;
@@ -38,6 +53,8 @@ export const initiatePayment = async (bookingId, userId, method = 'UPI') => {
   if (!PAYABLE_BOOKING_STATUSES.includes(booking.status)) {
     throw new BadRequestError(`Cannot initiate payment for a booking with status: ${booking.status}`);
   }
+
+  await assertNotAlreadyPaid(booking._id);
 
   const razorpay = getRazorpayInstance();
 
@@ -142,6 +159,8 @@ export const payWithCash = async (bookingId, userId) => {
     throw new BadRequestError(`Cannot pay for a booking with status: ${booking.status}`);
   }
 
+  await assertNotAlreadyPaid(booking._id);
+
   const existing = await Payment.findOne({ booking: booking._id, method: 'CASH', status: 'PENDING' });
   const payment = existing || await Payment.create({
     booking: booking._id,
@@ -173,12 +192,36 @@ export const payWithWallet = async (bookingId, userId) => {
     throw new BadRequestError(`Cannot pay for a booking with status: ${booking.status}`);
   }
 
+  await assertNotAlreadyPaid(booking._id);
+
+  // Claim the payment BEFORE touching the wallet. The key is stable per booking,
+  // so the unique index on idempotencyKey is what actually stops two concurrent
+  // taps from both debiting. Debiting first (as this used to) meant a second call
+  // took the money again before anything could reject it.
+  let payment;
+  try {
+    payment = await Payment.create({
+      booking: booking._id,
+      amount: booking.totalAmount,
+      method: 'WALLET',
+      status: 'INITIATED',
+      idempotencyKey: `pay-wallet-${booking._id}`,
+    });
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      throw new BadRequestError('A wallet payment for this booking is already being processed.');
+    }
+    throw error;
+  }
+
   let wallet = await Wallet.findOne({ user: userId });
   if (!wallet) {
     wallet = await Wallet.create({ user: userId, balance: 0 });
   }
 
   if (wallet.balance < booking.totalAmount) {
+    // Release the claim so the customer can retry once they have topped up.
+    await Payment.deleteOne({ _id: payment._id });
     throw new BadRequestError(`Insufficient wallet balance (₹${wallet.balance}). Booking total is ₹${booking.totalAmount}. Please add funds to your wallet.`);
   }
 
@@ -196,15 +239,9 @@ export const payWithWallet = async (bookingId, userId) => {
     referenceId: booking._id,
   });
 
-  // Create Payment record
-  const payment = await Payment.create({
-    booking: booking._id,
-    amount: booking.totalAmount,
-    method: 'WALLET',
-    status: 'SUCCESS',
-    paidAt: new Date(),
-    idempotencyKey: `pay-wallet-${booking._id}-${Date.now()}`,
-  });
+  payment.status = 'SUCCESS';
+  payment.paidAt = new Date();
+  await payment.save();
 
   // Transition Booking to PENDING_VERIFICATION
   const updatedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);

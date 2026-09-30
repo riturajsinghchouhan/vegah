@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import Booking from '../../models/Booking.js';
 import Vehicle from '../../models/Vehicle.js';
 import Coupon from '../../models/Coupon.js';
+import Payment from '../../models/Payment.js';
+import Refund from '../../models/Refund.js';
 import { bookingQueue } from '../../config/bullmq.js';
 import { validateStateTransition } from './bookings.state-machine.js';
 import {
@@ -15,7 +17,7 @@ import {
   IN_TRIP_STATUSES,
   ACTIVE_BOOKING_STATUSES,
 } from './bookings.constants.js';
-import { calculateRentalCost, calculateTotalAmount } from '../../utils/pricing.js';
+import { calculateRentalCost, calculateTotalAmount, deriveHourlyRate } from '../../utils/pricing.js';
 import * as settingsService from '../settings/settings.service.js';
 import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '../../utils/errors.js';
 import env from '../../config/env.js';
@@ -255,11 +257,19 @@ export const reserveVehicle = async (userId, data) => {
       })
       .populate('user', 'fullName phone email');
 
-    // Emit Socket.IO event to admin_room
+    // Emit Socket.IO event to admin_room.
+    //
+    // kycDocuments is stripped: it holds three base64 data URLs (Aadhaar, licence,
+    // photo) running to hundreds of KB, and this is a room broadcast to every
+    // connected admin on every booking. The admin console does not read them off
+    // this event -- it fetches GET /bookings/:id when an admin opens a booking for
+    // review, which still returns them.
     try {
       const io = getIO();
       if (io) {
-        io.to('admin_room').emit('NEW_BOOKING', populatedBooking || booking);
+        const source = populatedBooking || booking;
+        const { kycDocuments, ...bookingSummary } = source.toObject ? source.toObject() : source;
+        io.to('admin_room').emit('NEW_BOOKING', bookingSummary);
       }
     } catch (err) {
       // Socket emission error should not fail booking transaction
@@ -434,7 +444,11 @@ export const rearmTripJobs = async () => {
 
 /**
  * Overtime charge for a late return, billed per started hour at a premium on
- * the hourly rate of the vehicle. Returns 0 when it came back on time.
+ * the vehicle's hourly rate. Returns 0 when it came back on time.
+ *
+ * The rate is pro-rated from the plan price via deriveHourlyRate: `pricePerHour`
+ * is really the MONTHLY price, so reading it directly billed a late customer
+ * 1.5 months for every hour they overran.
  */
 const calculateLateFee = (booking, returnedAt) => {
   const deadline = booking.tripEndsAt || booking.endDate;
@@ -443,11 +457,59 @@ const calculateLateFee = (booking, returnedAt) => {
   const overtimeMs = returnedAt.getTime() - new Date(deadline).getTime();
   if (overtimeMs <= OVERDUE_GRACE_MS) return 0;
 
-  const hourlyRate = booking.vehicle?.pricePerHour || 0;
+  const hourlyRate = deriveHourlyRate(booking.vehicle, booking.rentalType);
   if (!hourlyRate) return 0;
 
   const overtimeHours = Math.ceil(overtimeMs / (1000 * 60 * 60));
   return Math.round(overtimeHours * hourlyRate * LATE_FEE_MULTIPLIER);
+};
+
+/**
+ * Raises the security-deposit refund when a return is signed off with the deposit
+ * going back to the customer.
+ *
+ * Marking `depositStatus = 'REFUNDED'` on the booking used to be the whole story:
+ * nothing anywhere created a Refund record, so the admin Refunds queue could never
+ * populate and the deposit was never actually returned to anyone. The refund is
+ * raised as PENDING so it lands in that queue, and the existing
+ * `PATCH /wallet/admin/refunds/:id/status` -> COMPLETED path credits the wallet.
+ *
+ * Late fees are netted off first: an overdue return owes money back out of the
+ * deposit it is being refunded from.
+ */
+const raiseDepositRefund = async (booking, session) => {
+  const deposit = Number(booking.securityDeposit) || 0;
+  const lateFee = Number(booking.lateFee) || 0;
+  const refundable = Math.max(0, deposit - lateFee);
+  if (refundable <= 0) return null;
+
+  // Refund.payment is required, so a booking that never produced a payment row
+  // cannot raise one. Logged rather than thrown: the return itself must still close.
+  const payment = await Payment.findOne({ booking: booking._id })
+    .sort({ createdAt: -1 })
+    .session(session);
+  if (!payment) {
+    logger.warn(`Booking ${booking.bookingId}: deposit marked REFUNDED but no payment record exists, so no refund was raised`);
+    return null;
+  }
+
+  try {
+    const [refund] = await Refund.create([{
+      booking: booking._id,
+      payment: payment._id,
+      amount: refundable,
+      reason: lateFee > 0
+        ? `Security deposit refund (₹${deposit} deposit less ₹${lateFee} late fee)`
+        : 'Security deposit refund',
+      status: 'PENDING',
+      // Stable per booking so a replayed return cannot raise the refund twice.
+      idempotencyKey: `deposit-refund-${booking._id}`,
+    }], { session });
+    return refund;
+  } catch (error) {
+    if (error?.code === 11000) return null; // already raised
+    throw error;
+  }
 };
 
 /**
@@ -630,6 +692,9 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       booking.lateFee = calculateLateFee(booking, now);
       booking.depositStatus = options.depositStatus || 'REFUNDED';
       if (options.adminId) booking.returnConfirmedBy = options.adminId;
+      if (booking.depositStatus === 'REFUNDED') {
+        await raiseDepositRefund(booking, session);
+      }
     }
 
     if (newStatus.includes('CANCELLED') || newStatus === BOOKING_STATUS.RESERVATION_EXPIRED) {
@@ -970,7 +1035,9 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
   }
 
   const extraMs = extraHours * 60 * 60 * 1000;
-  const extensionCost = (booking.vehicle.pricePerHour || 0) * extraHours;
+  // Pro-rated off the plan price. Multiplying `pricePerHour` (really the MONTHLY
+  // price) by extraHours charged a full month for each extra hour.
+  const extensionCost = Math.round(deriveHourlyRate(booking.vehicle, booking.rentalType) * extraHours);
 
   const newEndDate = new Date(new Date(booking.endDate).getTime() + extraMs);
   booking.endDate = newEndDate;

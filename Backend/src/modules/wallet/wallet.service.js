@@ -216,6 +216,8 @@ export const listRefunds = async (query = {}) => {
   };
 };
 
+const REFUND_STATUSES = ['PENDING', 'PROCESSING', 'COMPLETED', 'REJECTED'];
+
 export const updateRefundStatus = async (refundId, status, adminId) => {
   const refund = await Refund.findById(refundId).populate('booking');
   if (!refund) {
@@ -224,12 +226,29 @@ export const updateRefundStatus = async (refundId, status, adminId) => {
     throw error;
   }
 
-  refund.status = status.toUpperCase();
+  const nextStatus = String(status || '').toUpperCase();
+  if (!REFUND_STATUSES.includes(nextStatus)) {
+    const error = new Error(`Invalid refund status. Must be one of: ${REFUND_STATUSES.join(', ')}`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // COMPLETED is terminal and pays out. Without this guard, completing an already
+  // completed refund (a double click, or COMPLETED -> PENDING -> COMPLETED) credited
+  // the customer's wallet again every time.
+  if (refund.status === 'COMPLETED') {
+    if (nextStatus === 'COMPLETED') return refund;
+    const error = new Error('This refund has already been paid out and cannot be changed.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  refund.status = nextStatus;
   refund.processedBy = adminId;
   refund.processedAt = new Date();
   await refund.save();
 
-  // If completed, credit refund amount to user's wallet
+  // Reached only on the first transition into COMPLETED, per the guard above.
   if (refund.status === 'COMPLETED' && refund.booking?.user) {
     const userId = refund.booking.user;
     let wallet = await Wallet.findOne({ user: userId });

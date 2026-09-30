@@ -1,19 +1,15 @@
 import * as bookingsService from './bookings.service.js';
 import { sendSuccess } from '../../utils/response.js';
 import { ForbiddenError } from '../../utils/errors.js';
-import { getIO } from '../../config/socket.js';
 
 export const createBooking = async (req, res, next) => {
   try {
     const booking = await bookingsService.reserveVehicle(req.user.id, req.body);
     
-    // Notify admins about the new booking
-    try {
-      const io = getIO();
-      io.to('admin_room').emit('NEW_BOOKING', booking);
-    } catch (ioErr) {
-      console.error('Socket emit error (NEW_BOOKING):', ioErr);
-    }
+    // NB: NEW_BOOKING is emitted by reserveVehicle(), which has the vehicle and
+    // user populated and strips kycDocuments. Emitting again here fired the event
+    // twice on every booking, so the admin screen alerted and played its sound
+    // twice for one booking -- once with the raw KYC payload attached.
 
     sendSuccess(res, 201, 'Vehicle reserved successfully. Please complete KYC and payment.', booking);
   } catch (error) {

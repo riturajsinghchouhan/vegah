@@ -168,12 +168,21 @@ const LoginPage = () => {
           {/* Continue Button */}
           <button 
             type="submit"
-            disabled={loading || phone.length < 10}
+            disabled={loading || phone.length < 10 || !city}
             className="w-full h-[52px] mt-6 bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Please wait..." : "Continue"}
             {!loading && <ArrowRight size={18} className="ml-2" />}
           </button>
+
+          {/* Without this the button just sits there inert: handleSubmit bails out
+              when no city is picked, so a filled-in number alone looked ready to
+              submit but did nothing when tapped. */}
+          {phone.length >= 10 && !city && (
+            <p className="mt-2 text-center text-[12px] font-medium text-[#272664]">
+              Select your city to continue
+            </p>
+          )}
 
         </form>
 
