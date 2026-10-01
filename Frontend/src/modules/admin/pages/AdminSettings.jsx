@@ -68,72 +68,7 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6 pb-8 max-w-[1200px] mx-auto">
-      {/* Full Page Editor */}
-      {editingContent ? (
-        <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
-          <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-              <h2 className="text-lg font-semibold text-gray-800">Editing {editingContent.title}</h2>
-            </div>
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button className="px-4 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium">Editor</button>
-              <button className="px-4 py-1.5 text-gray-600 rounded-md text-sm font-medium">Preview</button>
-            </div>
-          </div>
-          
-          <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
-            <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-full">
-              <div className="p-4 border-b border-gray-100">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PAGE TITLE</label>
-                <div className="mt-2 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 bg-gray-50">
-                  {editingContent.title} - User
-                </div>
-              </div>
-              <div className="flex-1 p-4">
-                <textarea 
-                  className="w-full h-full min-h-[400px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-                  value={settings[editingContent.key]}
-                  onChange={(e) => setSettings({ ...settings, [editingContent.key]: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              <span className="font-semibold text-gray-700">Tip:</span> Your changes are only published once you hit save.
-            </div>
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setEditingContent(null)}
-                className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={async () => {
-                  try {
-                    setSaving(true);
-                    await adminService.updateSettings(settings);
-                    setEditingContent(null);
-                    alert("Settings updated successfully!");
-                  } catch (err) {
-                    alert("Failed to save settings");
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-                disabled={saving}
-                className="px-6 py-2.5 bg-[#f97316] text-white rounded-lg font-medium hover:bg-[#ea580c] transition-colors flex items-center gap-2"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+
 
       {/* Header */}
       <div>
@@ -247,6 +182,35 @@ export default function AdminSettings() {
                           Edit Support Info
                         </button>
                       </div>
+                      
+                      {/* Inline Editor */}
+                      {editingContent && (
+                        <div className="mt-6 border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                              <h3 className="font-medium text-gray-800">Editing {editingContent.title}</h3>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => setEditingContent(null)}
+                              className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <div className="p-4">
+                            <textarea 
+                              className="w-full h-80 min-h-[300px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y overflow-y-auto"
+                              value={settings[editingContent.key]}
+                              onChange={(e) => setSettings({ ...settings, [editingContent.key]: e.target.value })}
+                            />
+                            <div className="mt-4 flex justify-between items-center text-sm">
+                              <span className="text-gray-500">Tip: Don't forget to save changes below.</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
