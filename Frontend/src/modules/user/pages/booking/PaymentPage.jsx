@@ -9,6 +9,7 @@ import { bookingService } from "../../../../services/bookingService";
 import { walletService } from "../../../../services/walletService";
 import { formatCurrency } from "../../../../utils/formatters";
 
+import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const RAZORPAY_SRC = "https://checkout.razorpay.com/v1/checkout.js";
@@ -49,6 +50,7 @@ const PaymentPage = () => {
 
   const [paymentMode, setPaymentMode] = useState("ONLINE");
   const [processing, setProcessing] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const sdkReady = useRef(null);
   const [wallet, setWallet] = useState({ balance: 0, loading: true });
 
@@ -259,7 +261,7 @@ const PaymentPage = () => {
       </div>
 
       <p className="mt-6 text-xs text-gray-500 text-center px-4">
-        By proceeding with the payment, you agree to our <span className="underline cursor-pointer">Terms & Conditions</span>.
+        By proceeding with the payment, you agree to our <span onClick={() => setShowTerms(true)} className="underline cursor-pointer text-app-primary">Terms & Conditions</span>.
       </p>
 
       <Button className="mt-5 w-full" onClick={handlePay} disabled={processing || (paymentMode === "WALLET" && !walletUsable)}>
@@ -271,6 +273,41 @@ const PaymentPage = () => {
               ? `Pay Now ${formatCurrency(pricing.total)}`
               : "Confirm Booking"}
       </Button>
+
+      {/* Terms and Conditions Bottom Sheet */}
+      {showTerms && (
+        <div className="fixed inset-0 z-50 flex justify-center bg-black/50" onClick={() => setShowTerms(false)}>
+          <div 
+            className="absolute bottom-0 w-full max-w-md bg-white rounded-t-2xl shadow-lg flex flex-col"
+            style={{ maxHeight: '80vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Terms & Conditions</h3>
+              <button onClick={() => setShowTerms(false)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1">
+              <div className="prose prose-sm text-gray-600">
+                <p className="font-semibold text-gray-800 mb-2">1. Eligibility</p>
+                <p className="mb-4">User must be 18+ and legally authorized to operate the vehicle.</p>
+                
+                <p className="font-semibold text-gray-800 mb-2">2. Vehicle Use</p>
+                <p className="mb-4">The vehicle must be used only for lawful and personal purposes within the permitted zone.</p>
+                
+                <p className="font-semibold text-gray-800 mb-2">3. Prohibited Use</p>
+                <p className="mb-4">Alcohol/drug use, racing, dangerous driving, overloading, stunts, and carrying prohibited or hazardous materials are not allowed.</p>
+                
+                <p className="font-semibold text-gray-800 mb-2">4. Payment & Fees</p>
+                <p className="mb-4">All payments must be completed prior to the trip. Additional charges may apply for late returns, damages, or traffic violations.</p>
+                
+                <p className="text-xs text-gray-400 mt-6 italic">* These terms are subject to change. Please refer to our main website for the full legal agreement.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
