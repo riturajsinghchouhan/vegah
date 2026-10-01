@@ -258,6 +258,10 @@ const PaymentPage = () => {
         <PriceBreakdown pricing={pricing} />
       </div>
 
+      <p className="mt-6 text-xs text-gray-500 text-center px-4">
+        By proceeding with the payment, you agree to our <span className="underline cursor-pointer">Terms & Conditions</span>.
+      </p>
+
       <Button className="mt-5 w-full" onClick={handlePay} disabled={processing || (paymentMode === "WALLET" && !walletUsable)}>
         {processing
           ? "Processing..."
