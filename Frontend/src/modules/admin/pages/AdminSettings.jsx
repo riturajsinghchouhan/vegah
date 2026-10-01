@@ -201,10 +201,10 @@ export default function AdminSettings() {
                           </div>
                           <div className="p-4">
                             <textarea 
-                              className="w-full h-[400px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none overflow-y-scroll"
-                              style={{ display: 'block' }}
+                              className="w-full h-[400px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none overflow-y-auto show-scrollbar"
                               value={settings[editingContent.key]}
                               onChange={(e) => setSettings({ ...settings, [editingContent.key]: e.target.value })}
+                              onWheel={(e) => e.stopPropagation()}
                             />
                             <div className="mt-4 flex justify-between items-center text-sm">
                               <span className="text-gray-500">Tip: Don't forget to save changes below.</span>

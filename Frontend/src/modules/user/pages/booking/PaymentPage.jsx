@@ -274,7 +274,10 @@ const PaymentPage = () => {
       </p>
 
       {showTerms && (
-        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 max-h-40 overflow-y-auto">
+        <div 
+          className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 max-h-60 overflow-y-auto show-scrollbar overscroll-contain"
+          onWheel={(e) => e.stopPropagation()}
+        >
           {termsContent ? (
             <pre className="whitespace-pre-wrap font-sans">{termsContent}</pre>
           ) : (
