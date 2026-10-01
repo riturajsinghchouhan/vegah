@@ -6,6 +6,7 @@ export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState("General");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingContent, setEditingContent] = useState(null);
 
   const [settings, setSettings] = useState({
     appName: "Vegah Rentals",
@@ -67,6 +68,73 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6 pb-8 max-w-[1200px] mx-auto">
+      {/* Full Page Editor */}
+      {editingContent ? (
+        <div className="fixed inset-0 bg-gray-50 z-50 flex flex-col overflow-hidden">
+          <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+              <h2 className="text-lg font-semibold text-gray-800">Editing {editingContent.title}</h2>
+            </div>
+            <div className="flex bg-gray-100 p-1 rounded-lg">
+              <button className="px-4 py-1.5 bg-gray-900 text-white rounded-md text-sm font-medium">Editor</button>
+              <button className="px-4 py-1.5 text-gray-600 rounded-md text-sm font-medium">Preview</button>
+            </div>
+          </div>
+          
+          <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
+            <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-full">
+              <div className="p-4 border-b border-gray-100">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PAGE TITLE</label>
+                <div className="mt-2 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 bg-gray-50">
+                  {editingContent.title} - User
+                </div>
+              </div>
+              <div className="flex-1 p-4">
+                <textarea 
+                  className="w-full h-full min-h-[400px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                  value={settings[editingContent.key]}
+                  onChange={(e) => setSettings({ ...settings, [editingContent.key]: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              <span className="font-semibold text-gray-700">Tip:</span> Your changes are only published once you hit save.
+            </div>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setEditingContent(null)}
+                className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    setSaving(true);
+                    await adminService.updateSettings(settings);
+                    setEditingContent(null);
+                    alert("Settings updated successfully!");
+                  } catch (err) {
+                    alert("Failed to save settings");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                className="px-6 py-2.5 bg-[#f97316] text-white rounded-lg font-medium hover:bg-[#ea580c] transition-colors flex items-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">Settings</h1>
@@ -156,34 +224,28 @@ export default function AdminSettings() {
                     </div>
                     <div className="p-6 border-t border-gray-100">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">App Pages Content</h3>
-                      <div className="grid grid-cols-1 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Terms & Conditions</label>
-                          <textarea 
-                            rows={4}
-                            value={settings.termsContent}
-                            onChange={(e) => setSettings({ ...settings, termsContent: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Privacy Policy</label>
-                          <textarea 
-                            rows={4}
-                            value={settings.privacyContent}
-                            onChange={(e) => setSettings({ ...settings, privacyContent: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Support Info</label>
-                          <textarea 
-                            rows={4}
-                            value={settings.supportContent}
-                            onChange={(e) => setSettings({ ...settings, supportContent: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                          />
-                        </div>
+                      <div className="flex flex-wrap gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setEditingContent({ key: 'termsContent', title: 'Terms & Conditions' })}
+                          className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          Edit Terms & Conditions
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingContent({ key: 'privacyContent', title: 'Privacy Policy' })}
+                          className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          Edit Privacy Policy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingContent({ key: 'supportContent', title: 'Support Info' })}
+                          className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          Edit Support Info
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -13,6 +13,7 @@ const StationDetailsPage = () => {
   const [swapState, setSwapState] = useState(null); // null, 'starting', 'polling', 'completed', 'failed'
   const [swapData, setSwapData] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     chargingService.getStationById(stationId).then(setStation);
@@ -84,8 +85,20 @@ const StationDetailsPage = () => {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
           <section className="surface-card overflow-hidden p-4">
-            <div className="rounded-[1.75rem] bg-[#0B1320] p-4 flex items-center justify-center">
-              <img alt={station.name} className="h-64 w-full object-contain sm:h-80" src={station.image || '/assets/battery_swap.png'} />
+            <div className="rounded-[1.75rem] bg-[#0B1320] p-4 flex items-center justify-center min-h-[240px]">
+              {station.image && !imgError ? (
+                <img 
+                  alt={station.name} 
+                  className="h-64 w-full object-contain sm:h-80" 
+                  src={station.image} 
+                  onError={() => setImgError(true)} 
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-orange-500 py-10">
+                  <Zap size={64} />
+                  <span className="mt-3 text-xs font-semibold text-slate-400">Battery Swapping Station</span>
+                </div>
+              )}
             </div>
           </section>
 

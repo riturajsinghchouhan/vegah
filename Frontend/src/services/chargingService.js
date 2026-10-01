@@ -27,7 +27,7 @@ export const chargingService = {
         amenities: s.amenities || [],
         supportedVehicles: s.supportedVehicles || [],
         paymentMethods: s.paymentMethods || [],
-        image: s.imageUrl || '/assets/battery_swap.png',
+        image: s.imageUrl || '/assets/Charingstaionicon/image.png',
         isElectica: false,
         lat: s.coordinates?.coordinates ? s.coordinates.coordinates[1] : null,
         lng: s.coordinates?.coordinates ? s.coordinates.coordinates[0] : null,
@@ -55,7 +55,7 @@ export const chargingService = {
         availableChargers: s.pods ?? 0,
         totalChargers: s.pods ?? 0,
         isElectica: true,
-        image: '/assets/battery_swap.png',
+        image: '/assets/Charingstaionicon/image.png',
         lat: parseFloat(s.lat) || null,
         lng: parseFloat(s.lng) || null,
         speedLabel: 'Instant Battery Swap',
@@ -104,7 +104,7 @@ export const chargingService = {
           amenities: s.amenities || [],
           supportedVehicles: s.supportedVehicles || [],
           paymentMethods: s.paymentMethods || [],
-          image: s.imageUrl || '/assets/battery_swap.png',
+          image: s.imageUrl || '/assets/Charingstaionicon/image.png',
           isElectica: false,
         };
       }

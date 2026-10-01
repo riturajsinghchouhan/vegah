@@ -1,14 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Bike, Save, X, Layers } from 'lucide-react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { 
+  ArrowLeft, 
+  Bike, 
+  Save, 
+  X, 
+  Package, 
+  DollarSign, 
+  MapPin, 
+  Zap, 
+  Upload, 
+  Tag, 
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  Image as ImageIcon
+} from 'lucide-react';
 import { adminService } from '../services/adminService';
-import { Button } from '@/shared/components/ui/Button';
 
 export default function AdminEVForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
-  const title = isEditing ? "Edit EV Scooty" : "Add New EV Scooty";
 
   const [categories, setCategories] = useState([]);
   const [zones, setZones] = useState([]);
@@ -182,7 +195,6 @@ export default function AdminEVForm() {
         await adminService.createVehicle(payload);
       }
 
-      alert("EV details & Stock management updated successfully!");
       navigate('/admin/evs');
     } catch (error) {
       console.error("Failed to save vehicle", error);
@@ -193,108 +205,216 @@ export default function AdminEVForm() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Loading vehicle details...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-medium text-slate-500">Loading vehicle configuration...</p>
+        </div>
+      </div>
+    );
   }
 
+  const isOutOfStock = Number(formData.availableStock) === 0;
+  const isLowStock = Number(formData.availableStock) > 0 && Number(formData.availableStock) < 3;
+
   return (
-    <div className="space-y-6 pb-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <button 
-          onClick={() => navigate('/admin/evs')}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <ArrowLeft size={20} className="text-gray-600" />
-        </button>
-        
-        <div className="bg-orange-500 text-white p-2.5 rounded-xl shadow-sm">
-          <Bike size={22} />
+    <div className="max-w-6xl mx-auto pb-16 space-y-6">
+      
+      {/* Top Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div className="flex items-center gap-4">
+          <button 
+            type="button"
+            onClick={() => navigate('/admin/evs')}
+            className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all border border-slate-200/60"
+          >
+            <ArrowLeft size={18} />
+          </button>
+
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <Link to="/admin/evs" className="hover:text-slate-600 transition-colors">EV Fleet</Link>
+              <span>/</span>
+              <span>{isEditing ? 'Edit Vehicle' : 'New Registration'}</span>
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
+              {isEditing ? (formData.name || 'Edit Vehicle') : 'Add New EV Scooty'}
+            </h1>
+          </div>
         </div>
-        
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 leading-tight">{title}</h1>
-          <p className="text-sm text-gray-500">Manage vehicle details, stock quantity, pricing and zone assignment</p>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/evs')}
+            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save size={16} />
+            {saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create EV')}
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Form */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left 2 Columns: Core Information */}
+        <div className="lg:col-span-2 space-y-6">
           
-          {/* Plate Number */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Registration / Plate Number <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="text"
-              placeholder="e.g. KA 01 EV 1234"
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
-              value={formData.plateNumber}
-              onChange={(e) => handleChange('plateNumber', e.target.value)}
-            />
-          </div>
-
-          {/* EV Model Name */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Vehicle Name <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="text"
-              placeholder="e.g. Ather 450X Gen 3"
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-            />
-          </div>
-
-          {/* Stock Management Section */}
-          <div className="md:col-span-2 bg-gradient-to-r from-orange-50/60 via-amber-50/40 to-orange-50/60 p-5 rounded-xl border border-orange-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-orange-200/80 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-orange-500 text-white rounded-lg shadow-sm">
-                  <Layers size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">📦 Fleet Stock Management (Stock Level)</h3>
-                  <p className="text-xs text-gray-600">Track physical inventory count and available units for booking</p>
-                </div>
+          {/* Card 1: Basic Information */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-5">
+            <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
+              <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                <Bike size={18} />
               </div>
-              
-              {/* Live Stock Indicator Badge */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock Status:</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-sm border ${
-                  Number(formData.availableStock) === 0
-                    ? 'bg-red-100 text-red-700 border-red-300'
-                    : Number(formData.availableStock) < 3
-                    ? 'bg-amber-100 text-amber-700 border-amber-300'
-                    : 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${
-                    Number(formData.availableStock) === 0 ? 'bg-red-500 animate-ping' : Number(formData.availableStock) < 3 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`} />
-                  {Number(formData.availableStock) === 0 
-                    ? 'Out of Stock' 
-                    : Number(formData.availableStock) < 3 
-                    ? `Low Stock (${formData.availableStock} units)` 
-                    : `In Stock (${formData.availableStock} / ${formData.totalStock} units)`}
-                </span>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Vehicle Identification</h2>
+                <p className="text-xs text-slate-500">Registration and model specification details</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Total Fleet Stock (Total Units) <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Plate / Registration Number <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. KA 01 EV 1234"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-mono font-bold text-slate-900 uppercase text-sm"
+                  value={formData.plateNumber}
+                  onChange={(e) => handleChange('plateNumber', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Display Name <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Ather 450X Gen 3"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Brand <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Ather"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900"
+                  value={formData.brand}
+                  onChange={(e) => handleChange('brand', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Model Variant <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. 450X HR"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900"
+                  value={formData.model}
+                  onChange={(e) => handleChange('model', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Category <span className="text-rose-500">*</span>
+                </label>
+                <select 
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900 bg-white"
+                  value={formData.category}
+                  onChange={(e) => handleChange('category', e.target.value)}
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(c => (
+                    <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Assigned Operational Zone <span className="text-rose-500">*</span>
+                </label>
+                <select 
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900 bg-white"
+                  value={formData.zone}
+                  onChange={(e) => handleChange('zone', e.target.value)}
+                >
+                  <option value="">Select Zone</option>
+                  {zones.map(z => (
+                    <option key={z._id || z.id} value={z._id || z.id}>{z.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Fleet Stock Management */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-5">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                  <Package size={18} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Inventory & Stock Controls</h2>
+                  <p className="text-xs text-slate-500">Fleet count and real-time booking availability</p>
+                </div>
+              </div>
+
+              {/* Status Pill */}
+              <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
+                isOutOfStock 
+                  ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                  : isLowStock 
+                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${
+                  isOutOfStock ? 'bg-rose-500' : isLowStock ? 'bg-amber-500' : 'bg-emerald-500'
+                }`} />
+                {isOutOfStock ? 'Out of Stock' : isLowStock ? 'Low Stock Alert' : 'Stock Optimal'}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Total Fleet Units <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="number"
                   min="0"
                   required
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white font-bold text-gray-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-bold text-slate-900"
                   value={formData.totalStock}
                   onChange={(e) => {
                     const val = Number(e.target.value);
@@ -304,264 +424,117 @@ export default function AdminEVForm() {
                     }
                   }}
                 />
-                <p className="text-[11px] text-gray-500 mt-1">Total EV units present in fleet</p>
+                <p className="text-[11px] text-slate-400 mt-1">Total physical vehicles in fleet</p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Available Stock (Available for Booking) <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Available Units <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="number"
                   min="0"
                   max={formData.totalStock}
                   required
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white font-bold text-gray-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-bold text-slate-900"
                   value={formData.availableStock}
                   onChange={(e) => handleChange('availableStock', Number(e.target.value))}
                 />
-                <p className="text-[11px] text-gray-500 mt-1">Currently ready for instant booking</p>
+                <p className="text-[11px] text-slate-400 mt-1">Ready for user booking</p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Stock Condition Status
                 </label>
                 <select 
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white font-semibold"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-semibold text-slate-900 bg-white"
                   value={formData.stockStatus}
                   onChange={(e) => handleChange('stockStatus', e.target.value)}
                 >
-                  <option value="IN_STOCK">In Stock (Available)</option>
-                  <option value="LOW_STOCK">Low Stock (Alert)</option>
-                  <option value="OUT_OF_STOCK">Out of Stock (Disabled)</option>
+                  <option value="IN_STOCK">In Stock</option>
+                  <option value="LOW_STOCK">Low Stock</option>
+                  <option value="OUT_OF_STOCK">Out of Stock</option>
                 </select>
-                <p className="text-[11px] text-gray-500 mt-1">Manual status override if needed</p>
+                <p className="text-[11px] text-slate-400 mt-1">Manual status override</p>
               </div>
             </div>
           </div>
 
-          {/* Brand */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Brand <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="text"
-              placeholder="e.g. Ather, Ola, TVS"
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.brand}
-              onChange={(e) => handleChange('brand', e.target.value)}
-            />
-          </div>
+          {/* Card 3: Media & Images */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+              <div className="p-2 rounded-lg bg-sky-50 text-sky-600">
+                <ImageIcon size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Vehicle Gallery</h2>
+                <p className="text-xs text-slate-500">Upload high-resolution vehicle photos for customer preview</p>
+              </div>
+            </div>
 
-          {/* Model Version */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Model Version <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="text"
-              placeholder="e.g. 450X"
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.model}
-              onChange={(e) => handleChange('model', e.target.value)}
-            />
-          </div>
+            <div>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer hover:bg-slate-50/80 hover:border-slate-300 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload size={22} className="text-slate-400 mb-1" />
+                  <p className="text-xs font-semibold text-slate-700">Click to upload vehicle images</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">PNG, JPG or WEBP (Max 5 files)</p>
+                </div>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length > 5) {
+                      alert('Maximum 5 images allowed');
+                      e.target.value = '';
+                    } else {
+                      setImages(files);
+                    }
+                  }}
+                />
+              </label>
+            </div>
 
-          {/* Category Dropdown */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Category <span className="text-red-500">*</span>
-            </label>
-            <select 
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              value={formData.category}
-              onChange={(e) => handleChange('category', e.target.value)}
-            >
-              <option value="">Select Category</option>
-              {categories.map(c => (
-                <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Zone Dropdown */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Assigned Zone <span className="text-red-500">*</span>
-            </label>
-            <select 
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              value={formData.zone}
-              onChange={(e) => handleChange('zone', e.target.value)}
-            >
-              <option value="">Select Zone</option>
-              {zones.map(z => (
-                <option key={z._id || z.id} value={z._id || z.id}>{z.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Daily Price */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Weekly Price (₹) <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="number"
-              required
-              min="0"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.pricePerDay}
-              onChange={(e) => handleChange('pricePerDay', Number(e.target.value))}
-            />
-          </div>
-
-          {/* Hourly Price */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Monthly Price (₹) <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="number"
-              required
-              min="0"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.pricePerHour}
-              onChange={(e) => handleChange('pricePerHour', Number(e.target.value))}
-            />
-          </div>
-
-          {/* Security Deposit */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Security Deposit (₹) <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="number"
-              required
-              min="0"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.securityDeposit}
-              onChange={(e) => handleChange('securityDeposit', Number(e.target.value))}
-            />
-          </div>
-
-          {/* Location Hub */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Pickup Location / Hub <span className="text-red-500">*</span>
-            </label>
-            <input 
-              type="text"
-              required
-              placeholder="e.g. Indiranagar Hub, Bengaluru"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.location}
-              onChange={(e) => handleChange('location', e.target.value)}
-            />
-          </div>
-
-          {/* Range (km) */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Range per Full Charge (km)
-            </label>
-            <input 
-              type="number"
-              min="0"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={formData.rangeKm}
-              onChange={(e) => handleChange('rangeKm', Number(e.target.value))}
-            />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Operational Status <span className="text-red-500">*</span>
-            </label>
-            <select 
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              value={formData.status}
-              onChange={(e) => handleChange('status', e.target.value)}
-            >
-              <option value="AVAILABLE">Available</option>
-              <option value="RESERVED">Reserved</option>
-              <option value="BOOKED">Booked</option>
-              <option value="MAINTENANCE">Maintenance</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
-
-          {/* Images Upload */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Vehicle Images (Max 5)
-            </label>
-            <input 
-              type="file"
-              multiple
-              accept="image/*"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => {
-                const files = Array.from(e.target.files);
-                if (files.length > 5) {
-                  alert('Maximum 5 images allowed');
-                  e.target.value = '';
-                } else {
-                  setImages(files);
-                }
-              }}
-            />
-            <p className="text-xs text-gray-500 mt-1 mb-3">
-              {isEditing ? "Uploading new images will append to existing ones." : "Select up to 5 images for the vehicle gallery."}
-            </p>
-
-            {/* Image Preview Section */}
+            {/* Previews Grid */}
             {(existingImages.length > 0 || previewUrls.length > 0) && (
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2">
                 {/* Existing Images */}
                 {existingImages.map((img, idx) => (
-                  <div key={img._id || idx} className="relative w-24 h-24 rounded-lg border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center group">
+                  <div key={img._id || idx} className="relative aspect-square rounded-xl border border-slate-200 overflow-hidden bg-slate-50 group">
                     <img 
                       src={img.url.startsWith('http') ? img.url : `http://localhost:5000${img.url}`} 
-                      className="w-full h-full object-contain mix-blend-multiply" 
+                      className="w-full h-full object-cover" 
                       alt="EV" 
                     />
-                    <div className="absolute top-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    <div className="absolute top-1 left-1 bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
                       Saved
                     </div>
                     <button 
                       type="button"
                       onClick={() => handleRemoveExistingImage(img._id)}
-                      className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove Image"
+                      className="absolute inset-0 bg-slate-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X size={20} />
+                      <X size={18} />
                     </button>
                   </div>
                 ))}
                 
                 {/* New Image Previews */}
                 {previewUrls.map((url, idx) => (
-                  <div key={url} className="relative w-24 h-24 rounded-lg border-2 border-blue-400 border-dashed overflow-hidden bg-blue-50/30 flex items-center justify-center shadow-sm group">
-                    <img src={url} className="w-full h-full object-contain mix-blend-multiply p-1" alt="Preview" />
-                    <div className="absolute top-1 right-1 bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm">
+                  <div key={url} className="relative aspect-square rounded-xl border border-indigo-200 overflow-hidden bg-indigo-50/20 group">
+                    <img src={url} className="w-full h-full object-cover" alt="Preview" />
+                    <div className="absolute top-1 left-1 bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                       New
                     </div>
                     <button 
                       type="button"
                       onClick={() => handleRemoveNewImage(idx)}
-                      className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove File"
+                      className="absolute inset-0 bg-rose-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X size={20} />
+                      <X size={18} />
                     </button>
                   </div>
                 ))}
@@ -571,23 +544,136 @@ export default function AdminEVForm() {
 
         </div>
 
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
-          <Button 
-            type="button"
-            variant="outline" 
-            onClick={() => navigate('/admin/evs')}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit"
-            disabled={saving}
-            className="bg-[#ea580c] hover:bg-[#c2410c] border-none text-white shadow-sm disabled:opacity-50 flex items-center gap-2"
-          >
-            <Save size={16} />
-            {saving ? 'Saving...' : (isEditing ? 'Save Changes & Stock' : 'Create EV')}
-          </Button>
+        {/* Right 1 Column: Pricing & Operational Specs */}
+        <div className="space-y-6">
+          
+          {/* Card 4: Rental Pricing */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+              <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+                <DollarSign size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Rental Tariff</h2>
+                <p className="text-xs text-slate-500">Weekly & monthly pricing rates</p>
+              </div>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Weekly Rental Price (₹) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+                  <input 
+                    type="number"
+                    required
+                    min="0"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-bold text-slate-900"
+                    value={formData.pricePerDay}
+                    onChange={(e) => handleChange('pricePerDay', Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Monthly Rental Price (₹) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+                  <input 
+                    type="number"
+                    required
+                    min="0"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-bold text-slate-900"
+                    value={formData.pricePerHour}
+                    onChange={(e) => handleChange('pricePerHour', Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Security Deposit (₹) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+                  <input 
+                    type="number"
+                    required
+                    min="0"
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-bold text-slate-900"
+                    value={formData.securityDeposit}
+                    onChange={(e) => handleChange('securityDeposit', Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Vehicle Specs & Location */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+              <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
+                <Zap size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Specs & Station Hub</h2>
+                <p className="text-xs text-slate-500">Battery range & pickup location</p>
+              </div>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Pickup Hub / Station Location <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="e.g. Indiranagar Hub, Bengaluru"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900"
+                  value={formData.location}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Range per Full Charge (km)
+                </label>
+                <input 
+                  type="number"
+                  min="0"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-bold text-slate-900"
+                  value={formData.rangeKm}
+                  onChange={(e) => handleChange('rangeKm', Number(e.target.value))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Operational Fleet Status <span className="text-rose-500">*</span>
+                </label>
+                <select 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-semibold text-slate-900 bg-white"
+                  value={formData.status}
+                  onChange={(e) => handleChange('status', e.target.value)}
+                >
+                  <option value="AVAILABLE">Available</option>
+                  <option value="RESERVED">Reserved</option>
+                  <option value="BOOKED">Booked</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
         </div>
+
       </form>
     </div>
   );
