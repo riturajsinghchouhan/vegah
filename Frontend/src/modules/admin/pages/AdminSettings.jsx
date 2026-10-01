@@ -201,7 +201,8 @@ export default function AdminSettings() {
                           </div>
                           <div className="p-4">
                             <textarea 
-                              className="w-full h-[400px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y overflow-y-auto"
+                              className="w-full h-[400px] p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none overflow-y-scroll"
+                              style={{ display: 'block' }}
                               value={settings[editingContent.key]}
                               onChange={(e) => setSettings({ ...settings, [editingContent.key]: e.target.value })}
                             />
