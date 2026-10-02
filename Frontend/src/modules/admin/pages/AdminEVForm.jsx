@@ -17,11 +17,36 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { adminService } from '../services/adminService';
+import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { env } from '../../../config/env';
+
+const libraries = ['places'];
 
 export default function AdminEVForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: env.mapsKey,
+    libraries
+  });
+
+  const [autocomplete, setAutocomplete] = useState(null);
+
+  const onLoad = (autocompleteObj) => {
+    setAutocomplete(autocompleteObj);
+  };
+
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
+      if (place && place.formatted_address) {
+        setFormData(prev => ({ ...prev, location: place.formatted_address }));
+      }
+    }
+  };
 
   const [categories, setCategories] = useState([]);
   const [zones, setZones] = useState([]);
@@ -156,8 +181,8 @@ export default function AdminEVForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.plateNumber || !formData.name || !formData.category || !formData.zone) {
-      alert("Please fill in all required fields (Plate Number, Vehicle Name, Category, Zone)");
+    if (!formData.name || !formData.category || !formData.zone) {
+      alert("Please fill in all required fields (Vehicle Name, Category, Zone)");
       return;
     }
 
@@ -165,7 +190,6 @@ export default function AdminEVForm() {
       setSaving(true);
       
       const payload = new FormData();
-      payload.append('plateNumber', formData.plateNumber.trim().toUpperCase());
       payload.append('name', formData.name.trim());
       payload.append('brand', formData.brand.trim());
       payload.append('model', formData.model.trim());
@@ -285,20 +309,6 @@ export default function AdminEVForm() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Plate / Registration Number <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  type="text"
-                  placeholder="e.g. KA 01 EV 1234"
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-mono font-bold text-slate-900 uppercase text-sm"
-                  value={formData.plateNumber}
-                  onChange={(e) => handleChange('plateNumber', e.target.value)}
-                />
-              </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Display Name <span className="text-rose-500">*</span>
@@ -630,14 +640,35 @@ export default function AdminEVForm() {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Pickup Hub / Station Location <span className="text-rose-500">*</span>
                 </label>
-                <input 
-                  type="text"
-                  required
-                  placeholder="e.g. Indiranagar Hub, Bengaluru"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900"
-                  value={formData.location}
-                  onChange={(e) => handleChange('location', e.target.value)}
-                />
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={onLoad}
+                    onPlaceChanged={onPlaceChanged}
+                    options={{
+                      types: ['establishment', 'geocode'],
+                      componentRestrictions: { country: 'in' }
+                    }}
+                  >
+                    <input 
+                      type="text"
+                      required
+                      placeholder="e.g. Indiranagar Hub, Bengaluru"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900"
+                      value={formData.location}
+                      onChange={(e) => handleChange('location', e.target.value)}
+                    />
+                  </Autocomplete>
+                ) : (
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Loading Maps..."
+                    disabled
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-sm font-medium text-slate-900 opacity-70"
+                    value={formData.location}
+                    onChange={(e) => handleChange('location', e.target.value)}
+                  />
+                )}
               </div>
 
               <div>

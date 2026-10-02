@@ -23,6 +23,7 @@ const bookingSchema = new Schema({
   reminderSentAt: { type: Date, default: null },
   lateFee: { type: Number, default: 0 },
   pickupLocation: { type: String, required: true },
+  assignedPlateNumber: { type: String, default: null },
   batteryPackage: { type: String, enum: ['NONE', 'SINGLE', 'UNLIMITED'], default: 'SINGLE' },
 
   rentalBase: { type: Number, required: true },

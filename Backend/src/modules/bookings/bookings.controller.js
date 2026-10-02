@@ -100,6 +100,7 @@ export const confirmPickup = async (req, res, next) => {
   try {
     const booking = await bookingsService.confirmPickup(req.params.id, req.user.id, {
       note: req.body?.note,
+      assignedPlateNumber: req.body?.assignedPlateNumber,
     });
     sendSuccess(res, 200, 'Pickup confirmed. Trip started.', booking);
   } catch (error) {

@@ -676,6 +676,7 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       booking.tripEndsAt = new Date(now.getTime() + durationMs);
       booking.depositStatus = 'COLLECTED';
       if (options.adminId) booking.pickupConfirmedBy = options.adminId;
+      if (options.assignedPlateNumber) booking.assignedPlateNumber = options.assignedPlateNumber;
     }
 
     if (newStatus === BOOKING_STATUS.PENDING_RETURN) {
@@ -769,6 +770,7 @@ export const confirmPickup = async (bookingId, adminId, options = {}) => {
     adminId,
     actorRole: 'ADMIN',
     note: options.note || 'Pickup verified at hub',
+    assignedPlateNumber: options.assignedPlateNumber,
   });
 };
 

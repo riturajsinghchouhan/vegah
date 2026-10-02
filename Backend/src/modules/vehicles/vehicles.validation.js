@@ -2,7 +2,6 @@ import Joi from 'joi';
 
 export const createVehicleSchema = {
   body: Joi.object({
-    plateNumber: Joi.string().required(),
     name: Joi.string().required(),
     brand: Joi.string().required(),
     model: Joi.string().required(),
@@ -37,7 +36,6 @@ export const updateVehicleSchema = {
     id: Joi.string().hex().length(24).required(),
   }),
   body: Joi.object({
-    plateNumber: Joi.string(),
     name: Joi.string(),
     brand: Joi.string(),
     model: Joi.string(),

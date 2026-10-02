@@ -151,8 +151,8 @@ export const adminService = {
     return res.data.data;
   },
   // Step 4: customer is at the hub and has the EV in hand. Starts the trip timer.
-  async confirmPickup(id, note) {
-    const res = await adminApi.patch(`/bookings/${id}/confirm-pickup`, note ? { note } : {});
+  async confirmPickup(id, payload = {}) {
+    const res = await adminApi.patch(`/bookings/${id}/confirm-pickup`, payload);
     return res.data.data;
   },
   // Step 9: EV is physically back. Settles deposit/late fee and closes the rental.

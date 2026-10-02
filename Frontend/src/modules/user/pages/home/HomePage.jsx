@@ -49,6 +49,8 @@ const HomePage = () => {
   const [activeCouponIndex, setActiveCouponIndex] = useState(0);
   const [copiedCode, setCopiedCode] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isListening, setIsListening] = useState(false);
 
 
 
@@ -93,6 +95,41 @@ const HomePage = () => {
     });
   };
 
+  const startVoiceSearch = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert("Voice search is not supported in this browser.");
+      return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
 
 
   const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || "U";
@@ -135,14 +172,20 @@ const HomePage = () => {
 
       {/* Search Bar */}
       <div className="px-4 mb-5 flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm">
+        <div className="flex-1 flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500">
           <Search size={18} className="text-gray-400" />
           <input
             type="text"
             placeholder="Search destination, scoot or offer"
             className="flex-1 bg-transparent text-xs text-gray-800 placeholder-gray-400 outline-none"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <Mic size={18} className="text-gray-800" />
+          <Mic 
+            size={18} 
+            className={`cursor-pointer transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-800 hover:text-blue-600'}`} 
+            onClick={startVoiceSearch} 
+          />
         </div>
         <div className="flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-3 py-2 shadow-sm whitespace-nowrap">
           <Tag size={18} className="text-pink-500" />

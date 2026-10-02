@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const vehicleSchema = new Schema({
-  plateNumber: { type: String, required: true, unique: true, trim: true, uppercase: true },
   name: { type: String, required: true, trim: true },
   brand: { type: String, required: true },
   model: { type: String, required: true },

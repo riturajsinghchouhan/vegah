@@ -56,6 +56,8 @@ export default function AdminBookings() {
   const [newBookingAlert, setNewBookingAlert] = useState(null);
   const [returnAlert, setReturnAlert] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [pickupPromptBookingId, setPickupPromptBookingId] = useState(null);
+  const [pickupPlateNumber, setPickupPlateNumber] = useState('');
 
   const playNotificationSound = () => {
     try {
@@ -222,12 +224,29 @@ export default function AdminBookings() {
   };
 
   // Step 4: customer is at the hub with the EV in hand -> starts the trip timer.
-  const handleConfirmPickup = (bookingId) =>
+  const handleConfirmPickup = (bookingId) => {
+    setPickupPromptBookingId(bookingId);
+    setPickupPlateNumber('');
+  };
+
+  const submitPickup = () => {
+    if (!pickupPlateNumber.trim()) {
+      alert("Plate / Registration number is required to start the trip.");
+      return;
+    }
+
+    const bookingId = pickupPromptBookingId;
+    const plateNo = pickupPlateNumber.trim().toUpperCase();
+    
+    setPickupPromptBookingId(null);
+    setPickupPlateNumber('');
+
     runBookingAction(
       bookingId,
-      () => adminService.confirmPickup(bookingId),
-      (updated) => `Pickup confirmed for ${updated?.bookingId || bookingId}. Trip timer started.`
+      () => adminService.confirmPickup(bookingId, { assignedPlateNumber: plateNo }),
+      (updated) => `Pickup confirmed. Trip timer started for vehicle ${plateNo}.`
     );
+  };
 
   // Step 9: EV is physically back -> closes the rental and frees the vehicle.
   const handleConfirmReturn = (bookingId) =>
@@ -469,7 +488,53 @@ export default function AdminBookings() {
           actionLoading={actionLoading}
         />
       )}
-      
+
+      {/* Custom Modal for Pickup Plate Number */}
+      <Modal 
+        isOpen={!!pickupPromptBookingId} 
+        onClose={() => {
+          setPickupPromptBookingId(null);
+          setPickupPlateNumber('');
+        }} 
+        title="Confirm Pickup"
+        size="sm"
+      >
+        <div className="space-y-4 pt-2">
+          <p className="text-sm text-gray-600 font-medium">
+            Please enter the Plate / Registration Number of the EV being handed over:
+          </p>
+          <input
+            type="text"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-600 font-mono text-gray-900 uppercase shadow-sm"
+            placeholder="e.g. MH 01 AB 1234"
+            value={pickupPlateNumber}
+            onChange={(e) => setPickupPlateNumber(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitPickup();
+            }}
+          />
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
+            <Button
+              variant="outline"
+              className="text-gray-600 bg-gray-50 border-gray-200"
+              onClick={() => {
+                setPickupPromptBookingId(null);
+                setPickupPlateNumber('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6"
+              onClick={submitPickup}
+            >
+              Confirm & Start Trip
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 }
