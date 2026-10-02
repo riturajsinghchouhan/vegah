@@ -12,7 +12,9 @@ import {
   Sparkles,
   PhoneCall,
   ShieldCheck,
-  Hourglass
+  Hourglass,
+  PartyPopper,
+  KeyRound
 } from "lucide-react";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { env } from "../../../../config/env";
@@ -62,8 +64,31 @@ const LiveNavigationPage = () => {
   const [rideCompletedModal, setRideCompletedModal] = useState(false);
   // Waiting on the hub team to confirm the handover (pickup) or the drop (return).
   const [awaitingHandover, setAwaitingHandover] = useState(false);
+  const [pickupConfirmed, setPickupConfirmed] = useState(false);
+  const [confirmedPlate, setConfirmedPlate] = useState("");
   const [awaitingReturnCheck, setAwaitingReturnCheck] = useState(false);
   const [actionError, setActionError] = useState("");
+
+  const playCelebrationSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.24);
+      osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.36);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.7);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.7);
+    } catch (e) {
+      console.warn("Audio playback warning:", e);
+    }
+  };
 
   // 1. Fetch booking details if not available from state
   useEffect(() => {
@@ -432,8 +457,17 @@ const LiveNavigationPage = () => {
       setBooking((prev) => ({ ...(prev || {}), ...updated }));
 
       if (updated?.status === "ACTIVE") {
-        setAwaitingHandover(false);
-        navigate("/user/rental/active");
+        // Show celebration animation inside the handover popup instead of
+        // navigating away immediately. After 3 seconds, redirect to the
+        // active rental screen.
+        if (updated?.assignedPlateNumber) setConfirmedPlate(updated.assignedPlateNumber);
+        setPickupConfirmed(true);
+        playCelebrationSound();
+        setTimeout(() => {
+          setAwaitingHandover(false);
+          setPickupConfirmed(false);
+          navigate("/user/rental/active");
+        }, 3000);
       }
 
       if (updated?.status === "COMPLETED") {
@@ -447,9 +481,27 @@ const LiveNavigationPage = () => {
       }
     };
 
+    // Also listen for the dedicated TRIP_STARTED event (fired via notifyUser)
+    // in case the generic BOOKING_STATUS_UPDATED is missed or delayed.
+    const handleTripStarted = (payload) => {
+      if (currentId && payload?.bookingId && String(payload.bookingId) !== String(booking?.bookingId)) return;
+      if (payload?.assignedPlateNumber) setConfirmedPlate(payload.assignedPlateNumber);
+      setPickupConfirmed(true);
+      playCelebrationSound();
+      setTimeout(() => {
+        setAwaitingHandover(false);
+        setPickupConfirmed(false);
+        navigate("/user/rental/active");
+      }, 3000);
+    };
+
     socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
-    return () => socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
-  }, [booking?._id, booking?.id, bookingId, navigate]);
+    socket.on("TRIP_STARTED", handleTripStarted);
+    return () => {
+      socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+      socket.off("TRIP_STARTED", handleTripStarted);
+    };
+  }, [booking?._id, booking?.id, bookingId, booking?.bookingId, navigate]);
 
   // Step 3: the user is at the hub. The trip is started by the admin, so all
   // this does is surface the booking ID for them to show at the counter.
@@ -671,52 +723,170 @@ const LiveNavigationPage = () => {
         </div>
       </div>
 
-      {/* 4a. PICKUP HANDOVER MODAL - waiting on the admin to start the trip */}
+      {/* 4a. PICKUP HANDOVER MODAL - waiting / confirmed celebration */}
       {awaitingHandover && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
-              <ShieldCheck size={40} />
+
+          {/* ── CONFETTI PARTICLES (visible only after confirmation) ── */}
+          {pickupConfirmed && (
+            <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
+              {[...Array(24)].map((_, i) => {
+                const colors = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#a855f7', '#ec4899'];
+                const color = colors[i % colors.length];
+                const left = Math.random() * 100;
+                const delay = Math.random() * 0.6;
+                const size = 6 + Math.random() * 8;
+                const rotation = Math.random() * 360;
+                return (
+                  <div
+                    key={i}
+                    className="absolute rounded-sm"
+                    style={{
+                      backgroundColor: color,
+                      width: size,
+                      height: size * 0.6,
+                      left: `${left}%`,
+                      top: '-10px',
+                      transform: `rotate(${rotation}deg)`,
+                      animation: `confetti-fall ${1.5 + Math.random()}s ease-in ${delay}s forwards`,
+                    }}
+                  />
+                );
+              })}
+              <style>{`
+                @keyframes confetti-fall {
+                  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+                  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+                }
+                @keyframes celebration-ring {
+                  0% { transform: scale(0.8); opacity: 0; }
+                  50% { transform: scale(1.15); opacity: 1; }
+                  100% { transform: scale(1); opacity: 1; }
+                }
+                @keyframes celebration-check {
+                  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+                  60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+                  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+                }
+                @keyframes slide-up {
+                  0% { transform: translateY(20px); opacity: 0; }
+                  100% { transform: translateY(0); opacity: 1; }
+                }
+              `}</style>
             </div>
+          )}
 
-            <h3 className="mt-5 text-2xl font-black text-slate-900">Show this at the hub</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              The hub team will verify your booking and hand over the EV. Your trip timer starts the moment they confirm it.
-            </p>
+          <div className={`w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border transition-all duration-500 ${
+            pickupConfirmed ? 'border-emerald-300 scale-105' : 'border-slate-200'
+          }`}>
 
-            <div className="mt-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Booking ID</p>
-              <p className="mt-1 font-mono text-3xl font-black tracking-wider text-emerald-900">
-                {booking?.bookingId || "EVR-----"}
-              </p>
-            </div>
+            {/* ── CONFIRMED STATE: celebration animation ── */}
+            {pickupConfirmed ? (
+              <>
+                <div
+                  className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500 text-white ring-[16px] ring-emerald-100"
+                  style={{ animation: 'celebration-ring 0.6s ease-out forwards' }}
+                >
+                  <CheckCircle2
+                    size={52}
+                    style={{ animation: 'celebration-check 0.5s ease-out 0.2s forwards', opacity: 0 }}
+                  />
+                </div>
 
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Vehicle:</span>
-                <span className="font-bold text-slate-900">{vehicleName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Plate:</span>
-                <span className="font-mono font-bold text-slate-900">{plateNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Pickup Hub:</span>
-                <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Hub"}</span>
-              </div>
-            </div>
+                <div style={{ animation: 'slide-up 0.5s ease-out 0.4s forwards', opacity: 0 }}>
+                  <h3 className="mt-6 text-2xl font-black text-slate-900">
+                    Pickup Confirmed! 🎉
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Your EV has been handed over. Your trip timer is now running!
+                  </p>
+                </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
-              <Hourglass size={16} className="animate-pulse" />
-              Waiting for the hub team to confirm...
-            </div>
+                {/* Plate number card */}
+                {confirmedPlate && (
+                  <div
+                    className="mt-5 inline-flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-6 py-3"
+                    style={{ animation: 'slide-up 0.5s ease-out 0.6s forwards', opacity: 0 }}
+                  >
+                    <KeyRound size={20} className="text-emerald-600" />
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Your EV</p>
+                      <p className="font-mono text-xl font-black tracking-wider text-emerald-800">{confirmedPlate}</p>
+                    </div>
+                  </div>
+                )}
 
-            <button
-              onClick={() => setAwaitingHandover(false)}
-              className="mt-5 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
-            >
-              Back to navigation
-            </button>
+                <div
+                  className="mt-6 flex items-center justify-center gap-2"
+                  style={{ animation: 'slide-up 0.5s ease-out 0.8s forwards', opacity: 0 }}
+                >
+                  <PartyPopper size={18} className="text-amber-500" />
+                  <span className="text-sm font-semibold text-slate-500">
+                    Redirecting to your trip...
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-emerald-500"
+                    style={{ animation: 'progress-fill 3s linear forwards', width: '0%' }}
+                  />
+                  <style>{`
+                    @keyframes progress-fill {
+                      0% { width: 0%; }
+                      100% { width: 100%; }
+                    }
+                  `}</style>
+                </div>
+              </>
+            ) : (
+              /* ── WAITING STATE: original "Show this at the hub" ── */
+              <>
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
+                  <ShieldCheck size={40} />
+                </div>
+
+                <h3 className="mt-5 text-2xl font-black text-slate-900">Show this at the hub</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  The hub team will verify your booking and hand over the EV. Your trip timer starts the moment they confirm it.
+                </p>
+
+                <div className="mt-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Booking ID</p>
+                  <p className="mt-1 font-mono text-3xl font-black tracking-wider text-emerald-900">
+                    {booking?.bookingId || "EVR-----"}
+                  </p>
+                </div>
+
+                <div className="mt-5 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Vehicle:</span>
+                    <span className="font-bold text-slate-900">{vehicleName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Plate:</span>
+                    <span className="font-mono font-bold text-slate-900">{plateNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pickup Hub:</span>
+                    <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Hub"}</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
+                  <Hourglass size={16} className="animate-pulse" />
+                  Waiting for the hub team to confirm...
+                </div>
+
+                <button
+                  onClick={() => setAwaitingHandover(false)}
+                  className="mt-5 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Back to navigation
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
