@@ -1,4 +1,4 @@
-import { Calendar, MapPin, ArrowRight, Navigation, CheckCircle2, Clock, XCircle, AlertTriangle, PackageCheck } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Navigation, CheckCircle2, Clock, XCircle, AlertTriangle, PackageCheck, KeyRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EmptyState from "../../../../components/common/EmptyState";
@@ -36,9 +36,14 @@ const BookingsPage = () => {
       );
     };
 
+    // Events sent while the socket was down are lost, so resync after a reconnect.
+    const handleReconnect = () => fetchBookings();
+
     socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+    socket.io.on("reconnect", handleReconnect);
     return () => {
       socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+      socket.io.off("reconnect", handleReconnect);
     };
   }, []);
 
@@ -59,6 +64,7 @@ const BookingsPage = () => {
         amount: b.totalAmount ?? b.amount ?? 0,
         dateRange: b.startDate ? `${new Date(b.startDate).toLocaleDateString()} at ${b.startTime || '10:00'}` : 'Today',
         location: b.pickupLocation || 'Main Hub',
+        plateNumber: b.assignedPlateNumber || null,
       };
     });
   }, [userBookings]);
@@ -180,6 +186,17 @@ const BookingsPage = () => {
                       </p>
                     </div>
                   </div>
+                  {booking.plateNumber && (
+                    <div className="flex items-start gap-2.5">
+                      <KeyRound size={14} className="text-emerald-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-500">Your EV (Plate No.)</p>
+                        <p className="text-[13px] font-mono font-bold text-emerald-700 leading-snug">
+                          {booking.plateNumber}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer / Actions */}

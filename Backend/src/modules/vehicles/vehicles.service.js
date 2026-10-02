@@ -1,15 +1,12 @@
 import Vehicle from '../../models/Vehicle.js';
 import Booking from '../../models/Booking.js';
-import { NotFoundError, ConflictError } from '../../utils/errors.js';
+import Zone from '../../models/Zone.js';
+import { findZoneForLocation } from '../zones/zoneLocator.js';
+import { NotFoundError } from '../../utils/errors.js';
 import { ACTIVE_BOOKING_STATUSES } from '../bookings/bookings.constants.js';
 import cloudinary from '../../config/cloudinary.js';
 
 export const createVehicle = async (data, files) => {
-  const existingVehicle = await Vehicle.findOne({ plateNumber: data.plateNumber, deletedAt: null });
-  if (existingVehicle) {
-    throw new ConflictError('Vehicle with this plate number already exists');
-  }
-
   // Handle GeoJSON format for coordinates
   if (data.coordinates) {
     data.coordinates = {
@@ -40,17 +37,6 @@ export const createVehicle = async (data, files) => {
 };
 
 export const updateVehicle = async (id, data, files) => {
-  if (data.plateNumber) {
-    const existingVehicle = await Vehicle.findOne({ 
-      plateNumber: data.plateNumber, 
-      _id: { $ne: id }, 
-      deletedAt: null 
-    });
-    if (existingVehicle) {
-      throw new ConflictError('Vehicle with this plate number already exists');
-    }
-  }
-
   // Handle GeoJSON format for coordinates
   if (data.coordinates) {
     data.coordinates = {
@@ -134,10 +120,37 @@ export const getVehicleById = async (id) => {
 };
 
 export const listVehicles = async (query) => {
-  const { page = 1, limit = 20, type, category, zone, status, search, minPriceDay, maxPriceDay } = query;
-  
+  const { page = 1, limit = 20, type, category, zone, city, lat, lng, status, search, minPriceDay, maxPriceDay } = query;
+
   const filter = {};
-  
+  let userZone;
+
+  // If coordinates are provided, show only vehicles of the zone the user is in
+  if (lat !== undefined && lng !== undefined) {
+    userZone = await findZoneForLocation(Number(lat), Number(lng));
+    if (userZone) {
+      filter.zone = userZone._id;
+    } else {
+      // User is outside every service zone
+      filter._id = '000000000000000000000000';
+    }
+  } else if (city) {
+    // If city is provided, filter by zones that match the city name or address
+    const matchingZones = await Zone.find({
+      $or: [
+        { name: { $regex: city, $options: 'i' } },
+        { 'pickupLocation.address': { $regex: city, $options: 'i' } }
+      ]
+    }).select('_id');
+    
+    if (matchingZones.length > 0) {
+      filter.zone = { $in: matchingZones.map(z => z._id) };
+    } else {
+      // If no zones match the city, force an empty result by adding a dummy non-matching ID
+      filter._id = '000000000000000000000000';
+    }
+  }
+
   if (type) filter.type = type;
   if (category) filter.category = category;
   if (zone) filter.zone = zone;
@@ -146,7 +159,6 @@ export const listVehicles = async (query) => {
   if (search) {
     filter.$or = [
       { name: { $regex: search, $options: 'i' } },
-      { plateNumber: { $regex: search, $options: 'i' } },
       { brand: { $regex: search, $options: 'i' } },
     ];
   }
@@ -226,6 +238,9 @@ export const listVehicles = async (query) => {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      ...(userZone !== undefined && {
+        userZone: userZone ? { _id: userZone._id, name: userZone.name, subtitle: userZone.subtitle } : null,
+      }),
     },
   };
 };

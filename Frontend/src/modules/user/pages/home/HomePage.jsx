@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Copy,
   Headphones,
-  Loader2,
   MapPin,
   Mic,
   Search,
@@ -46,6 +45,7 @@ const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [coupons, setCoupons] = useState([]);
   const [zones, setZones] = useState([]);
+  const [userZone, setUserZone] = useState(null);
   const [activeCouponIndex, setActiveCouponIndex] = useState(0);
   const [copiedCode, setCopiedCode] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,14 +58,23 @@ const HomePage = () => {
     const fetchHomeData = async () => {
       try {
         setLoading(true);
+        const hasCoords = location?.latitude != null && location?.longitude != null;
         const [vehiclesData, categoriesData, couponsData, zonesData] = await Promise.allSettled([
-          vehicleService.listVehicles({ limit: 8, city: location?.city }),
+          hasCoords
+            ? vehicleService.listVehiclesForLocation(location.latitude, location.longitude, { limit: 8 })
+            : vehicleService.listVehicles({ limit: 8, city: location?.city }).then((list) => ({ vehicles: list, zone: null })),
           vehicleService.getCategories(),
           userService.getActiveCoupons(),
           userService.getPublicZones(),
         ]);
 
-        if (vehiclesData.status === "fulfilled") setVehicles(vehiclesData.value);
+        if (vehiclesData.status === "fulfilled") {
+          setVehicles(vehiclesData.value.vehicles);
+          setUserZone(vehiclesData.value.zone);
+        } else {
+          setVehicles([]);
+          setUserZone(null);
+        }
         if (categoriesData.status === "fulfilled") setCategories(categoriesData.value.slice(0, 5));
         if (couponsData.status === "fulfilled") setCoupons(couponsData.value);
         if (zonesData.status === "fulfilled") setZones(zonesData.value);
@@ -77,7 +86,7 @@ const HomePage = () => {
     };
 
     fetchHomeData();
-  }, [location?.city]);
+  }, [location?.latitude, location?.longitude, location?.city]);
 
   // Auto-rotate coupons
   useEffect(() => {
@@ -305,32 +314,45 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Popular Scoots from API */}
+      {/* Scoots in the user's zone */}
       <div className="mb-6 px-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">Popular Scoots</h2>
-          <Link to="/user/vehicles" className="text-xs font-bold text-[#272664] flex items-center">
-            View All <ChevronRight size={14} />
-          </Link>
+          <h2 className="text-base font-bold text-gray-900">
+            {loading ? "Finding scoots near you..." : userZone ? `Scoots in ${userZone.name}` : "Scoots Near You"}
+          </h2>
+          {!loading && vehicles.length > 0 && (
+            <Link
+              to={userZone ? `/user/vehicles?zone=${userZone._id}` : "/user/vehicles"}
+              className="text-xs font-bold text-[#272664] flex items-center"
+            >
+              View All <ChevronRight size={14} />
+            </Link>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-3 pb-2">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <VehicleSkeleton key={i} />)
-            : vehicles.length > 0
-              ? vehicles.map((vehicle) => (
-                  <div key={vehicle.id} className="w-full">
-                    <VehicleCard vehicle={vehicle} />
-                  </div>
-                ))
-              : (
-                  <div className="col-span-2 flex items-center justify-center w-full py-8 text-gray-400">
-                    <div className="text-center">
-                      <Loader2 className="mx-auto mb-2 animate-spin" size={24} />
-                      <p className="text-xs">No vehicles found nearby</p>
-                    </div>
-                  </div>
-                )}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3 pb-2">
+            {Array.from({ length: 4 }).map((_, i) => <VehicleSkeleton key={i} />)}
+          </div>
+        ) : vehicles.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 pb-2">
+            {vehicles.map((vehicle) => (
+              <div key={vehicle.id} className="w-full">
+                <VehicleCard vehicle={vehicle} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-full py-8 text-gray-400">
+            <div className="text-center">
+              <MapPin className="mx-auto mb-2" size={24} />
+              <p className="text-xs">
+                {userZone
+                  ? `No scoots available in ${userZone.name} right now`
+                  : "Our service is not available at your location yet"}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
 

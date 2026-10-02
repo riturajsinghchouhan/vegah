@@ -63,7 +63,6 @@ export default function AdminEVForm() {
   }, [images]);
 
   const [formData, setFormData] = useState({
-    plateNumber: '',
     name: '',
     brand: 'Ather',
     model: '450X',
@@ -121,7 +120,6 @@ export default function AdminEVForm() {
       const vehicle = await adminService.getVehicleById(id);
       if (vehicle) {
         setFormData({
-          plateNumber: vehicle.plateNumber || '',
           name: vehicle.name || '',
           brand: vehicle.brand || 'Ather',
           model: vehicle.model || '',

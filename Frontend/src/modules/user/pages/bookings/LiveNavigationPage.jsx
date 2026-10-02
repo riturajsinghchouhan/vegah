@@ -491,7 +491,8 @@ const LiveNavigationPage = () => {
   };
 
   const vehicleName = booking?.vehicle?.name || "Vegah EV Scooter";
-  const plateNumber = booking?.vehicle?.plateNumber || "KA 03 EV 4421";
+  // The exact EV unit is chosen by the hub at handover, so the plate is only known after pickup.
+  const plateNumber = booking?.assignedPlateNumber || "Assigned at pickup";
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-slate-50 text-slate-900 flex flex-col font-sans">

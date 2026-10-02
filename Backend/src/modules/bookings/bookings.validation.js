@@ -74,6 +74,17 @@ export const extendBookingSchema = {
 };
 
 // Shared shape for the handover endpoints: an id plus an optional admin note.
+// Admin hands over a specific EV unit, so the plate number is recorded on the booking.
+export const confirmPickupSchema = {
+  params: Joi.object({
+    id: Joi.string().hex().length(24).required(),
+  }),
+  body: Joi.object({
+    note: Joi.string().max(500).allow('', null),
+    assignedPlateNumber: Joi.string().trim().uppercase().min(2).max(20).required(),
+  }),
+};
+
 export const lifecycleNoteSchema = {
   params: Joi.object({
     id: Joi.string().hex().length(24).required(),

@@ -11,6 +11,7 @@ import SearchAndFilter from "../../../../components/explore/SearchAndFilter";
 import WhyChooseUs from "../../../../components/explore/WhyChooseUs";
 import { benefits, destinations } from "../../../../data/exploreData";
 import { useDebounce } from "../../../../hooks/useDebounce";
+import { useUserLocation } from "../../../../hooks/useLocation";
 import { vehicleService } from "../../../../services/vehicleService";
 
 const VehicleSkeletonCard = () => (
@@ -29,6 +30,7 @@ const VehicleSkeletonCard = () => (
 const VehiclesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") ?? "all";
+  const zoneParam = searchParams.get("zone");
   
   const [vehicles, setVehicles] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -42,12 +44,19 @@ const VehiclesPage = () => {
 
   const debouncedSearch = useDebounce(searchTerm, 200);
 
+  const { location } = useUserLocation();
+
   const fetchVehiclesData = async () => {
     try {
       setLoading(true);
       setError(null);
+      const hasCoords = location?.latitude != null && location?.longitude != null;
       const [vehiclesData, categoriesData] = await Promise.all([
-        vehicleService.listVehicles(),
+        zoneParam
+          ? vehicleService.listVehicles({ zone: zoneParam })
+          : hasCoords
+            ? vehicleService.listVehiclesForLocation(location.latitude, location.longitude).then((r) => r.vehicles)
+            : vehicleService.listVehicles({ city: location?.city }),
         vehicleService.getCategories(),
       ]);
       setVehicles(vehiclesData || []);
@@ -62,7 +71,7 @@ const VehiclesPage = () => {
 
   useEffect(() => {
     fetchVehiclesData();
-  }, []);
+  }, [zoneParam, location?.latitude, location?.longitude, location?.city]);
 
   const formattedCategories = useMemo(() => {
     const defaultAll = { id: "all", _id: "all", name: "All Scoots", icon: "layout-grid" };

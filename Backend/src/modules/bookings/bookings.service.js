@@ -566,10 +566,17 @@ const publishStatusChange = async (booking, oldStatus, newStatus) => {
           await notifyUser({
             userId: userIdStr,
             title: 'Trip started',
-            body: `Pickup confirmed. Your rental ends at ${new Date(booking.tripEndsAt).toLocaleString('en-IN')}.`,
+            body: booking.assignedPlateNumber
+              ? `Your EV ${booking.assignedPlateNumber} has been handed over. Your rental ends at ${new Date(booking.tripEndsAt).toLocaleString('en-IN')}.`
+              : `Pickup confirmed. Your rental ends at ${new Date(booking.tripEndsAt).toLocaleString('en-IN')}.`,
             referenceId: booking._id,
             event: 'TRIP_STARTED',
-            data: { bookingId: booking.bookingId, status: newStatus, tripEndsAt: booking.tripEndsAt },
+            data: {
+              bookingId: booking.bookingId,
+              status: newStatus,
+              tripEndsAt: booking.tripEndsAt,
+              assignedPlateNumber: booking.assignedPlateNumber || '',
+            },
           });
         }
         break;
@@ -983,6 +990,7 @@ export const getLiveBookingStatus = async (id, userId) => {
     bookingId: booking.bookingId,
     status: booking.status,
     vehicle: booking.vehicle,
+    assignedPlateNumber: booking.assignedPlateNumber,
     startDate: booking.startDate,
     endDate: booking.endDate,
     actualPickupAt: booking.actualPickupAt,

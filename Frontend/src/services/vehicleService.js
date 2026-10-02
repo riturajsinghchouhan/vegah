@@ -50,6 +50,14 @@ export const vehicleService = {
     }
   },
   
+  // Vehicles of the zone the given coordinates fall in; zone is null if outside all zones
+  async listVehiclesForLocation(lat, lng, params = {}) {
+    const response = await api.get('/vehicles', { params: { ...params, lat, lng } });
+    const rawData = response.data.data;
+    const list = Array.isArray(rawData) ? rawData : (rawData?.vehicles || []);
+    return { vehicles: list.map(mapVehicle), zone: response.data.meta?.userZone || null };
+  },
+
   async getVehicleById(vehicleId) {
     const response = await api.get(`/vehicles/${vehicleId}`);
     return mapVehicle(response.data.data);

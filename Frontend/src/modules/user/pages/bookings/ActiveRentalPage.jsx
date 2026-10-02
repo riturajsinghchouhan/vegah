@@ -180,7 +180,7 @@ const ActiveRentalPage = () => {
 
   const bookingRefId = activeBooking?._id || activeBooking?.id || activeBooking?.bookingId;
   const vehicleName = live?.vehicle?.name || activeBooking?.vehicle?.name || "Your EV";
-  const plateNumber = live?.vehicle?.plateNumber || activeBooking?.vehicle?.plateNumber || "—";
+  const plateNumber = live?.assignedPlateNumber || activeBooking?.assignedPlateNumber || "—";
   const pickupLoc = live?.pickupLocation || activeBooking?.pickupLocation || "Pickup hub";
   const returnLoc = live?.dropLocation || activeBooking?.vehicle?.zone?.dropLocation?.address || pickupLoc;
   const batteryLevel = live?.vehicle?.batteryLevel ?? activeBooking?.vehicle?.batteryLevel;

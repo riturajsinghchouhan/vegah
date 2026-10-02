@@ -60,7 +60,7 @@ router.patch(
 router.patch(
   '/:id/confirm-pickup',
   authorize('ADMIN', 'SUPER_ADMIN'),
-  validate(bookingsValidation.lifecycleNoteSchema),
+  validate(bookingsValidation.confirmPickupSchema),
   bookingsController.confirmPickup
 );
 
