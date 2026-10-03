@@ -13,11 +13,9 @@ import {
   Eye,
   X,
   Cpu,
-  ArrowRightLeft as SwapIcon,
   Radio,
   Sparkles,
   Copy,
-  ChevronRight,
   TrendingUp,
   MapPin,
   Flame,
@@ -111,10 +109,9 @@ export default function AdminInventoryMonitor() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(10);
-  const [activeTab, setActiveTab] = useState("ports"); // "ports" | "users" | "batteries" | "logs"
+  const [activeTab, setActiveTab] = useState("ports"); // "ports" | "users" | "batteries"
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [batterySearchTerm, setBatterySearchTerm] = useState("");
-  const [selectedUserFilter, setSelectedUserFilter] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
   // Telemetry modal state
@@ -229,14 +226,6 @@ export default function AdminInventoryMonitor() {
         b.status?.toLowerCase().includes(term)
     );
   }, [data?.batteries, batterySearchTerm]);
-
-  const filteredSwaps = useMemo(() => {
-    if (!data?.recentSwaps) return [];
-    if (selectedUserFilter) {
-      return data.recentSwaps.filter(s => String(s.userId) === String(selectedUserFilter));
-    }
-    return data.recentSwaps;
-  }, [data?.recentSwaps, selectedUserFilter]);
 
   if (loading && !data) {
     return (
@@ -432,21 +421,6 @@ export default function AdminInventoryMonitor() {
           <Battery size={16} />
           <span>Battery Registry & Live Telemetry ({data?.batteries?.length || 0})</span>
         </button>
-
-        <button
-          onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-            activeTab === "logs"
-              ? "bg-purple-700 text-white shadow-md shadow-purple-200"
-              : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-          }`}
-        >
-          <SwapIcon size={16} />
-          <span>Live Swap Logs ({filteredSwaps.length})</span>
-          {selectedUserFilter && (
-            <span className="text-[10px] bg-yellow-400 text-gray-900 px-1.5 py-0.5 rounded font-black">Filtered</span>
-          )}
-        </button>
       </div>
 
       {/* TAB 1: REAL-TIME PORTS GRID */}
@@ -624,13 +598,12 @@ export default function AdminInventoryMonitor() {
                     <th className="py-4 px-5 text-center">Most Used Port</th>
                     <th className="py-4 px-5">Current Battery ID</th>
                     <th className="py-4 px-5">Last Swap Time</th>
-                    <th className="py-4 px-5 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="py-8 text-center text-gray-400 text-sm">
+                      <td colSpan="6" className="py-8 text-center text-gray-400 text-sm">
                         No user usage records found matching "{userSearchTerm}".
                       </td>
                     </tr>
@@ -685,19 +658,6 @@ export default function AdminInventoryMonitor() {
 
                         <td className="py-4 px-5 text-xs text-gray-500">
                           {formatIST(u.lastSwapAt)}
-                        </td>
-
-                        <td className="py-4 px-5 text-center">
-                          <button
-                            onClick={() => {
-                              setSelectedUserFilter(u.userId);
-                              setActiveTab("logs");
-                            }}
-                            className="inline-flex items-center gap-1 text-xs text-purple-700 hover:text-purple-900 font-bold bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition"
-                          >
-                            <span>View Logs</span>
-                            <ChevronRight size={13} />
-                          </button>
                         </td>
                       </tr>
                     ))
@@ -806,99 +766,6 @@ export default function AdminInventoryMonitor() {
                         </tr>
                       );
                     })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: LIVE SWAP & PORT LOGS */}
-      {activeTab === "logs" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">
-                Live Port Swap Stream ({filteredSwaps.length})
-              </h2>
-              <p className="text-xs text-gray-500">Chronological history of port visits, inward and outward battery IDs.</p>
-            </div>
-            {selectedUserFilter && (
-              <button
-                onClick={() => setSelectedUserFilter(null)}
-                className="text-xs bg-yellow-100 text-yellow-900 hover:bg-yellow-200 px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5"
-              >
-                <span>Clear User Filter</span>
-                <X size={13} />
-              </button>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    <th className="py-3.5 px-4">Event ID</th>
-                    <th className="py-3.5 px-4">Rider / Customer</th>
-                    <th className="py-3.5 px-4 text-center">Port / Pod #</th>
-                    <th className="py-3.5 px-4">Battery Returned (In)</th>
-                    <th className="py-3.5 px-4">Battery Dispensed (Out)</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4">Timestamp (IST)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
-                  {filteredSwaps.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="py-8 text-center text-gray-400 text-sm">
-                        No swap events recorded.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredSwaps.map((s) => (
-                      <tr key={s.swapId} className="hover:bg-purple-50/20 transition">
-                        <td className="py-3.5 px-4 font-mono font-bold text-xs text-gray-800">
-                          {s.swapId || "N/A"}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="font-bold text-gray-900 text-xs">{s.userName || "N/A"}</div>
-                          <div className="text-[11px] text-gray-500 font-mono">{s.userPhone || ""}</div>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className="inline-block px-2.5 py-1 bg-purple-100 text-purple-900 font-black rounded-lg text-xs">
-                            {s.podNumber != null ? `Pod #${s.podNumber}` : "N/A"}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              {s.batteryIn || "N/A"}
-                            </span>
-                            {s.batteryInSoc != null && (
-                              <span className="text-[11px] text-gray-500 font-semibold">({s.batteryInSoc}%)</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              {s.batteryOut || "N/A"}
-                            </span>
-                            {s.batteryOutSoc != null && (
-                              <span className="text-[11px] text-emerald-600 font-semibold">({s.batteryOutSoc}%)</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {s.status ? getPortStateBadge(s.status) : <span className="text-xs text-gray-400 font-semibold">N/A</span>}
-                        </td>
-                        <td className="py-3.5 px-4 text-xs text-gray-500 font-mono">
-                          {formatIST(s.timestamp)}
-                        </td>
-                      </tr>
-                    ))
                   )}
                 </tbody>
               </table>
