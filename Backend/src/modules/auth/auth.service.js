@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import User from '../../models/User.js';
 import redisClient from '../../config/redis.js';
-import msg91 from '../../config/msg91.js';
+import sms from '../../config/sms.js';
 import env from '../../config/env.js';
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../../utils/errors.js';
 import logger from '../../utils/logger.js';
@@ -50,7 +50,7 @@ export const requestOtp = async (phone) => {
 
   // Send OTP
   if (!env.USE_DEFAULT_OTP) {
-    await msg91.sendOTP(phone, otp);
+    await sms.sendOTP(phone, otp);
   }
 
   return { message: 'OTP sent successfully' };

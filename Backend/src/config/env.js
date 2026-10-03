@@ -52,8 +52,13 @@ const envSchema = Joi.object({
   RAZORPAY_WEBHOOK_SECRET: Joi.string().allow(''),
   
   USE_DEFAULT_OTP: Joi.boolean().default(true),
+  SMS_PROVIDER: Joi.string().valid('msg91', 'smshub').default('smshub'),
   MSG91_AUTH_KEY: Joi.string().allow(''),
   MSG91_TEMPLATE_ID: Joi.string().allow(''),
+  SMSHUB_API_KEY: Joi.string().allow(''),
+  SMSHUB_SENDER_ID: Joi.string().allow(''),
+  SMSHUB_TEMPLATE_ID: Joi.string().allow(''),
+  SMSHUB_ENTITY_ID: Joi.string().allow(''),
   
   OTP_EXPIRY_MINUTES: Joi.number().default(10),
   OTP_EXPIRY_SECONDS: Joi.number().default(300),
