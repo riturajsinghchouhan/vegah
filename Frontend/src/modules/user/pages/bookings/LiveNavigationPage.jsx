@@ -12,7 +12,6 @@ import {
   Sparkles,
   PhoneCall,
   ShieldCheck,
-  Hourglass
   Hourglass,
   PartyPopper,
   KeyRound
