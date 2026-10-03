@@ -408,15 +408,9 @@ export const getInventoryMonitoringData = async (stationId) => {
     User.find({ role: 'USER' }).select('fullName phone email').lean(),
   ]);
 
-  const station = stationRes.status === 'fulfilled' ? stationRes.value : {
-    name: 'BLR001 - Electica Swapping Hub',
-    stationId: 'BLR001',
-    address: 'Bengaluru Hub, Karnataka',
-    status: 'ONLINE',
-    totalPods: 6,
-  };
+  const station = stationRes.status === 'fulfilled' ? stationRes.value : null;
 
-  const rawPods = podsRes.status === 'fulfilled' 
+  const rawPods = podsRes.status === 'fulfilled'
     ? (Array.isArray(podsRes.value) ? podsRes.value : podsRes.value?.pods || podsRes.value || {})
     : {};
 
@@ -428,69 +422,65 @@ export const getInventoryMonitoringData = async (stationId) => {
     ? (Array.isArray(swapsRes.value) ? swapsRes.value : swapsRes.value?.swaps || [])
     : [];
 
-  const users = (usersRes.status === 'fulfilled' && usersRes.value?.length)
-    ? usersRes.value
-    : [
-        { _id: 'u1', fullName: 'Renuka Chouhan', phone: '+919755633147', email: 'renuka@example.com' },
-        { _id: 'u2', fullName: 'Kiran Keloji', phone: '+919480237242', email: 'kiran@example.com' },
-        { _id: 'u3', fullName: 'Rituraj Singh Chouhan', phone: '+910975563314', email: 'rituraj@example.com' },
-        { _id: 'u4', fullName: 'Ritu', phone: '+919556633147', email: 'ritu@example.com' },
-      ];
+  const users = usersRes.status === 'fulfilled' ? usersRes.value : [];
+  const usersById = new Map(users.map((u) => [String(u._id), u]));
 
-  // 2. Normalize Pods array (1 to 6)
-  const podsList = [];
-  const totalSlots = Math.max(6, Array.isArray(rawPods) ? rawPods.length : Object.keys(rawPods).length);
-  for (let i = 1; i <= totalSlots; i++) {
-    const podData = Array.isArray(rawPods) 
-      ? (rawPods.find(p => Number(p.podNumber ?? p.number) === i) || rawPods[i - 1] || {})
-      : (rawPods[String(i)] || rawPods[i] || {});
+  // 2. Normalize Pods strictly from what the Electica API actually returned
+  const podEntries = Array.isArray(rawPods)
+    ? rawPods.map((p, idx) => [p.podNumber ?? p.number ?? idx + 1, p])
+    : Object.entries(rawPods);
 
-    const podNumber = i;
-    const bmsId = podData.bmsId || podData.batteryId || null;
-    
-    // Find battery docked in this pod
-    const dockedBattery = batteries.find(b => 
-      Number(b.podNumber) === podNumber || (bmsId && b.bmsId === bmsId)
-    ) || (bmsId ? { id: `BAT-00${70 + podNumber}`, bmsId, soc: 92, health: 98, voltage: 52.4, temperature: 28.5 } : null);
+  const podsList = podEntries
+    .map(([key, podData]) => {
+      const podNumber = Number(podData?.podNumber ?? podData?.number ?? key);
+      if (!Number.isFinite(podNumber)) return null;
 
-    const state = podData.state || (dockedBattery ? (dockedBattery.soc >= 90 ? 'available' : 'charging') : 'empty');
+      const bmsId = podData.bmsId || podData.batteryId || null;
 
-    podsList.push({
-      podNumber,
-      state: state.toLowerCase(),
-      health: podData.health || 'PASS',
-      bmsId: bmsId || (dockedBattery ? dockedBattery.bmsId : null),
-      battery: dockedBattery ? {
-        id: dockedBattery.id || `BAT-00${70 + podNumber}`,
-        soc: Number(dockedBattery.soc ?? 85),
-        voltage: Number(dockedBattery.voltage ?? 52.0),
-        temperature: Number(dockedBattery.temperature ?? 28),
-        health: Number(dockedBattery.health ?? 99),
-        status: dockedBattery.status || 'charging',
-      } : null,
-      updatedAt: podData.updatedAt || new Date().toISOString(),
-    });
-  }
+      // Only use a battery that the API actually reports as docked in this pod
+      const dockedBattery = batteries.find((b) =>
+        Number(b.podNumber) === podNumber || (bmsId && b.bmsId === bmsId)
+      ) || null;
 
-  // 3. Enrich Swaps with Users and Pod Numbers
-  const enrichedSwaps = rawSwaps.map((s, idx) => {
-    const user = users[idx % users.length];
-    const assignedPod = s.podNumber ? Number(s.podNumber) : ((idx % 6) + 1);
+      const state = (podData.state || (dockedBattery ? 'charging' : 'empty')).toLowerCase();
+
+      return {
+        podNumber,
+        state,
+        health: podData.health ?? null,
+        bmsId: bmsId || dockedBattery?.bmsId || null,
+        battery: dockedBattery ? {
+          id: dockedBattery.id ?? null,
+          soc: dockedBattery.soc ?? null,
+          voltage: dockedBattery.voltage ?? null,
+          temperature: dockedBattery.temperature ?? null,
+          health: dockedBattery.health ?? null,
+          status: dockedBattery.status ?? null,
+        } : null,
+        updatedAt: podData.updatedAt || null,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.podNumber - b.podNumber);
+
+  // 3. Enrich Swaps with real user records only (no fabricated identities/values)
+  const enrichedSwaps = rawSwaps.map((s) => {
+    const matchedUser = s.userId ? usersById.get(String(s.userId)) : null;
 
     return {
-      swapId: s.id || s.swapId || `SWP-${1790420180000 + idx}`,
-      stationId: s.stationId || station.stationId || 'BLR001',
-      userId: user._id,
-      userName: user.fullName || 'Registered Rider',
-      userPhone: user.phone || '+919876543210',
-      userEmail: user.email || 'user@vegah.com',
-      podNumber: assignedPod,
-      batteryIn: s.batteryIn || `BAT-00${70 + ((idx + 1) % 10)}`,
-      batteryOut: s.batteryOut || `BAT-00${70 + (idx % 10)}`,
-      batteryInSoc: s.batteryInSoc ?? (15 + (idx * 3) % 25),
-      batteryOutSoc: s.batteryOutSoc ?? (92 + (idx * 2) % 8),
-      status: s.status || 'completed',
-      timestamp: s.timestamp || new Date(Date.now() - idx * 3600000 * 4).toISOString(),
+      swapId: s.id || s.swapId || null,
+      stationId: s.stationId || station?.stationId || null,
+      userId: s.userId ?? null,
+      userName: matchedUser?.fullName || s.userName || null,
+      userPhone: matchedUser?.phone || s.userPhone || null,
+      userEmail: matchedUser?.email || s.userEmail || null,
+      podNumber: s.podNumber != null ? Number(s.podNumber) : null,
+      batteryIn: s.batteryIn ?? null,
+      batteryOut: s.batteryOut ?? null,
+      batteryInSoc: s.batteryInSoc ?? null,
+      batteryOutSoc: s.batteryOutSoc ?? null,
+      status: s.status ?? null,
+      timestamp: s.timestamp ?? null,
     };
   });
 
@@ -530,10 +520,8 @@ export const getInventoryMonitoringData = async (stationId) => {
 
     uStats.totalSwaps += 1;
     const pNum = swap.podNumber;
-    if (uStats.portCounts[pNum] !== undefined) {
-      uStats.portCounts[pNum] += 1;
-    } else {
-      uStats.portCounts[pNum] = 1;
+    if (pNum != null) {
+      uStats.portCounts[pNum] = (uStats.portCounts[pNum] || 0) + 1;
     }
 
     if (!uStats.lastSwapAt || new Date(swap.timestamp) > new Date(uStats.lastSwapAt)) {

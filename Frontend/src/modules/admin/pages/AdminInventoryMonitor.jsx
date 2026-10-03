@@ -247,13 +247,13 @@ export default function AdminInventoryMonitor() {
     );
   }
 
-  const station = data?.station || { name: "BLR001 - Electica Swapping Hub", stationId: "BLR001", status: "ONLINE" };
+  const station = data?.station || null;
   const pods = data?.pods || [];
   const stats = data?.stats || {
-    totalPods: 6,
+    totalPods: 0,
     availablePods: 0,
     chargingPods: 0,
-    emptyPods: 6,
+    emptyPods: 0,
     totalBatteries: 0,
     totalSwaps: 0,
     uniqueUsersServed: 0,
@@ -284,8 +284,8 @@ export default function AdminInventoryMonitor() {
           {/* Station Badge */}
           <div className="flex items-center gap-2 bg-purple-50 text-purple-800 border border-purple-200 px-3 py-1.5 rounded-xl text-xs font-bold">
             <MapPin size={14} className="text-purple-600" />
-            <span>{station.name || "BLR001 Hub"}</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-1"></span>
+            <span>{station?.name || "Station unavailable"}</span>
+            <span className={`w-2 h-2 rounded-full ml-1 ${station ? "bg-emerald-500 animate-pulse" : "bg-gray-300"}`}></span>
           </div>
 
           {/* Auto Refresh Switch */}
@@ -317,7 +317,7 @@ export default function AdminInventoryMonitor() {
       {error && (
         <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
           <AlertTriangle size={18} className="text-amber-600 shrink-0" />
-          <span>Notice: {error} (Displaying synchronized local data)</span>
+          <span>Notice: {error}</span>
         </div>
       )}
 
@@ -477,7 +477,8 @@ export default function AdminInventoryMonitor() {
             {pods.map((pod) => {
               const pNum = pod.podNumber;
               const hasBattery = Boolean(pod.battery);
-              const soc = hasBattery ? Number(pod.battery.soc || 0) : 0;
+              const socKnown = hasBattery && pod.battery.soc != null;
+              const soc = socKnown ? Number(pod.battery.soc) : 0;
               const bId = pod.battery?.id || "None";
               const isAvailable = pod.state === "available";
               const isCharging = pod.state === "charging";
@@ -537,14 +538,14 @@ export default function AdminInventoryMonitor() {
                         <div className="mt-2.5 space-y-1">
                           <div className="flex justify-between text-xs font-bold">
                             <span className="text-gray-500">Charge Level (SOC)</span>
-                            <span className={soc >= 80 ? "text-emerald-700" : soc >= 40 ? "text-amber-700" : "text-rose-700"}>
-                              {soc.toFixed(1)}%
+                            <span className={socKnown ? (soc >= 80 ? "text-emerald-700" : soc >= 40 ? "text-amber-700" : "text-rose-700") : "text-gray-400"}>
+                              {socKnown ? `${soc.toFixed(1)}%` : "N/A"}
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full transition-all duration-500 ${getSocBarColor(soc)}`}
-                              style={{ width: `${Math.min(100, Math.max(0, soc))}%` }}
+                              className={`h-full rounded-full transition-all duration-500 ${socKnown ? getSocBarColor(soc) : "bg-gray-300"}`}
+                              style={{ width: `${socKnown ? Math.min(100, Math.max(0, soc)) : 0}%` }}
                             />
                           </div>
                         </div>
@@ -553,11 +554,11 @@ export default function AdminInventoryMonitor() {
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
                           <span className="text-[10px] text-gray-500 block">Voltage</span>
-                          <span className="font-bold text-gray-800">{pod.battery?.voltage || 52.3} V</span>
+                          <span className="font-bold text-gray-800">{pod.battery?.voltage != null ? `${pod.battery.voltage} V` : "N/A"}</span>
                         </div>
                         <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
                           <span className="text-[10px] text-gray-500 block">Temperature</span>
-                          <span className="font-bold text-gray-800">{pod.battery?.temperature || 28.1} °C</span>
+                          <span className="font-bold text-gray-800">{pod.battery?.temperature != null ? `${pod.battery.temperature} °C` : "N/A"}</span>
                         </div>
                       </div>
 
@@ -582,7 +583,7 @@ export default function AdminInventoryMonitor() {
                   )}
 
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
-                    <span>Health: {pod.health}</span>
+                    <span>Health: {pod.health ?? "N/A"}</span>
                     <span>Updated: {formatIST(pod.updatedAt)}</span>
                   </div>
                 </div>
@@ -753,7 +754,8 @@ export default function AdminInventoryMonitor() {
                     </tr>
                   ) : (
                     filteredBatteries.map((b) => {
-                      const soc = Number(b.soc ?? 50);
+                      const socKnown = b.soc != null;
+                      const soc = socKnown ? Number(b.soc) : 0;
                       return (
                         <tr key={b.id} className="hover:bg-purple-50/20 transition">
                           <td className="py-3.5 px-4 font-mono font-bold text-purple-900">
@@ -773,15 +775,15 @@ export default function AdminInventoryMonitor() {
                             )}
                           </td>
                           <td className="py-3.5 px-4">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${getSocColor(soc)}`}>
-                              {soc.toFixed(1)}%
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${socKnown ? getSocColor(soc) : "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                              {socKnown ? `${soc.toFixed(1)}%` : "N/A"}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-xs font-bold text-gray-800">
-                            {b.voltage ? `${Number(b.voltage).toFixed(1)} V` : "52.3 V"}
+                            {b.voltage != null ? `${Number(b.voltage).toFixed(1)} V` : "N/A"}
                           </td>
                           <td className="py-3.5 px-4 text-xs font-bold text-gray-800">
-                            {b.temperature ? `${Number(b.temperature).toFixed(1)} °C` : "28.0 °C"}
+                            {b.temperature != null ? `${Number(b.temperature).toFixed(1)} °C` : "N/A"}
                           </td>
                           <td className="py-3.5 px-4 font-mono text-xs text-gray-500 max-w-[150px] truncate" title={b.bmsId}>
                             {b.bmsId || "N/A"}
@@ -790,7 +792,7 @@ export default function AdminInventoryMonitor() {
                             {b.cycleCount || 0}
                           </td>
                           <td className="py-3.5 px-4">
-                            {getPortStateBadge(b.status || "available")}
+                            {b.status ? getPortStateBadge(b.status) : <span className="text-xs text-gray-400 font-semibold">N/A</span>}
                           </td>
                           <td className="py-3.5 px-4 text-center">
                             <button
@@ -858,35 +860,39 @@ export default function AdminInventoryMonitor() {
                     filteredSwaps.map((s) => (
                       <tr key={s.swapId} className="hover:bg-purple-50/20 transition">
                         <td className="py-3.5 px-4 font-mono font-bold text-xs text-gray-800">
-                          {s.swapId}
+                          {s.swapId || "N/A"}
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-gray-900 text-xs">{s.userName}</div>
-                          <div className="text-[11px] text-gray-500 font-mono">{s.userPhone}</div>
+                          <div className="font-bold text-gray-900 text-xs">{s.userName || "N/A"}</div>
+                          <div className="text-[11px] text-gray-500 font-mono">{s.userPhone || ""}</div>
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           <span className="inline-block px-2.5 py-1 bg-purple-100 text-purple-900 font-black rounded-lg text-xs">
-                            Pod #{s.podNumber}
+                            {s.podNumber != null ? `Pod #${s.podNumber}` : "N/A"}
                           </span>
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              {s.batteryIn}
+                              {s.batteryIn || "N/A"}
                             </span>
-                            <span className="text-[11px] text-gray-500 font-semibold">({s.batteryInSoc}%)</span>
+                            {s.batteryInSoc != null && (
+                              <span className="text-[11px] text-gray-500 font-semibold">({s.batteryInSoc}%)</span>
+                            )}
                           </div>
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              {s.batteryOut}
+                              {s.batteryOut || "N/A"}
                             </span>
-                            <span className="text-[11px] text-emerald-600 font-semibold">({s.batteryOutSoc}%)</span>
+                            {s.batteryOutSoc != null && (
+                              <span className="text-[11px] text-emerald-600 font-semibold">({s.batteryOutSoc}%)</span>
+                            )}
                           </div>
                         </td>
                         <td className="py-3.5 px-4">
-                          {getPortStateBadge(s.status || "available")}
+                          {s.status ? getPortStateBadge(s.status) : <span className="text-xs text-gray-400 font-semibold">N/A</span>}
                         </td>
                         <td className="py-3.5 px-4 text-xs text-gray-500 font-mono">
                           {formatIST(s.timestamp)}
@@ -954,14 +960,14 @@ export default function AdminInventoryMonitor() {
                       <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
                         <span className="text-xs text-emerald-600 font-medium">Current Draw</span>
                         <p className="text-xl font-bold text-emerald-900 mt-1">
-                          {latestTelemetry.currentDraw ?? "0"} A
+                          {latestTelemetry.currentDraw ?? "N/A"}{latestTelemetry.currentDraw != null ? " A" : ""}
                         </p>
                       </div>
 
                       <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
                         <span className="text-xs text-amber-600 font-medium">Temperature</span>
                         <p className="text-xl font-bold text-amber-900 mt-1">
-                          {latestTelemetry.temperature ?? latestTelemetry.cellTemp ?? "28"} °C
+                          {latestTelemetry.temperature ?? latestTelemetry.cellTemp ?? "N/A"}{(latestTelemetry.temperature ?? latestTelemetry.cellTemp) != null ? " °C" : ""}
                         </p>
                       </div>
                     </div>
