@@ -498,8 +498,6 @@ const LiveNavigationPage = () => {
     };
 
     socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
-    return () => socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
-  }, [booking?._id, booking?.id, bookingId, navigate]);
     socket.on("TRIP_STARTED", handleTripStarted);
     return () => {
       socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
@@ -731,10 +729,6 @@ const LiveNavigationPage = () => {
       {/* 4a. PICKUP HANDOVER MODAL - waiting / confirmed celebration */}
       {awaitingHandover && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
-              <ShieldCheck size={40} />
-
           {/* ── CONFETTI PARTICLES (visible only after confirmation) ── */}
           {pickupConfirmed && (
             <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
@@ -784,20 +778,9 @@ const LiveNavigationPage = () => {
             </div>
           )}
 
-            <h3 className="mt-5 text-2xl font-black text-slate-900">Show this at the hub</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              The hub team will verify your booking and hand over the EV. Your trip timer starts the moment they confirm it.
-            </p>
-          <div className={`w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border transition-all duration-500 ${
+          <div className={`relative z-50 w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border transition-all duration-500 ${
             pickupConfirmed ? 'border-emerald-300 scale-105' : 'border-slate-200'
           }`}>
-
-            <div className="mt-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Booking ID</p>
-              <p className="mt-1 font-mono text-3xl font-black tracking-wider text-emerald-900">
-                {booking?.bookingId || "EVR-----"}
-              </p>
-            </div>
             {/* ── CONFIRMED STATE: celebration animation ── */}
             {pickupConfirmed ? (
               <>
@@ -811,20 +794,6 @@ const LiveNavigationPage = () => {
                   />
                 </div>
 
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Vehicle:</span>
-                <span className="font-bold text-slate-900">{vehicleName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Plate:</span>
-                <span className="font-mono font-bold text-slate-900">{plateNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Pickup Hub:</span>
-                <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Hub"}</span>
-              </div>
-            </div>
                 <div style={{ animation: 'slide-up 0.5s ease-out 0.4s forwards', opacity: 0 }}>
                   <h3 className="mt-6 text-2xl font-black text-slate-900">
                     Pickup Confirmed! 🎉
@@ -834,10 +803,6 @@ const LiveNavigationPage = () => {
                   </p>
                 </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
-              <Hourglass size={16} className="animate-pulse" />
-              Waiting for the hub team to confirm...
-            </div>
                 {/* Plate number card */}
                 {confirmedPlate && (
                   <div
@@ -852,12 +817,6 @@ const LiveNavigationPage = () => {
                   </div>
                 )}
 
-            <button
-              onClick={() => setAwaitingHandover(false)}
-              className="mt-5 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
-            >
-              Back to navigation
-            </button>
                 <div
                   className="mt-6 flex items-center justify-center gap-2"
                   style={{ animation: 'slide-up 0.5s ease-out 0.8s forwards', opacity: 0 }}
