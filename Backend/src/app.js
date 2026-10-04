@@ -28,7 +28,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // Serve static uploads
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+const uploadDir = env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadDir));
 
 // Request ID & Logging
 app.use(requestId);

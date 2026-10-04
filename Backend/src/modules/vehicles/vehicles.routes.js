@@ -4,7 +4,7 @@ import * as vehiclesValidation from './vehicles.validation.js';
 import validate from '../../middleware/validate.js';
 import authenticate from '../../middleware/authenticate.js';
 import authorize from '../../middleware/authorize.js';
-import { upload } from '../../config/cloudinary.js';
+import { upload, processImageToWebp } from '../../config/upload.js';
 
 const router = express.Router();
 
@@ -31,6 +31,7 @@ router.use(authenticate, authorize('ADMIN', 'SUPER_ADMIN'));
 router.post(
   '/',
   upload.array('images', 5), // Max 5 images
+  processImageToWebp,
   // validate(vehiclesValidation.createVehicleSchema), 
   // Validation with multipart/form-data requires special handling or validating req.body after parsing
   // We'll skip deep Joi validation here or parse body strings to JSON before validation
@@ -51,6 +52,7 @@ router.post(
 router.put(
   '/:id',
   upload.array('images', 5),
+  processImageToWebp,
   (req, res, next) => {
     if (req.body.coordinates && typeof req.body.coordinates === 'string') {
       req.body.coordinates = JSON.parse(req.body.coordinates);

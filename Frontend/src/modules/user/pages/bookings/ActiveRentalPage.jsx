@@ -133,14 +133,36 @@ const ActiveRentalPage = () => {
       loadActiveBooking();
     };
 
+    // Admin asked for this rider's current position - take a one-off GPS fix
+    // and report it back. Nothing is tracked continuously.
+    const handleLocationRequested = (payload) => {
+      const currentId = activeBooking?._id || activeBooking?.id;
+      if (!currentId || String(payload?.bookingId) !== String(currentId)) return;
+      if (!navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          bookingService.reportLocation(currentId, {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }).catch((err) => console.error("Failed to report location:", err));
+        },
+        (err) => console.warn("Geolocation request denied/failed:", err.message),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
     socket.on("RENTAL_EXPIRING_SOON", handleReminder);
     socket.on("TRIP_OVERDUE", handleReminder);
     socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+    socket.on("LOCATION_REQUESTED", handleLocationRequested);
 
     return () => {
       socket.off("RENTAL_EXPIRING_SOON", handleReminder);
       socket.off("TRIP_OVERDUE", handleReminder);
       socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+      socket.off("LOCATION_REQUESTED", handleLocationRequested);
     };
   }, [activeBooking?._id, activeBooking?.id, loadActiveBooking, navigate]);
 

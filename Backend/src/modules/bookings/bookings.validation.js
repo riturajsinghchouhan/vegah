@@ -94,6 +94,17 @@ export const lifecycleNoteSchema = {
   }).default({}),
 };
 
+export const reportLocationSchema = {
+  params: Joi.object({
+    id: Joi.string().hex().length(24).required(),
+  }),
+  body: Joi.object({
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required(),
+    accuracy: Joi.number().min(0).allow(null),
+  }),
+};
+
 export const confirmReturnSchema = {
   params: Joi.object({
     id: Joi.string().hex().length(24).required(),

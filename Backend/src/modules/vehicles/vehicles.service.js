@@ -4,7 +4,7 @@ import Zone from '../../models/Zone.js';
 import { findZoneForLocation } from '../zones/zoneLocator.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { ACTIVE_BOOKING_STATUSES } from '../bookings/bookings.constants.js';
-import cloudinary from '../../config/cloudinary.js';
+// import cloudinary from '../../config/cloudinary.js';
 
 export const createVehicle = async (data, files) => {
   // Handle GeoJSON format for coordinates
@@ -266,16 +266,23 @@ export const deleteVehicleImage = async (vehicleId, imageId) => {
     throw new NotFoundError('Image not found on this vehicle');
   }
 
-  // Attempt to delete from cloudinary (optional, based on your strategy)
-  if (cloudinary && image.url.includes('cloudinary')) {
-    try {
-      const publicId = image.url.split('/').pop().split('.')[0]; 
-      // Highly simplified, actual extraction might be complex depending on full path. 
-      // If folder is vegah_uploads, publicId is vegah_uploads/xyz.
-      // Easiest is just remove from DB.
-    } catch (err) {
-      console.warn('Failed to extract/delete cloudinary image', err);
+  // Attempt to delete local file
+  try {
+    if (image.url.startsWith('/uploads/')) {
+      const fs = await import('fs');
+      const path = await import('path');
+      const env = (await import('../../config/env.js')).default;
+      
+      const uploadDir = env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+      const filename = image.url.split('/').pop();
+      const filePath = path.join(uploadDir, filename);
+      
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
+  } catch (err) {
+    console.warn('Failed to delete local image file', err);
   }
 
   vehicle.images.pull(imageId);

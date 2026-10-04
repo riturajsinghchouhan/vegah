@@ -26,6 +26,16 @@ const bookingSchema = new Schema({
   assignedPlateNumber: { type: String, default: null },
   batteryPackage: { type: String, enum: ['NONE', 'SINGLE', 'UNLIMITED'], default: 'SINGLE' },
 
+  // Populated on-demand when an admin requests the rider's live location
+  // (see POST /bookings/:id/request-location and POST /bookings/:id/location).
+  // Never polled continuously - only set when the rider's app responds to a request.
+  lastKnownLocation: {
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
+    accuracy: { type: Number, default: null },
+    updatedAt: { type: Date, default: null },
+  },
+
   rentalBase: { type: Number, required: true },
   batteryPackageFee: { type: Number, default: 0 },
   serviceFee: { type: Number, default: 0 },

@@ -151,3 +151,28 @@ export const rejectReturn = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * ADMIN — ask the rider's app, right now, to report its GPS position.
+ */
+export const requestLiveLocation = async (req, res, next) => {
+  try {
+    const result = await bookingsService.requestLiveLocation(req.params.id);
+    sendSuccess(res, 200, 'Location requested from rider.', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * USER — the rider's app responding to a LOCATION_REQUESTED event.
+ */
+export const reportLiveLocation = async (req, res, next) => {
+  try {
+    const { lat, lng, accuracy } = req.body;
+    const result = await bookingsService.reportLiveLocation(req.params.id, req.user.id, { lat, lng, accuracy });
+    sendSuccess(res, 200, 'Location updated.', result);
+  } catch (error) {
+    next(error);
+  }
+};

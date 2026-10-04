@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import Booking from '../../models/Booking.js';
+import BatterySwapLog from '../../models/BatterySwapLog.js';
 import Vehicle from '../../models/Vehicle.js';
 import Coupon from '../../models/Coupon.js';
 import Payment from '../../models/Payment.js';
@@ -919,9 +920,32 @@ export const listBookings = async (query) => {
       .populate('user', 'fullName phone')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     Booking.countDocuments(filter)
   ]);
+
+  // Real swap counts come only from BatterySwapLog (rider-initiated through our
+  // own app) - Electica's /swaps feed carries no userId, so it cannot answer
+  // "how many times has this rider swapped".
+  const userIds = [...new Set(bookings.map((b) => b.user?._id).filter(Boolean).map(String))];
+  if (userIds.length) {
+    const swapStats = await BatterySwapLog.aggregate([
+      { $match: { user: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) } } },
+      { $group: { _id: '$user', count: { $sum: 1 }, lastSwapAt: { $max: '$initiatedAt' } } },
+    ]);
+    const statsByUser = new Map(swapStats.map((s) => [String(s._id), s]));
+    for (const booking of bookings) {
+      const stats = booking.user?._id ? statsByUser.get(String(booking.user._id)) : null;
+      booking.batterySwapCount = stats?.count || 0;
+      booking.lastBatterySwapAt = stats?.lastSwapAt || null;
+    }
+  } else {
+    for (const booking of bookings) {
+      booking.batterySwapCount = 0;
+      booking.lastBatterySwapAt = null;
+    }
+  }
 
   return {
     bookings,
@@ -1104,4 +1128,52 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
   }
 
   return { booking: updated || booking, extensionCost, newEndDate, newTripEndsAt };
+}
+
+// Admin asks the rider's app, right now, to report its GPS position. Nothing is
+// polled or stored continuously - this only ever reflects the one moment the
+// rider's device answered.
+export const requestLiveLocation = async (bookingId) => {
+  const booking = await Booking.findById(bookingId).select('user status');
+  if (!booking) {
+    throw new NotFoundError('Booking not found');
+  }
+  if (!['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(booking.status)) {
+    throw new BadRequestError('Location can only be requested for an active rental');
+  }
+
+  const io = getIO();
+  if (io) {
+    io.to(`user_${booking.user}`).emit('LOCATION_REQUESTED', { bookingId: String(booking._id) });
+  }
+
+  return { requested: true };
+};
+
+// Rider's app responding to the LOCATION_REQUESTED event above.
+export const reportLiveLocation = async (bookingId, userId, { lat, lng, accuracy }) => {
+  const booking = await Booking.findById(bookingId).select('user');
+  if (!booking) {
+    throw new NotFoundError('Booking not found');
+  }
+  if (String(booking.user) !== String(userId)) {
+    throw new ForbiddenError('Not allowed');
+  }
+
+  const updatedAt = new Date();
+  booking.lastKnownLocation = { lat, lng, accuracy: accuracy ?? null, updatedAt };
+  await booking.save();
+
+  const io = getIO();
+  if (io) {
+    io.to('admin_room').emit('LOCATION_UPDATED', {
+      bookingId: String(booking._id),
+      lat,
+      lng,
+      accuracy: accuracy ?? null,
+      updatedAt,
+    });
+  }
+
+  return { lat, lng, accuracy: accuracy ?? null, updatedAt };
 };

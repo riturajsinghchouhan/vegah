@@ -1,5 +1,8 @@
 import * as electicaService from './electica.service.js';
 import { sendSuccess } from '../../utils/response.js';
+import { ApiError } from '../../utils/errors.js';
+import Booking from '../../models/Booking.js';
+import BatterySwapLog from '../../models/BatterySwapLog.js';
 
 export const getStations = async (req, res, next) => {
   try {
@@ -99,10 +102,32 @@ export const getSwaps = async (req, res, next) => {
 
 export const startSwap = async (req, res, next) => {
   try {
-    const { stationId } = req.body;
-    // For testing, we use a dummy entitlementRef if not provided
-    const entitlementRef = req.body.entitlementRef || `VM-PLAN-${Math.floor(Math.random() * 10000)}`;
+    const { stationId, bookingId } = req.body;
+    if (!bookingId) {
+      throw new ApiError(400, 'bookingId is required to start a swap');
+    }
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking || String(booking.user) !== String(req.user.id)) {
+      throw new ApiError(404, 'Active booking not found for this user');
+    }
+    if (!['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(booking.status)) {
+      throw new ApiError(400, 'Battery swap is only available during an active rental');
+    }
+
+    // The entitlement reference ties this swap to a real booking/user, not a
+    // placeholder - it's what let this flow fabricate per-user swap history before.
+    const entitlementRef = `BOOKING-${booking.bookingId || booking._id}`;
     const swap = await electicaService.startSwap(stationId, entitlementRef);
+
+    await BatterySwapLog.create({
+      user: req.user.id,
+      booking: booking._id,
+      stationId,
+      electicaSwapId: swap?.id || swap?.swap_id || swap?.swapId || null,
+      status: swap?.status || 'initiated',
+    });
+
     sendSuccess(res, 201, 'Swap started successfully', swap);
   } catch (error) {
     next(error);

@@ -38,6 +38,11 @@ export const initSocket = (server) => {
   if (redisClient) {
     // Create a duplicate redis connection for subscribing (adapter requirement)
     const subClient = redisClient.duplicate();
+    
+    subClient.on('error', (err) => {
+      logger.error(`Redis subClient connection error: ${err}`);
+    });
+
     io.adapter(createAdapter(redisClient, subClient));
     logger.info('Socket.IO Redis Adapter attached');
   } else {

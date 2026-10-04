@@ -26,12 +26,13 @@ router.patch(
   usersController.updateKycDetails
 );
 
-import { upload } from '../../config/cloudinary.js';
+import { upload, processImageToWebp } from '../../config/upload.js';
 import * as documentsValidation from './documents.validation.js';
 
 router.post(
   '/documents',
   upload.single('file'),
+  processImageToWebp,
   validate(documentsValidation.uploadDocumentSchema),
   usersController.uploadDocument
 );

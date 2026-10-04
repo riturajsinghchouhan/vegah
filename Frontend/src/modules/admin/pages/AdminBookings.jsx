@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
-import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle } from 'lucide-react';
+import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
@@ -808,6 +808,30 @@ const fmtDateTime = (value) => {
 function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRejectReturn, actionLoading }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  // bookingId -> { lat, lng, accuracy, updatedAt } reported back over the socket
+  const [liveLocations, setLiveLocations] = useState({});
+  const [locatingId, setLocatingId] = useState(null);
+
+  useEffect(() => {
+    const socket = initSocket();
+    const handleLocationUpdated = (payload) => {
+      if (!payload?.bookingId) return;
+      setLiveLocations((prev) => ({ ...prev, [payload.bookingId]: payload }));
+      setLocatingId((prev) => (prev === payload.bookingId ? null : prev));
+    };
+    socket.on('LOCATION_UPDATED', handleLocationUpdated);
+    return () => socket.off('LOCATION_UPDATED', handleLocationUpdated);
+  }, []);
+
+  const handleRequestLocation = async (bookingId) => {
+    try {
+      setLocatingId(bookingId);
+      await adminService.requestLocation(bookingId);
+    } catch (err) {
+      console.error('Failed to request location:', err);
+      setLocatingId(null);
+    }
+  };
 
   // A booking awaiting return verification is still a live rental - the EV is
   // not back in the fleet until an admin confirms it.
@@ -827,7 +851,7 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
     raw: b,
     id: b.bookingId || (typeof b._id === 'string' ? b._id.substring(0, 12).toUpperCase() : 'EVR-NEW'),
     user: { name: b.user?.fullName || 'Unknown', phone: b.user?.phone || 'Unknown' },
-    scooty: { name: b.vehicle?.name || 'Unknown', reg: b.vehicle?.registrationNumber || b.vehicle?.plateNumber || 'Unknown' },
+    scooty: { name: b.vehicle?.name || 'Unknown', reg: b.assignedPlateNumber || b.vehicle?.registrationNumber || b.vehicle?.plateNumber || 'Unknown' },
     // The real trip clock: handover time and the deadline derived from it.
     pickup: { location: b.pickupLocation || b.zone?.name || 'Unknown', time: fmtDateTime(b.actualPickupAt) },
     expectedReturn: fmtDateTime(b.tripEndsAt || b.endDate),
@@ -845,6 +869,10 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
     isAwaitingReturn: b.status === 'PENDING_RETURN',
     isOverdue: b.status === 'OVERDUE',
     rentalStatus: (b.status || 'ACTIVE').replace(/_/g, ' '),
+    // Real counts from BatterySwapLog (attached server-side in listBookings) -
+    // not Electica's feed, which carries no user identity to count against.
+    batterySwapCount: b.batterySwapCount ?? 0,
+    lastBatterySwapAt: b.lastBatterySwapAt ? fmtDateTime(b.lastBatterySwapAt) : null,
   }));
 
   const searchFiltered = liveBookings
@@ -921,6 +949,8 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
               <th className="px-6 py-4">Customer Info</th>
               <th className="px-6 py-4">Vehicle Details</th>
               <th className="px-6 py-4">Timing & Location</th>
+              <th className="px-6 py-4">Live Location</th>
+              <th className="px-6 py-4">Battery Swaps</th>
               <th className="px-6 py-4">Financials</th>
               <th className="px-6 py-4 text-center">Actions</th>
             </tr>
@@ -952,6 +982,55 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
                       </span>
                     )}
                   </div>
+                </td>
+                <td className="px-6 py-4">
+                  {(() => {
+                    const bId = rental.raw._id || rental.raw.id;
+                    const loc = liveLocations[bId];
+                    const isLocating = locatingId === bId;
+                    if (loc) {
+                      return (
+                        <div className="text-xs">
+                          <a
+                            href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-700 font-semibold hover:underline"
+                          >
+                            <MapPin size={13} />
+                            {Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}
+                          </a>
+                          <div className="text-gray-400 mt-0.5">{fmtDateTime(loc.updatedAt)}</div>
+                          <button
+                            onClick={() => handleRequestLocation(bId)}
+                            disabled={isLocating}
+                            className="mt-1 text-[11px] text-gray-500 hover:text-blue-700 disabled:opacity-50"
+                          >
+                            {isLocating ? 'Refreshing...' : 'Refresh'}
+                          </button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <button
+                        onClick={() => handleRequestLocation(bId)}
+                        disabled={isLocating}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all disabled:opacity-50"
+                      >
+                        <MapPin size={14} />
+                        {isLocating ? 'Waiting for rider...' : 'Get Location'}
+                      </button>
+                    );
+                  })()}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                    <BatteryCharging size={14} className="text-emerald-600" />
+                    {rental.batterySwapCount}
+                  </div>
+                  {rental.lastBatterySwapAt && (
+                    <div className="text-xs text-gray-400 mt-0.5">Last: {rental.lastBatterySwapAt}</div>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900">Amount: <span className="font-semibold">{rental.financials.amount}</span></div>
@@ -1014,7 +1093,7 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
             ))}
             {searchFiltered.length === 0 && (
               <tr>
-                <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                   No live active rentals currently.
                 </td>
               </tr>

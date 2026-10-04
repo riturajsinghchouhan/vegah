@@ -168,6 +168,13 @@ export const adminService = {
     const res = await adminApi.patch(`/bookings/${id}/reject-return`, note ? { note } : {});
     return res.data.data;
   },
+  // Pings the rider's app over the socket to report its current GPS position.
+  // The response itself just confirms the request went out - the actual
+  // coordinates arrive asynchronously over the LOCATION_UPDATED socket event.
+  async requestLocation(id) {
+    const res = await adminApi.post(`/bookings/${id}/request-location`);
+    return res.data.data;
+  },
 
   // --- Coupons ---
   async getCoupons(params = {}) {

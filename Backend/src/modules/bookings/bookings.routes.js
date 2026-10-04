@@ -80,4 +80,21 @@ router.patch(
   bookingsController.rejectReturn
 );
 
+// --- On-demand live location (admin pulls, rider's app answers) ---
+
+// ADMIN asks the rider's app to report its current GPS position
+router.post(
+  '/:id/request-location',
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  validate(bookingsValidation.idParamSchema),
+  bookingsController.requestLiveLocation
+);
+
+// USER's app responding with its current GPS position
+router.post(
+  '/:id/location',
+  validate(bookingsValidation.reportLocationSchema),
+  bookingsController.reportLiveLocation
+);
+
 export default router;

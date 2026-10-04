@@ -107,6 +107,13 @@ export const bookingService = {
     return response.data.data;
   },
 
+  // Rider's app answering an admin's LOCATION_REQUESTED socket event with a
+  // one-off GPS fix - nothing is tracked continuously.
+  async reportLocation(bookingId, { lat, lng, accuracy }) {
+    const response = await api.post(`/bookings/${bookingId}/location`, { lat, lng, accuracy });
+    return response.data.data;
+  },
+
   async cancelBooking(bookingId, cancellationReason) {
     const response = await api.patch(`/bookings/${bookingId}/status`, {
       status: 'CANCELLED_BY_USER',

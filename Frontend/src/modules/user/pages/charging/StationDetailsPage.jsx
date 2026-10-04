@@ -4,11 +4,15 @@ import { useParams } from "react-router-dom";
 import Button from "../../../../components/common/Button";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { chargingService } from "../../../../services/chargingService";
+import { bookingService } from "../../../../services/bookingService";
+
+const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
 
 const StationDetailsPage = () => {
   const { stationId } = useParams();
   const [station, setStation] = useState(null);
   const [pods, setPods] = useState(null);
+  const [activeBookingId, setActiveBookingId] = useState(null);
 
   const [swapState, setSwapState] = useState(null); // null, 'starting', 'polling', 'completed', 'failed'
   const [swapData, setSwapData] = useState(null);
@@ -19,6 +23,17 @@ const StationDetailsPage = () => {
     chargingService.getStationById(stationId).then(setStation);
     chargingService.getPods(stationId).then(setPods);
   }, [stationId]);
+
+  // A battery swap only makes sense tied to the rider's own running rental -
+  // this is what lets the admin panel count real per-user swap history.
+  useEffect(() => {
+    bookingService.listBookings({ status: IN_TRIP_STATUSES, limit: 1 })
+      .then((bookings) => {
+        const current = Array.isArray(bookings) && bookings.length ? bookings[0] : null;
+        setActiveBookingId(current?._id || current?.id || null);
+      })
+      .catch((err) => console.error("Failed to load active booking:", err));
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -43,10 +58,15 @@ const StationDetailsPage = () => {
   }, [swapState, swapData]);
 
   const handleStartSwap = async () => {
+    if (!activeBookingId) {
+      setSwapState('failed');
+      setErrorMessage("Battery swap is only available while you have an active rental.");
+      return;
+    }
     try {
       setSwapState('starting');
       setErrorMessage("");
-      const res = await chargingService.startSwap(station.id, "TEST-PLAN-123");
+      const res = await chargingService.startSwap(station.id, activeBookingId);
       setSwapData(res.data || res);
       setSwapState('polling');
     } catch (err) {
