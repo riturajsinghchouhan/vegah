@@ -18,11 +18,7 @@ export const createVehicle = async (data, files) => {
   const images = [];
   if (files && files.length > 0) {
     files.forEach((file, index) => {
-      let url = file.path;
-      if (!url.startsWith('http')) {
-         // Local upload, use filename to construct relative URL
-         url = '/uploads/' + file.filename;
-      }
+      const url = file.url || file.path;
       images.push({
         url,
         isPrimary: index === 0,
@@ -54,10 +50,7 @@ export const updateVehicle = async (id, data, files) => {
   // Handle images if new ones are uploaded (append to existing for now, or replace depending on business logic)
   if (files && files.length > 0) {
     const newImages = files.map(file => {
-      let url = file.path;
-      if (!url.startsWith('http')) {
-         url = '/uploads/' + file.filename;
-      }
+      const url = file.url || file.path;
       return { url, isPrimary: false };
     });
     
@@ -268,7 +261,7 @@ export const deleteVehicleImage = async (vehicleId, imageId) => {
 
   // Attempt to delete local file
   try {
-    if (image.url.startsWith('/uploads/')) {
+    if (image.url.includes('/uploads/')) {
       const fs = await import('fs');
       const path = await import('path');
       const env = (await import('../../config/env.js')).default;

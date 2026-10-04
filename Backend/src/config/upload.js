@@ -45,10 +45,13 @@ export const processImageToWebp = async (req, res, next) => {
         .webp({ quality: 80 }) // Convert to webp with 80% quality
         .toFile(filepath);
 
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const fullUrl = `${baseUrl}/uploads/${filename}`;
+
       // Mutate the req.file object to reflect the new saved file
-      file.path = filepath;
+      file.path = fullUrl; // mimic Cloudinary behavior where path is the URL
       file.filename = filename;
-      file.url = `/uploads/${filename}`;
+      file.url = fullUrl;
     };
 
     if (req.file) {
