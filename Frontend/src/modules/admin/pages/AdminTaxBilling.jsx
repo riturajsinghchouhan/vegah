@@ -14,6 +14,8 @@ export default function AdminTaxBilling() {
     platformFee: "20",
     serviceCharge: "5",
     cancellationFee: "100",
+    batteryPackageUnlimited: "150",
+    batteryPackageSingle: "50",
   });
 
   const fetchData = async () => {
@@ -134,6 +136,34 @@ export default function AdminTaxBilling() {
                     className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Battery Package – Unlimited (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                  <input 
+                    type="number" 
+                    value={settings.batteryPackageUnlimited}
+                    onChange={(e) => setSettings({ ...settings, batteryPackageUnlimited: e.target.value })}
+                    className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Charged per booking for unlimited battery swaps.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Battery Package – Single Charge (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                  <input 
+                    type="number" 
+                    value={settings.batteryPackageSingle}
+                    onChange={(e) => setSettings({ ...settings, batteryPackageSingle: e.target.value })}
+                    className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Charged per booking for a single battery charge.</p>
               </div>
 
               <div className="pt-4 border-t border-gray-100">

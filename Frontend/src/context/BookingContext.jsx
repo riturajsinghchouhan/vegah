@@ -64,6 +64,8 @@ export const BookingProvider = ({ children }) => {
     platformFee: 20,
     serviceCharge: 5,
     cancellationFee: 100,
+    batteryPackageSingle: 50,
+    batteryPackageUnlimited: 150,
   });
 
   useEffect(() => {
@@ -77,6 +79,8 @@ export const BookingProvider = ({ children }) => {
             platformFee: Number(data.platformFee ?? 20),
             serviceCharge: Number(data.serviceCharge ?? 5),
             cancellationFee: Number(data.cancellationFee ?? 100),
+            batteryPackageSingle: Number(data.batteryPackageSingle ?? 50),
+            batteryPackageUnlimited: Number(data.batteryPackageUnlimited ?? 150),
           });
         }
       } catch (err) {

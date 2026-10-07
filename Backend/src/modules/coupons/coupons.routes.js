@@ -12,6 +12,19 @@ router.post('/validate', authenticate, couponsController.validateCoupon);
 // User Route: Get active/public coupons
 router.get('/active', authenticate, async (req, res, next) => {
   try {
+    const result = await couponsService.listCoupons({ status: 'ACTIVE', limit: 20 });
+    // Filter to only return fields safe for public consumption
+    const publicCoupons = result.coupons.map(c => ({
+      _id: c._id,
+      code: c.code,
+      type: c.type,
+      value: c.value,
+      description: c.description,
+      minBookingAmount: c.minBookingAmount,
+      maxDiscountAmount: c.maxDiscountAmount,
+      expiryDate: c.expiryDate,
+    }));
+    res.json({ success: true, data: publicCoupons });
     // Hidden from user side as requested
     res.json({ success: true, data: [] });
   } catch (error) {

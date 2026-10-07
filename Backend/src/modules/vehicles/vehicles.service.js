@@ -18,7 +18,11 @@ export const createVehicle = async (data, files) => {
   const images = [];
   if (files && files.length > 0) {
     files.forEach((file, index) => {
-      const url = file.url || file.path;
+      let url = file.url || file.path;
+      if (!url.startsWith('http')) {
+         // Local upload, use filename to construct relative URL
+         url = '/uploads/' + file.filename;
+      }
       images.push({
         url,
         isPrimary: index === 0,
@@ -50,7 +54,10 @@ export const updateVehicle = async (id, data, files) => {
   // Handle images if new ones are uploaded (append to existing for now, or replace depending on business logic)
   if (files && files.length > 0) {
     const newImages = files.map(file => {
-      const url = file.url || file.path;
+      let url = file.url || file.path;
+      if (!url.startsWith('http')) {
+         url = '/uploads/' + file.filename;
+      }
       return { url, isPrimary: false };
     });
     

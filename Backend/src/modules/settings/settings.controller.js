@@ -22,6 +22,8 @@ export const getPublicSettings = async (req, res, next) => {
       platformFee: Number(settings.platformFee ?? 20),
       serviceCharge: Number(settings.serviceCharge ?? 5),
       cancellationFee: Number(settings.cancellationFee ?? 100),
+      batteryPackageSingle: Number(settings.batteryPackageSingle ?? 50),
+      batteryPackageUnlimited: Number(settings.batteryPackageUnlimited ?? 150),
     };
     sendSuccess(res, 200, 'Public settings fetched successfully', publicSettings);
   } catch (error) {

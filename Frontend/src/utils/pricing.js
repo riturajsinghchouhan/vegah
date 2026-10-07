@@ -18,6 +18,8 @@ export const calculateBookingPricing = (
   const gstRate = Number(settings?.gstRate ?? 18);
   const serviceChargeRate = Number(settings?.serviceCharge ?? 5);
   const platformFee = Number(settings?.platformFee ?? 20);
+  const batteryPackageSinglePrice = Number(settings?.batteryPackageSingle ?? 50);
+  const batteryPackageUnlimitedPrice = Number(settings?.batteryPackageUnlimited ?? 150);
 
   if (!vehicle) {
     return {
@@ -62,9 +64,9 @@ export const calculateBookingPricing = (
   
   let batteryPackageFee = 0;
   if (batteryPackage === "single") {
-    batteryPackageFee = 50;
+    batteryPackageFee = batteryPackageSinglePrice;
   } else if (batteryPackage === "unlimited") {
-    batteryPackageFee = 150;
+    batteryPackageFee = batteryPackageUnlimitedPrice;
   }
 
   // Dynamic Service Fee based on % from Admin Tax & Billing

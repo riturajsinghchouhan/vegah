@@ -20,7 +20,7 @@ export const getFinanceSummary = async (query = {}) => {
   
   // Dynamic GST from settings
   const pricingSettings = await settingsService.getSettings('pricing');
-  const gstRate = Number(pricingSettings.gstRate || 18);
+  const gstRate = Number(pricingSettings.gstRate ?? 18);
   const estimatedTax = netRevenue * (gstRate / 100);
 
   const recentTransactions = await Payment.find()
@@ -81,7 +81,7 @@ export const getSettlements = async (query = {}) => {
 
 export const getTaxBilling = async (query = {}) => {
   const pricingSettings = await settingsService.getSettings('pricing');
-  const gstRateNum = Number(pricingSettings.gstRate || 18);
+  const gstRateNum = Number(pricingSettings.gstRate ?? 18);
   const gstDivisor = 1 + (gstRateNum / 100);
 
   // 1. Fetch successful payments
@@ -139,7 +139,7 @@ export const getTaxBilling = async (query = {}) => {
       baseAmount,
       taxAmount,
       serviceFee: booking?.serviceFee || 0,
-      platformFee: booking?.platformFee || Number(pricingSettings.platformFee || 20),
+      platformFee: booking?.platformFee || Number(pricingSettings.platformFee ?? 20),
       gstRate: `${gstRateNum}%`,
       status: 'Paid',
       paymentMethod: p.method || booking?.paymentMethod || 'ONLINE',
@@ -170,7 +170,7 @@ export const getTaxBilling = async (query = {}) => {
       baseAmount,
       taxAmount,
       serviceFee: b.serviceFee || 0,
-      platformFee: b.platformFee || Number(pricingSettings.platformFee || 20),
+      platformFee: b.platformFee || Number(pricingSettings.platformFee ?? 20),
       gstRate: `${gstRateNum}%`,
       status: b.status === 'COMPLETED' ? 'Paid' : 'Confirmed',
       paymentMethod: b.paymentMethod || 'CASH',
@@ -186,7 +186,7 @@ export const getTaxBilling = async (query = {}) => {
     currency: 'INR',
     settings: {
       gstRate: gstRateNum,
-      platformFee: Number(pricingSettings.platformFee || 20),
+      platformFee: Number(pricingSettings.platformFee ?? 20),
       serviceCharge: Number(pricingSettings.serviceCharge || 5),
       cancellationFee: Number(pricingSettings.cancellationFee || 100),
     },

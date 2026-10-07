@@ -202,13 +202,19 @@ export const reserveVehicle = async (userId, data) => {
     const batteryPackage = BATTERY_PACKAGES[data.batteryPackage] || BATTERY_PACKAGES.SINGLE;
 
     const pricingSettings = await settingsService.getSettings('pricing');
-    const gstRate = Number(pricingSettings.gstRate || 18);
-    const serviceChargeRate = Number(pricingSettings.serviceCharge || 5);
-    const platformFee = Number(pricingSettings.platformFee || 20);
+    const gstRate = Number(pricingSettings.gstRate ?? 18);
+    const serviceChargeRate = Number(pricingSettings.serviceCharge ?? 5);
+    const platformFee = Number(pricingSettings.platformFee ?? 20);
+    // Battery package prices are managed from Admin > Tax & Billing
+    const batteryPackagePriceKeys = { SINGLE: 'batteryPackageSingle', UNLIMITED: 'batteryPackageUnlimited' };
+    const batteryPackagePriceKey = batteryPackagePriceKeys[batteryPackage.id];
+    const batteryPackagePrice = batteryPackagePriceKey
+      ? Number(pricingSettings[batteryPackagePriceKey] ?? batteryPackage.price)
+      : batteryPackage.price;
 
     const pricing = calculateTotalAmount({
       rentalBase,
-      batteryPackagePrice: batteryPackage.price,
+      batteryPackagePrice,
       securityDeposit: vehicle.securityDeposit,
       discountAmount,
       gstRate,
@@ -254,7 +260,10 @@ export const reserveVehicle = async (userId, data) => {
     const populatedBooking = await Booking.findById(booking._id)
       .populate({
         path: 'vehicle',
-        populate: { path: 'zone' }
+        populate: [
+          { path: 'zone' },
+          { path: 'category', select: 'name type' }
+        ]
       })
       .populate('user', 'fullName phone email');
 
@@ -737,7 +746,10 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       .select('-kycDocuments')
       .populate({
         path: 'vehicle',
-        populate: { path: 'zone' }
+        populate: [
+          { path: 'zone' },
+          { path: 'category', select: 'name type' }
+        ]
       })
       .populate('user', 'fullName phone email');
 
@@ -915,7 +927,10 @@ export const listBookings = async (query) => {
       .select('-kycDocuments')
       .populate({
         path: 'vehicle',
-        populate: { path: 'zone' }
+        populate: [
+          { path: 'zone' },
+          { path: 'category', select: 'name type' }
+        ]
       })
       .populate('user', 'fullName phone')
       .sort({ createdAt: -1 })
@@ -962,7 +977,10 @@ export const getBookingById = async (id) => {
   const booking = await Booking.findById(id)
     .populate({
       path: 'vehicle',
-      populate: { path: 'zone' }
+      populate: [
+        { path: 'zone' },
+        { path: 'category', select: 'name type' }
+      ]
     })
     .populate('user', 'fullName phone email isVerified')
     .populate('coupon');
@@ -977,8 +995,11 @@ export const getLiveBookingStatus = async (id, userId) => {
   const booking = await Booking.findById(id)
     .populate({
       path: 'vehicle',
-      select: 'name plateNumber images batteryLevel status pricePerHour zone',
-      populate: { path: 'zone' },
+      select: 'name plateNumber images batteryLevel status pricePerHour zone category',
+      populate: [
+        { path: 'zone' },
+        { path: 'category', select: 'name type' }
+      ],
     })
     .populate('user', 'fullName phone');
 
