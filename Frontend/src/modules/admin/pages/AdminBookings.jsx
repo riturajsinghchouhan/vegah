@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
@@ -9,6 +9,9 @@ import Pagination from '@/shared/components/ui/Pagination';
 import { adminService } from '../services/adminService';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
+
+const BOOKINGS_POLL_INTERVAL_MS = 15000;
+const NEEDS_APPROVAL_STATUSES = ['RESERVED', 'PENDING_VERIFICATION', 'PAYMENT_INITIATED'];
 
 // The list response no longer carries the multi-MB base64 KYC images (it was
 // 15MB for 8 rows and timed out). Open the modal straight away from the row we
@@ -58,6 +61,8 @@ export default function AdminBookings() {
   const [actionLoading, setActionLoading] = useState(null);
   const [pickupPromptBookingId, setPickupPromptBookingId] = useState(null);
   const [pickupPlateNumber, setPickupPlateNumber] = useState('');
+  // IDs from the last fetch, so the poll can tell which bookings are new.
+  const knownBookingIdsRef = useRef(null);
 
   const playNotificationSound = () => {
     try {
@@ -68,20 +73,41 @@ export default function AdminBookings() {
     }
   };
 
-  const fetchAllBookings = async () => {
+  // A silent fetch is a background poll: no loading spinner, and any booking we
+  // have not seen before that is waiting on approval raises the new-order alert.
+  const fetchAllBookings = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params = Object.fromEntries(searchParams.entries());
       delete params.ops;
       const data = await adminService.getBookings(params);
       const bookingList = Array.isArray(data) ? data : (data?.items || data?.bookings || data?.data || []);
+
+      if (silent && knownBookingIdsRef.current) {
+        const fresh = bookingList.filter(
+          (b) => !knownBookingIdsRef.current.has(b._id || b.id) && NEEDS_APPROVAL_STATUSES.includes(b.status)
+        );
+        if (fresh.length > 0) {
+          setNewBookingAlert(fresh[0]);
+        }
+      }
+      knownBookingIdsRef.current = new Set(bookingList.map((b) => b._id || b.id));
+
       setBookings(bookingList);
     } catch (error) {
       console.error("Failed to fetch bookings", error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Polling fallback for new orders in case the socket event is missed.
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      fetchAllBookings({ silent: true });
+    }, BOOKINGS_POLL_INTERVAL_MS);
+    return () => clearInterval(pollInterval);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchAllBookings();
@@ -94,8 +120,9 @@ export default function AdminBookings() {
       playNotificationSound();
       setNewBookingAlert(newBooking);
 
+      const idToMatch = newBooking._id || newBooking.id;
+      knownBookingIdsRef.current?.add(idToMatch);
       setBookings((prev) => {
-        const idToMatch = newBooking._id || newBooking.id;
         const exists = prev.some((b) => (b._id || b.id) === idToMatch);
         if (exists) return prev;
         return [newBooking, ...prev];
