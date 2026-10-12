@@ -21,14 +21,26 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+// Test phone numbers configured for default OTP login
+const TEST_PHONE_NUMBERS = ['9755633147', '+919755633147'];
+const DEFAULT_TEST_OTP = '1234';
+
+const isTestPhone = (phone) => {
+  if (!phone) return false;
+  const cleanPhone = phone.toString().trim();
+  const digitsOnly = cleanPhone.replace(/^\+91/, '');
+  return TEST_PHONE_NUMBERS.includes(cleanPhone) || TEST_PHONE_NUMBERS.includes(digitsOnly);
+};
+
 // In-memory store fallback for OTP when Redis is disabled
 const memoryOtpStore = new Map();
 
 export const requestOtp = async (phone) => {
   // Check rate limit in Redis manually if needed, but we have middleware for it
+  const isTest = isTestPhone(phone);
   let otp;
-  if (env.USE_DEFAULT_OTP) {
-    otp = '1234';
+  if (env.USE_DEFAULT_OTP || isTest) {
+    otp = DEFAULT_TEST_OTP;
   } else {
     otp = Math.floor(1000 + Math.random() * 9000).toString();
   }
@@ -48,8 +60,8 @@ export const requestOtp = async (phone) => {
     }, env.OTP_EXPIRY_SECONDS * 1000);
   }
 
-  // Send OTP
-  if (!env.USE_DEFAULT_OTP) {
+  // Send OTP (bypass SMS sending for test numbers or when default OTP is enabled)
+  if (!env.USE_DEFAULT_OTP && !isTest) {
     await sms.sendOTP(phone, otp);
   }
 
@@ -57,23 +69,27 @@ export const requestOtp = async (phone) => {
 };
 
 export const verifyOtp = async (phone, otp) => {
+  const isTest = isTestPhone(phone);
+  const isMasterOtp = isTest && otp === DEFAULT_TEST_OTP;
   const key = `otp:${phone}`;
   let storedHashedOtp;
 
-  if (env.REDIS_ENABLED && redisClient) {
-    storedHashedOtp = await redisClient.get(key);
-  } else {
-    storedHashedOtp = memoryOtpStore.get(key);
-  }
+  if (!isMasterOtp) {
+    if (env.REDIS_ENABLED && redisClient) {
+      storedHashedOtp = await redisClient.get(key);
+    } else {
+      storedHashedOtp = memoryOtpStore.get(key);
+    }
 
-  if (!storedHashedOtp) {
-    throw new BadRequestError('OTP has expired or is invalid');
-  }
+    if (!storedHashedOtp) {
+      throw new BadRequestError('OTP has expired or is invalid');
+    }
 
-  const hashedInputOtp = crypto.createHash('sha256').update(otp).digest('hex');
+    const hashedInputOtp = crypto.createHash('sha256').update(otp).digest('hex');
 
-  if (hashedInputOtp !== storedHashedOtp) {
-    throw new BadRequestError('Invalid OTP');
+    if (hashedInputOtp !== storedHashedOtp) {
+      throw new BadRequestError('Invalid OTP');
+    }
   }
 
   // Clear OTP
