@@ -58,6 +58,7 @@ export default function AdminEVs() {
         securityDeposit: v.securityDeposit || 0,
         totalStock: v.totalStock ?? 1,
         availableStock: v.availableStock ?? 1,
+        bookedStock: Math.max(0, (v.totalStock ?? 1) - (v.availableStock ?? 1)),
         stockStatus: v.stockStatus || (v.availableStock === 0 ? 'OUT_OF_STOCK' : 'IN_STOCK'),
         status: v.status ? (v.status.charAt(0).toUpperCase() + v.status.slice(1).toLowerCase()) : 'Available',
         image: v.images && v.images.length > 0 ? (v.images.find(img => img.isPrimary)?.url || v.images[0].url) : null,
@@ -223,6 +224,13 @@ export default function AdminEVs() {
                   <Layers size={16} className="text-orange-500" /> Fleet Stock
                 </div>
                 <span className="font-bold text-gray-900 text-sm">{scooty.availableStock} / {scooty.totalStock} Units</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-gray-500 text-sm gap-2">
+                  <Layers size={16} className="text-blue-500" /> Booked
+                </div>
+                <span className="font-bold text-blue-700 text-sm">{scooty.bookedStock} Units</span>
               </div>
 
               <div className="flex items-center justify-between">

@@ -190,9 +190,19 @@ export const listVehicles = async (query) => {
     return false;
   };
 
-  const statusCounts = { ALL: candidates.length };
-  ['AVAILABLE', 'BOOKED', 'MAINTENANCE', 'INACTIVE'].forEach(s => {
-    statusCounts[s] = candidates.filter(v => matchesStatus(v, s)).length;
+  // One vehicle doc carries `totalStock` units, so the tabs count units, not docs:
+  // a 10-unit model with 4 live bookings is 4 Booked + 6 Available.
+  const statusCounts = { ALL: 0, AVAILABLE: 0, BOOKED: 0, MAINTENANCE: 0, INACTIVE: 0 };
+  candidates.forEach(v => {
+    const totalStock = v.totalStock ?? 1;
+    statusCounts.ALL += totalStock;
+    if (['MAINTENANCE', 'INACTIVE'].includes(v.status)) {
+      statusCounts[v.status] += totalStock;
+      return;
+    }
+    const booked = Math.min(totalStock, candidateCountMap[v._id.toString()] || 0);
+    statusCounts.BOOKED += booked;
+    statusCounts.AVAILABLE += totalStock - booked;
   });
 
   if (status) {
