@@ -154,12 +154,12 @@ export const listVehicles = async (query) => {
   if (type) filter.type = type;
   if (category) filter.category = category;
   if (zone) filter.zone = zone;
-  if (status) filter.status = status;
-  
+
   if (search) {
     filter.$or = [
       { name: { $regex: search, $options: 'i' } },
       { brand: { $regex: search, $options: 'i' } },
+      { model: { $regex: search, $options: 'i' } },
     ];
   }
 
@@ -167,6 +167,37 @@ export const listVehicles = async (query) => {
     filter.pricePerDay = {};
     if (minPriceDay !== undefined) filter.pricePerDay.$gte = minPriceDay;
     if (maxPriceDay !== undefined) filter.pricePerDay.$lte = maxPriceDay;
+  }
+
+  // The stored `status` is only BOOKED once every unit is taken, and can drift
+  // from reality, so filtering on it hid vehicles that have live bookings.
+  // Classify every matching vehicle from its live booking count instead -- the
+  // same source the cards below use -- and report per-status counts so the
+  // admin filter tabs are not limited to the current page.
+  const candidates = await Vehicle.find(filter).select('_id status totalStock').lean();
+  const candidateCounts = await Booking.aggregate([
+    { $match: { vehicle: { $in: candidates.map(c => c._id) }, status: { $in: ACTIVE_BOOKING_STATUSES } } },
+    { $group: { _id: '$vehicle', activeCount: { $sum: 1 } } },
+  ]);
+  const candidateCountMap = {};
+  candidateCounts.forEach(g => { candidateCountMap[g._id.toString()] = g.activeCount; });
+
+  const matchesStatus = (v, wanted) => {
+    if (['MAINTENANCE', 'INACTIVE'].includes(v.status)) return v.status === wanted;
+    const activeCount = candidateCountMap[v._id.toString()] || 0;
+    if (wanted === 'BOOKED' || wanted === 'RESERVED') return activeCount > 0;
+    if (wanted === 'AVAILABLE') return (v.totalStock ?? 1) - activeCount > 0;
+    return false;
+  };
+
+  const statusCounts = { ALL: candidates.length };
+  ['AVAILABLE', 'BOOKED', 'MAINTENANCE', 'INACTIVE'].forEach(s => {
+    statusCounts[s] = candidates.filter(v => matchesStatus(v, s)).length;
+  });
+
+  if (status) {
+    Object.keys(filter).forEach(key => delete filter[key]);
+    filter._id = { $in: candidates.filter(v => matchesStatus(v, status)).map(v => v._id) };
   }
 
   const skip = (page - 1) * limit;
@@ -238,6 +269,7 @@ export const listVehicles = async (query) => {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      statusCounts,
       ...(userZone !== undefined && {
         userZone: userZone ? { _id: userZone._id, name: userZone.name, subtitle: userZone.subtitle } : null,
       }),

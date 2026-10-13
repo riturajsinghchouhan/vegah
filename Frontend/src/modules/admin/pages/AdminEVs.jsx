@@ -24,6 +24,7 @@ export default function AdminEVs() {
   const [pageSize, setPageSize] = useState(12);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [statusCounts, setStatusCounts] = useState({});
 
   const fetchVehicles = async () => {
     try {
@@ -66,6 +67,7 @@ export default function AdminEVs() {
       setScooties(mappedVehicles);
       setTotal(meta.total ?? mappedVehicles.length);
       setTotalPages(meta.totalPages ?? (Math.ceil((meta.total ?? mappedVehicles.length) / pageSize) || 1));
+      setStatusCounts(meta.statusCounts || {});
     } catch (error) {
       console.error("Failed to load vehicles", error);
     } finally {
@@ -98,17 +100,8 @@ export default function AdminEVs() {
     }
   };
 
-  const filteredScooties = scooties.filter(scooty => {
-    const matchesSearch = scooty.plate.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          scooty.model.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = activeFilter === 'All' || scooty.status.toLowerCase() === activeFilter.toLowerCase();
-    return matchesSearch && matchesFilter;
-  });
-
-  const getCount = (status) => {
-    if (status === 'All') return scooties.length;
-    return scooties.filter(s => s.status.toLowerCase() === status.toLowerCase()).length;
-  };
+  // Counts come from the server so they cover every page, not just the one loaded.
+  const getCount = (status) => statusCounts[status.toUpperCase()] ?? 0;
 
   return (
     <div className="space-y-6 pb-8 max-w-7xl mx-auto">
