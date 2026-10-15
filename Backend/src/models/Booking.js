@@ -35,6 +35,9 @@ const bookingSchema = new Schema({
     accuracy: { type: Number, default: null },
     updatedAt: { type: Date, default: null },
   },
+  // Set while an admin's location request is waiting on the rider's app, so it
+  // can be re-sent when the app reconnects (the socket event is lost while closed).
+  locationRequestedAt: { type: Date, default: null },
 
   rentalBase: { type: Number, required: true },
   batteryPackageFee: { type: Number, default: 0 },

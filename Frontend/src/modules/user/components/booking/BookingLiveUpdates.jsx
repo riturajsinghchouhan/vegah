@@ -2,6 +2,7 @@ import { BellRing, KeyRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { initSocket } from "../../../../services/socketService";
+import { bookingService } from "../../../../services/bookingService";
 
 // Booking lifecycle events the server pushes to the user's socket room.
 const BOOKING_EVENTS = [
@@ -73,9 +74,32 @@ const BookingLiveUpdates = () => {
     };
     socket.on("BOOKING_STATUS_UPDATED", handleStatusUpdated);
 
+    // Admin asked for this rider's current position - take a one-off GPS fix
+    // and report it back. Listened for app-wide (not only on the rental page) so
+    // the hub gets an answer whichever screen the rider has open. The server
+    // checks the booking belongs to this rider.
+    const handleLocationRequested = (payload = {}) => {
+      if (!payload.bookingId || !navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          bookingService
+            .reportLocation(payload.bookingId, {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+            })
+            .catch((err) => console.error("Failed to report location:", err));
+        },
+        (err) => console.warn("Geolocation request denied/failed:", err.message),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+      );
+    };
+    socket.on("LOCATION_REQUESTED", handleLocationRequested);
+
     return () => {
       handlers.forEach(([event, handler]) => socket.off(event, handler));
       socket.off("BOOKING_STATUS_UPDATED", handleStatusUpdated);
+      socket.off("LOCATION_REQUESTED", handleLocationRequested);
       clearTimeout(hideTimerRef.current);
     };
   }, []);
