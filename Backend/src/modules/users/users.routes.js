@@ -79,4 +79,10 @@ router.patch(
   usersController.unblockUser
 );
 
+router.delete(
+  '/:id',
+  validate(usersValidation.idParamSchema),
+  usersController.deleteUser
+);
+
 export default router;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
-import { Search, ChevronRight, Ban, CheckCircle, Eye, User } from 'lucide-react';
+import { Search, ChevronRight, Ban, CheckCircle, Eye, User, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
@@ -15,6 +15,27 @@ export default function AdminCustomers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const handleDeleteCustomer = async (customer) => {
+    if (!window.confirm(`Are you sure you want to permanently delete customer "${customer.name}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      setDeletingId(customer.id);
+      await adminService.deleteUser(customer.id);
+      setCustomers(prev => prev.filter(c => c.id !== customer.id));
+      setTotal(prev => Math.max(0, prev - 1));
+      if (selectedCustomer?.id === customer.id) {
+        setSelectedCustomer(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete customer", error);
+      alert(error.response?.data?.message || "Failed to delete customer");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -194,7 +215,7 @@ export default function AdminCustomers() {
                       </Button>
                       <Button 
                         variant="outline" 
-                        className={`h-8 px-3 text-xs ${customer.status === 'Active' ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}
+                        className={`h-8 px-3 text-xs ${customer.status === 'Active' ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}
                         onClick={async () => {
                           try {
                             if (customer.status === 'Active') {
@@ -211,6 +232,16 @@ export default function AdminCustomers() {
                         }}
                       >
                         {customer.status === 'Active' ? 'Block' : 'Unblock'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="h-8 px-3 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                        disabled={deletingId === customer.id}
+                        onClick={() => handleDeleteCustomer(customer)}
+                        title="Delete Customer"
+                      >
+                        <Trash2 size={14} className="mr-1.5" />
+                        {deletingId === customer.id ? 'Deleting...' : 'Delete'}
                       </Button>
                     </div>
                   </td>
@@ -252,7 +283,15 @@ export default function AdminCustomers() {
         accent={false}
       >
         {selectedCustomer && (
-          <AdminCustomerDetails customerIdProp={selectedCustomer.id} asModal={true} />
+          <AdminCustomerDetails 
+            customerIdProp={selectedCustomer.id} 
+            asModal={true}
+            onDeleted={(deletedId) => {
+              setSelectedCustomer(null);
+              setCustomers(prev => prev.filter(c => c.id !== deletedId));
+              setTotal(prev => Math.max(0, prev - 1));
+            }}
+          />
         )}
       </Modal>
     </div>

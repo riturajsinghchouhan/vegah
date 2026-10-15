@@ -20,6 +20,7 @@ import AdminReports from "./pages/AdminReports";
 import AdminWallet from "./pages/AdminWallet";
 import AdminCoupons from "./pages/AdminCoupons";
 import AdminFinance from "./pages/AdminFinance";
+import AdminAccounting from "./pages/AdminAccounting";
 import AdminSettlements from "./pages/AdminSettlements";
 import AdminTaxBilling from "./pages/AdminTaxBilling";
 import AdminSettings from "./pages/AdminSettings";
@@ -88,6 +89,7 @@ export default function AdminRoutes() {
         {/* New feature routes */}
         <Route path="coupons" element={<AdminCoupons />} />
         <Route path="finance" element={<AdminFinance />} />
+        <Route path="accounting" element={<AdminAccounting />} />
         <Route path="settlements" element={<AdminSettlements />} />
         <Route path="tax-billing" element={<AdminTaxBilling />} />
         <Route path="settings" element={<AdminSettings />} />

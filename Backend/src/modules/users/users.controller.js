@@ -48,6 +48,15 @@ export const unblockUser = async (req, res, next) => {
   }
 };
 
+export const deleteUser = async (req, res, next) => {
+  try {
+    const result = await usersService.deleteUser(req.params.id);
+    sendSuccess(res, 200, result?.message || 'Customer deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;

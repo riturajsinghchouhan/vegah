@@ -135,6 +135,10 @@ export const adminService = {
     const res = await adminApi.patch(`/users/${id}/unblock`);
     return res.data.data;
   },
+  async deleteUser(id) {
+    const res = await adminApi.delete(`/users/${id}`);
+    return res.data;
+  },
 
   // --- Bookings ---
   async getBookings(params = {}) {
@@ -256,6 +260,32 @@ export const adminService = {
   async getTaxBilling(params = {}) {
     const res = await adminApi.get('/admin/finance/tax-billing', { params });
     return res.data.data;
+  },
+
+  // --- Accounting (expenses vs earnings) ---
+  async getAccountingSummary(params = {}) {
+    const res = await adminApi.get('/admin/finance/accounting/summary', { params });
+    return res.data.data;
+  },
+  async getExpenseMeta() {
+    const res = await adminApi.get('/admin/finance/expenses/meta');
+    return res.data.data;
+  },
+  async getExpenses(params = {}) {
+    const res = await adminApi.get('/admin/finance/expenses', { params });
+    return { expenses: res.data.data || [], meta: res.data.meta || {} };
+  },
+  async createExpense(data) {
+    const res = await adminApi.post('/admin/finance/expenses', data);
+    return res.data.data;
+  },
+  async updateExpense(id, data) {
+    const res = await adminApi.put(`/admin/finance/expenses/${id}`, data);
+    return res.data.data;
+  },
+  async deleteExpense(id) {
+    const res = await adminApi.delete(`/admin/finance/expenses/${id}`);
+    return res.data;
   },
 
   // --- Settings ---

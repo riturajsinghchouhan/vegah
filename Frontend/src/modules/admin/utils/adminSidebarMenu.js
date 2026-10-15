@@ -199,6 +199,13 @@ export const adminSidebarMenu = [
       },
       {
         type: "link",
+        label: "Accounting",
+        icon: FileText,
+        path: "/admin/accounting",
+        permissionKey: "reports",
+      },
+      {
+        type: "link",
         label: "Settlements",
         icon: IndianRupee,
         path: "/admin/settlements",

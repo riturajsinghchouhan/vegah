@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, CreditCard, Star, ShieldCheck, FileText, Ban, Activity } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, CreditCard, Star, ShieldCheck, FileText, Ban, Activity, Trash2, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { adminService } from '../services/adminService';
 
-export default function AdminCustomerDetails({ customerIdProp, asModal }) {
+const vehicleLabel = (vehicle) =>
+  vehicle?.name || [vehicle?.brand, vehicle?.model].filter(Boolean).join(' ') || 'Unknown EV';
+
+const formatDay = (value) => {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatSlot = (date, time) => [formatDay(date), time].filter(Boolean).join(', ');
+
+export default function AdminCustomerDetails({ customerIdProp, asModal, onDeleted }) {
   const navigate = useNavigate();
   const { id } = useParams();
   
@@ -13,6 +23,8 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
   const [bookings, setBookings] = useState([]);
   const [walletTransactions, setWalletTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [preview, setPreview] = useState(null); // { title, images, index }
 
   useEffect(() => {
     const fetchCustomer = async () => {
@@ -25,7 +37,8 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
         
         try {
           const userBookings = await adminService.getBookings({ userId: customerId });
-          setBookings(userBookings || []);
+          // getBookings resolves to { items, meta }, not a bare array.
+          setBookings(userBookings?.items || []);
         } catch (err) {
           console.error("Failed to load customer bookings", err);
           setBookings([]);
@@ -66,6 +79,27 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!customer) return;
+    if (!window.confirm(`Are you sure you want to permanently delete customer "${customer.fullName || 'User'}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      setDeleting(true);
+      await adminService.deleteUser(customer._id);
+      if (onDeleted) {
+        onDeleted(customer._id);
+      } else {
+        navigate('/admin/customers');
+      }
+    } catch (error) {
+      console.error("Failed to delete customer", error);
+      alert(error.response?.data?.message || "Failed to delete customer");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Loading customer details...</div>;
   }
@@ -73,6 +107,10 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
   if (!customer) {
     return <div className="p-8 text-center text-gray-500">Customer not found or invalid ID.</div>;
   }
+
+  const kyc = customer.kyc || {};
+  const activeBooking = customer.activeBooking;
+  const previewImage = preview?.images?.[preview.index];
 
   return (
     <div className={`space-y-6 pb-8 max-w-[1400px] mx-auto bg-gray-50/30 rounded-xl ${asModal ? '' : 'p-4'}`}>
@@ -93,11 +131,40 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
             <Button 
               variant="outline" 
               onClick={toggleBlock}
-              className={`border hover:bg-opacity-10 ${!customer.isBlocked ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-green-600 border-green-200 hover:bg-green-50'} bg-white`}
+              className={`border hover:bg-opacity-10 ${!customer.isBlocked ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50'} bg-white`}
             >
               <Ban size={16} className="mr-2" /> {!customer.isBlocked ? 'Block User' : 'Unblock User'}
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleDelete}
+              disabled={deleting}
+              className="border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 bg-white"
+            >
+              <Trash2 size={16} className="mr-2" /> {deleting ? 'Deleting...' : 'Delete User'}
+            </Button>
           </div>
+        </div>
+      )}
+
+      {/* Action Bar for Modal */}
+      {asModal && (
+        <div className="flex items-center justify-end gap-3 pb-3 border-b border-gray-100">
+          <Button 
+            variant="outline" 
+            onClick={toggleBlock}
+            className={`h-8 px-3 text-xs border ${!customer.isBlocked ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50'} bg-white`}
+          >
+            <Ban size={14} className="mr-1.5" /> {!customer.isBlocked ? 'Block Customer' : 'Unblock Customer'}
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleDelete}
+            disabled={deleting}
+            className="h-8 px-3 text-xs border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 bg-white"
+          >
+            <Trash2 size={14} className="mr-1.5" /> {deleting ? 'Deleting...' : 'Delete Customer'}
+          </Button>
         </div>
       )}
 
@@ -155,29 +222,32 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
             <div className="p-4 space-y-4">
               <div>
                 <span className="block text-xs font-medium text-gray-500 mb-1">Aadhar Number</span>
-                <span className="text-sm font-semibold text-gray-900">{customer.kycDetails?.aadharNumber || 'Not provided'}</span>
+                <span className="text-sm font-semibold text-gray-900">{kyc.aadharNumber || 'Not provided'}</span>
               </div>
               <div>
                 <span className="block text-xs font-medium text-gray-500 mb-1">Driving License</span>
-                <span className="text-sm font-semibold text-gray-900">{customer.kycDetails?.licenseNumber || 'Not provided'}</span>
+                <span className="text-sm font-semibold text-gray-900">{kyc.licenseNumber || 'Not provided'}</span>
               </div>
               <div>
                 <span className="block text-xs font-medium text-gray-500 mb-2">Documents</span>
-                <div className="flex gap-2">
-                  <a 
-                    href={customer.kycDetails?.aadharFrontImage || '#'} 
-                    target="_blank" rel="noreferrer"
-                    className={`w-full py-2 bg-blue-50 text-blue-600 text-xs font-bold text-center rounded border border-blue-100 cursor-pointer hover:bg-blue-100 ${!customer.kycDetails?.aadharFrontImage && 'opacity-50 cursor-not-allowed pointer-events-none'}`}
-                  >
-                    View Aadhar
-                  </a>
-                  <a 
-                    href={customer.kycDetails?.licenseImage || '#'}
-                    target="_blank" rel="noreferrer"
-                    className={`w-full py-2 bg-blue-50 text-blue-600 text-xs font-bold text-center rounded border border-blue-100 cursor-pointer hover:bg-blue-100 ${!customer.kycDetails?.licenseImage && 'opacity-50 cursor-not-allowed pointer-events-none'}`}
-                  >
-                    View DL
-                  </a>
+                {/* Booking uploads are base64 data URLs, which browsers refuse to open
+                    in a new tab, so documents are previewed in-page instead. */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Aadhar', title: 'Aadhar Card', images: kyc.aadharImages },
+                    { label: 'DL', title: 'Driving License', images: kyc.licenseImages },
+                    { label: 'Selfie', title: 'Customer Photo', images: kyc.selfieImages },
+                  ].map(({ label, title, images = [] }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      disabled={images.length === 0}
+                      onClick={() => setPreview({ title, images, index: 0 })}
+                      className="w-full py-2 bg-blue-50 text-blue-600 text-xs font-bold text-center rounded border border-blue-100 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      View {label}{images.length > 1 ? ` (${images.length})` : ''}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -222,19 +292,55 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Active Rental */}
-          {customer.stats?.activeBookings > 0 ? (
+          {activeBooking ? (
             <div className="bg-white rounded-xl shadow-sm border border-green-200 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
               <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
                 <h3 className="font-bold text-sm text-green-700 flex items-center gap-2 uppercase tracking-wider">
                   <Activity size={18} /> Active Rental
+                  <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">{activeBooking.status}</span>
                 </h3>
-                <Button variant="outline" className="h-8 text-xs bg-white">Manage Booking</Button>
+                <Button
+                  variant="outline"
+                  className="h-8 text-xs bg-white"
+                  onClick={() => navigate(`/admin/bookings/${activeBooking._id}`)}
+                >
+                  Manage Booking
+                </Button>
               </div>
               <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-6 bg-green-50/30">
-                 <div className="col-span-full text-sm text-gray-600">
-                   Active booking details will appear here.
-                 </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Booking ID</span>
+                  <span className="text-sm font-semibold text-gray-900">{activeBooking.bookingId}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Scooty</span>
+                  <span className="text-sm font-semibold text-gray-900">{vehicleLabel(activeBooking.vehicle)}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Pickup</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatSlot(activeBooking.startDate, activeBooking.startTime)}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Return</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatSlot(activeBooking.endDate, activeBooking.endTime)}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Pickup Location</span>
+                  <span className="text-sm font-semibold text-gray-900">{activeBooking.pickupLocation || '—'}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Total Amount</span>
+                  <span className="text-sm font-semibold text-gray-900">₹ {activeBooking.totalAmount || 0}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Payment</span>
+                  <span className="text-sm font-semibold text-gray-900">{activeBooking.paymentMethod || '—'}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-gray-500 mb-1">Deposit</span>
+                  <span className="text-sm font-semibold text-gray-900">₹ {activeBooking.securityDeposit || 0} · {activeBooking.depositStatus || '—'}</span>
+                </div>
               </div>
             </div>
           ) : null}
@@ -261,10 +367,16 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
                   {bookings.length > 0 ? (
                     bookings.map((booking) => (
                       <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-4 text-blue-600 font-semibold text-sm cursor-pointer hover:underline">{booking.bookingId || booking._id.slice(-6).toUpperCase()}</td>
-                        <td className="px-5 py-4 text-sm font-medium text-gray-900">{booking.vehicle?.model || 'Unknown EV'}</td>
+                        <td
+                          onClick={() => navigate(`/admin/bookings/${booking._id}`)}
+                          className="px-5 py-4 text-blue-600 font-semibold text-sm cursor-pointer hover:underline"
+                        >
+                          {booking.bookingId || booking._id.slice(-6).toUpperCase()}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-medium text-gray-900">{vehicleLabel(booking.vehicle)}</td>
+                        {/* startTime/endTime are "HH:mm" strings; the calendar day is on startDate/endDate. */}
                         <td className="px-5 py-4 text-xs text-gray-500">
-                          {new Date(booking.startTime).toLocaleDateString()} - {new Date(booking.endTime).toLocaleDateString()}
+                          {formatDay(booking.startDate)} - {formatDay(booking.endDate)}
                         </td>
                         <td className="px-5 py-4 text-sm font-bold text-gray-900">₹ {booking.totalAmount || 0}</td>
                         <td className="px-5 py-4">
@@ -299,6 +411,48 @@ export default function AdminCustomerDetails({ customerIdProp, asModal }) {
         </div>
 
       </div>
+
+      {/* KYC document preview */}
+      {preview && previewImage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreview(null)}>
+          <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">
+                {preview.title}
+                {preview.images.length > 1 && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">{preview.index + 1} / {preview.images.length}</span>
+                )}
+              </h3>
+              <button onClick={() => setPreview(null)} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="bg-gray-50 flex items-center justify-center p-4">
+              <img src={previewImage} alt={preview.title} className="max-h-[70vh] w-auto object-contain rounded" />
+            </div>
+            {preview.images.length > 1 && (
+              <div className="flex justify-between px-5 py-3 border-t border-gray-100">
+                <Button
+                  variant="outline"
+                  className="h-8 text-xs"
+                  disabled={preview.index === 0}
+                  onClick={() => setPreview((p) => ({ ...p, index: p.index - 1 }))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 text-xs"
+                  disabled={preview.index >= preview.images.length - 1}
+                  onClick={() => setPreview((p) => ({ ...p, index: p.index + 1 }))}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

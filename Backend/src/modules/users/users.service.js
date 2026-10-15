@@ -1,5 +1,5 @@
 import User from '../../models/User.js';
-import { NotFoundError } from '../../utils/errors.js';
+import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 
 export const listUsers = async (query) => {
   const { page = 1, limit = 20, isVerified, isBlocked, search } = query;
@@ -77,8 +77,20 @@ export const getUserById = async (id) => {
 
   const { default: Wallet } = await import('../../models/Wallet.js');
   const { default: Booking } = await import('../../models/Booking.js');
+  await import('../../models/Vehicle.js'); // registers the model for populate
 
-  const [wallet, bookingStats] = await Promise.all([
+  const activeStatuses = ['CONFIRMED', 'ACTIVE', 'PENDING_RETURN', 'OVERDUE'];
+
+  // KYC files collected at checkout live on the booking, not the user, so the
+  // most recent upload of each kind is pulled from there.
+  const latestBookingFile = (field) =>
+    Booking.findOne({ user: user._id, [`kycDocuments.${field}`]: { $nin: [null, ''] } })
+      .sort({ createdAt: -1 })
+      .select(`kycDocuments.${field}`)
+      .lean()
+      .then((b) => b?.kycDocuments?.[field] || null);
+
+  const [wallet, bookingStats, activeBooking, documents, aadharFile, licenseFile, userPhotoFile] = await Promise.all([
     Wallet.findOne({ user: id }).lean(),
     Booking.aggregate([
       { $match: { user: user._id } }, // use user._id Object
@@ -86,12 +98,24 @@ export const getUserById = async (id) => {
           _id: null,
           totalBookings: { $sum: 1 },
           totalSpent: { $sum: '$totalAmount' },
-          activeBookings: { 
-            $sum: { $cond: [{ $in: ['$status', ['CONFIRMED', 'ACTIVE']] }, 1, 0] } 
+          activeBookings: {
+            $sum: { $cond: [{ $in: ['$status', activeStatuses] }, 1, 0] }
           }
       }}
-    ])
+    ]),
+    Booking.findOne({ user: user._id, status: { $in: activeStatuses } })
+      .sort({ startDate: -1 })
+      .select('-kycDocuments -statusHistory')
+      .populate('vehicle', 'name brand model registrationNumber')
+      .lean(),
+    Document.find({ user: user._id }).sort({ updatedAt: -1 }).lean(),
+    latestBookingFile('aadharFile'),
+    latestBookingFile('licenseFile'),
+    latestBookingFile('userPhotoFile'),
   ]);
+
+  const docOf = (type) => documents.find((d) => d.type === type);
+  const kyc = user.kycDetails || {};
 
   return {
     ...user,
@@ -100,7 +124,19 @@ export const getUserById = async (id) => {
       totalBookings: bookingStats[0]?.totalBookings || 0,
       totalSpent: bookingStats[0]?.totalSpent || 0,
       activeBookings: bookingStats[0]?.activeBookings || 0,
-    }
+    },
+    activeBooking: activeBooking || null,
+    documents,
+    // One merged view for the admin: profile KYC first, then uploaded
+    // documents, then whatever was attached to the latest booking.
+    kyc: {
+      aadharNumber: kyc.aadharNumber || docOf('AADHAR')?.documentNumber || null,
+      licenseNumber: kyc.licenseNumber || docOf('DRIVING_LICENSE')?.documentNumber || null,
+      aadharImages: [kyc.aadharFrontImage, kyc.aadharBackImage, docOf('AADHAR')?.fileUrl, aadharFile].filter(Boolean),
+      licenseImages: [kyc.licenseFrontImage, kyc.licenseBackImage, docOf('DRIVING_LICENSE')?.fileUrl, licenseFile].filter(Boolean),
+      selfieImages: [docOf('SELFIE')?.fileUrl, userPhotoFile].filter(Boolean),
+      isVerified: Boolean(kyc.isVerified),
+    },
   };
 };
 
@@ -126,6 +162,67 @@ export const unblockUser = async (id) => {
     throw new NotFoundError('User not found');
   }
   return user;
+};
+
+export const deleteUser = async (id) => {
+  const user = await User.findById(id);
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  // Prevent deleting customer with active or ongoing rentals / bookings
+  const { default: Booking } = await import('../../models/Booking.js');
+  const activeBooking = await Booking.findOne({
+    user: id,
+    status: {
+      $in: [
+        'RESERVED',
+        'PENDING_VERIFICATION',
+        'PAYMENT_INITIATED',
+        'CONFIRMED',
+        'ACTIVE',
+        'PENDING_RETURN',
+        'OVERDUE',
+      ],
+    },
+  });
+
+  if (activeBooking) {
+    throw new BadRequestError('Cannot delete customer with active or confirmed bookings/rentals. Please complete or cancel them first.');
+  }
+
+  const { default: Wallet } = await import('../../models/Wallet.js');
+  const { default: WalletTransaction } = await import('../../models/WalletTransaction.js');
+  const { default: Document } = await import('../../models/Document.js');
+  const { default: Notification } = await import('../../models/Notification.js');
+  const { default: CouponUsage } = await import('../../models/CouponUsage.js');
+  const { default: Payment } = await import('../../models/Payment.js');
+  const { default: Refund } = await import('../../models/Refund.js');
+
+  const userWallet = await Wallet.findOne({ user: id });
+  if (userWallet) {
+    await WalletTransaction.deleteMany({ wallet: userWallet._id });
+    await Wallet.deleteOne({ _id: userWallet._id });
+  }
+
+  const userBookings = await Booking.find({ user: id }).select('_id');
+  const bookingIds = userBookings.map((b) => b._id);
+  if (bookingIds.length > 0) {
+    await Promise.all([
+      Payment.deleteMany({ booking: { $in: bookingIds } }),
+      Refund.deleteMany({ booking: { $in: bookingIds } }),
+      Booking.deleteMany({ _id: { $in: bookingIds } }),
+    ]);
+  }
+
+  await Promise.all([
+    User.findByIdAndDelete(id),
+    Document.deleteMany({ user: id }),
+    Notification.deleteMany({ user: id }),
+    CouponUsage.deleteMany({ user: id }),
+  ]);
+
+  return { message: 'Customer deleted successfully' };
 };
 
 export const updateProfile = async (id, data) => {
@@ -164,7 +261,6 @@ export const updateKycDetails = async (id, kycData) => {
 };
 
 import Document from '../../models/Document.js';
-import { BadRequestError } from '../../utils/errors.js';
 
 export const uploadDocument = async (userId, data, file) => {
   if (!file) {
