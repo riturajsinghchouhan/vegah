@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
 import { adminService } from '../services/adminService';
+import RiderLocationMapModal from '../components/RiderLocationMapModal';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
 
@@ -837,28 +838,93 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
   const [searchTerm, setSearchTerm] = useState("");
   // bookingId -> { lat, lng, accuracy, updatedAt } reported back over the socket
   const [liveLocations, setLiveLocations] = useState({});
-  const [locatingId, setLocatingId] = useState(null);
+  // bookingId -> { status: 'waiting' | 'received' | 'timeout' | 'error', notice }
+  const [locationState, setLocationState] = useState({});
+  const [mapBookingId, setMapBookingId] = useState(null);
+  const locationTimersRef = useRef({});
 
   useEffect(() => {
     const socket = initSocket();
     const handleLocationUpdated = (payload) => {
       if (!payload?.bookingId) return;
+      clearTimeout(locationTimersRef.current[payload.bookingId]);
       setLiveLocations((prev) => ({ ...prev, [payload.bookingId]: payload }));
-      setLocatingId((prev) => (prev === payload.bookingId ? null : prev));
+      setLocationState((prev) => ({
+        ...prev,
+        [payload.bookingId]: { status: 'received', notice: 'Live location received from the rider.' },
+      }));
     };
     socket.on('LOCATION_UPDATED', handleLocationUpdated);
-    return () => socket.off('LOCATION_UPDATED', handleLocationUpdated);
+    const timers = locationTimersRef.current;
+    return () => {
+      socket.off('LOCATION_UPDATED', handleLocationUpdated);
+      Object.values(timers).forEach(clearTimeout);
+    };
   }, []);
 
   const handleRequestLocation = async (bookingId) => {
+    setMapBookingId(bookingId);
+    setLocationState((prev) => ({ ...prev, [bookingId]: { status: 'waiting', notice: null } }));
+    clearTimeout(locationTimersRef.current[bookingId]);
+    // The rider's phone may be off, offline or have location blocked - stop
+    // spinning forever and say so.
+    locationTimersRef.current[bookingId] = setTimeout(() => {
+      setLocationState((prev) =>
+        prev[bookingId]?.status === 'waiting'
+          ? {
+              ...prev,
+              [bookingId]: {
+                status: 'timeout',
+                notice: "The rider's phone did not respond. Their app may be closed, offline, or location permission is off. The request stays open for 30 minutes and is answered as soon as they open the app.",
+              },
+            }
+          : prev
+      );
+    }, 30000);
+
     try {
-      setLocatingId(bookingId);
-      await adminService.requestLocation(bookingId);
+      const res = await adminService.requestLocation(bookingId);
+      if (res?.lastKnownLocation) {
+        setLiveLocations((prev) => (prev[bookingId] ? prev : { ...prev, [bookingId]: { bookingId, ...res.lastKnownLocation } }));
+      }
+      if (res?.riderOnline === false) {
+        setLocationState((prev) =>
+          prev[bookingId]?.status === 'waiting'
+            ? {
+                ...prev,
+                [bookingId]: {
+                  status: 'waiting',
+                  notice: 'The rider\'s app is not open right now. A push notification was sent asking them to open it - the location will appear here once they do.',
+                },
+              }
+            : prev
+        );
+      }
     } catch (err) {
       console.error('Failed to request location:', err);
-      setLocatingId(null);
+      clearTimeout(locationTimersRef.current[bookingId]);
+      setLocationState((prev) => ({
+        ...prev,
+        [bookingId]: { status: 'error', notice: err.response?.data?.message || 'Could not request the location.' },
+      }));
     }
   };
+
+  // Seed with whatever position each rider last reported, so the column is not
+  // empty after a page reload.
+  useEffect(() => {
+    setLiveLocations((prev) => {
+      let next = prev;
+      allBookings.forEach((b) => {
+        const id = b._id || b.id;
+        const last = b.lastKnownLocation;
+        if (!id || next[id] || last?.lat == null || last?.lng == null) return;
+        if (next === prev) next = { ...prev };
+        next[id] = { bookingId: id, ...last };
+      });
+      return next;
+    });
+  }, [allBookings]);
 
   // A booking awaiting return verification is still a live rental - the EV is
   // not back in the fleet until an admin confirms it.
@@ -1014,39 +1080,30 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
                   {(() => {
                     const bId = rental.raw._id || rental.raw.id;
                     const loc = liveLocations[bId];
-                    const isLocating = locatingId === bId;
-                    if (loc) {
-                      return (
-                        <div className="text-xs">
-                          <a
-                            href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-700 font-semibold hover:underline"
-                          >
-                            <MapPin size={13} />
-                            {Number(loc.lat).toFixed(5)}, {Number(loc.lng).toFixed(5)}
-                          </a>
-                          <div className="text-gray-400 mt-0.5">{fmtDateTime(loc.updatedAt)}</div>
-                          <button
-                            onClick={() => handleRequestLocation(bId)}
-                            disabled={isLocating}
-                            className="mt-1 text-[11px] text-gray-500 hover:text-blue-700 disabled:opacity-50"
-                          >
-                            {isLocating ? 'Refreshing...' : 'Refresh'}
-                          </button>
-                        </div>
-                      );
-                    }
+                    const state = locationState[bId]?.status;
+                    const isLocating = state === 'waiting';
                     return (
-                      <button
-                        onClick={() => handleRequestLocation(bId)}
-                        disabled={isLocating}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all disabled:opacity-50"
-                      >
-                        <MapPin size={14} />
-                        {isLocating ? 'Waiting for rider...' : 'Get Location'}
-                      </button>
+                      <div className="text-xs space-y-1">
+                        <button
+                          onClick={() => handleRequestLocation(bId)}
+                          disabled={isLocating}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all disabled:opacity-60"
+                        >
+                          <MapPin size={14} />
+                          {isLocating ? 'Waiting for rider...' : loc ? 'Refresh Location' : 'Get Location'}
+                        </button>
+                        {loc && (
+                          <button
+                            onClick={() => setMapBookingId(bId)}
+                            className="block text-blue-700 font-semibold hover:underline"
+                          >
+                            View on map · {fmtDateTime(loc.updatedAt)}
+                          </button>
+                        )}
+                        {(state === 'timeout' || state === 'error') && (
+                          <span className="block text-amber-600">{state === 'timeout' ? 'No response from rider' : 'Request failed'}</span>
+                        )}
+                      </div>
                     );
                   })()}
                 </td>
@@ -1193,6 +1250,17 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
           </div>
         )}
       </Modal>
+
+      {mapBookingId && (
+        <RiderLocationMapModal
+          rental={liveBookings.find((r) => (r.raw._id || r.raw.id) === mapBookingId)}
+          location={liveLocations[mapBookingId]}
+          status={locationState[mapBookingId]?.status || 'idle'}
+          notice={locationState[mapBookingId]?.notice}
+          onRefresh={() => handleRequestLocation(mapBookingId)}
+          onClose={() => setMapBookingId(null)}
+        />
+      )}
     </div>
   );
 }

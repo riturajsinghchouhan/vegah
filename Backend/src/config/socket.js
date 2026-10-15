@@ -9,6 +9,26 @@ import redisClient from './redis.js';
 let io = null;
 let emitter = null;
 
+// An admin's location request is a one-off socket event, so a rider whose app
+// was closed at the time never sees it. Re-send any still-open request (made
+// in the last 30 minutes) as soon as the rider's app connects again.
+const PENDING_LOCATION_WINDOW_MS = 30 * 60 * 1000;
+
+const replayPendingLocationRequests = async (socket) => {
+  try {
+    const { default: Booking } = await import('../models/Booking.js');
+    const pending = await Booking.find({
+      user: socket.user.id,
+      status: { $in: ['ACTIVE', 'OVERDUE', 'PENDING_RETURN'] },
+      locationRequestedAt: { $gte: new Date(Date.now() - PENDING_LOCATION_WINDOW_MS) },
+    }).select('_id').lean();
+
+    pending.forEach((b) => socket.emit('LOCATION_REQUESTED', { bookingId: String(b._id) }));
+  } catch (error) {
+    logger.warn(`Could not replay location requests for user ${socket.user.id}: ${error.message}`);
+  }
+};
+
 // Initialize the emitter lazily if only emitting is needed (e.g., in API process)
 export const getIO = () => {
   if (io) return io; // Return the full Server if running in the Socket process
@@ -73,6 +93,8 @@ export const initSocket = (server) => {
     
     if (socket.user.role === 'ADMIN' || socket.user.role === 'SUPER_ADMIN') {
       socket.join('admin_room');
+    } else {
+      replayPendingLocationRequests(socket);
     }
 
     socket.on('disconnect', () => {

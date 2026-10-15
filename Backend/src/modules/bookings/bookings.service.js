@@ -24,6 +24,7 @@ import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '.
 import env from '../../config/env.js';
 import { getIO } from '../../config/socket.js';
 import { sendAdminBookingNotification, notifyUser, notifyAdmins } from '../../services/notification.service.js';
+import { sendNotificationToOwner } from '../../services/firebase.service.js';
 import logger from '../../utils/logger.js';
 
 const generateBookingId = () => {
@@ -1155,7 +1156,7 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
 // polled or stored continuously - this only ever reflects the one moment the
 // rider's device answered.
 export const requestLiveLocation = async (bookingId) => {
-  const booking = await Booking.findById(bookingId).select('user status');
+  const booking = await Booking.findById(bookingId).select('user status lastKnownLocation');
   if (!booking) {
     throw new NotFoundError('Booking not found');
   }
@@ -1163,12 +1164,44 @@ export const requestLiveLocation = async (bookingId) => {
     throw new BadRequestError('Location can only be requested for an active rental');
   }
 
+  await Booking.updateOne({ _id: booking._id }, { $set: { locationRequestedAt: new Date() } });
+
+  const room = `user_${booking.user}`;
   const io = getIO();
+  // Only the socket server can see who is connected; the Redis emitter used by a
+  // separate API process cannot, in which case presence is unknown (null).
+  let riderOnline = null;
   if (io) {
-    io.to(`user_${booking.user}`).emit('LOCATION_REQUESTED', { bookingId: String(booking._id) });
+    if (typeof io.in === 'function' && typeof io.in(room).fetchSockets === 'function') {
+      try {
+        riderOnline = (await io.in(room).fetchSockets()).length > 0;
+      } catch {
+        riderOnline = null;
+      }
+    }
+    io.to(room).emit('LOCATION_REQUESTED', { bookingId: String(booking._id) });
   }
 
-  return { requested: true };
+  // With the app closed nothing is listening on the socket, so nudge the rider
+  // to open it; the app answers the request as soon as it reconnects.
+  if (riderOnline !== true) {
+    sendNotificationToOwner({
+      ownerType: 'USER',
+      ownerId: String(booking.user),
+      payload: {
+        title: 'Share your live location',
+        body: 'The Vegah hub needs your scooty location. Open the app to share it.',
+        data: { type: 'LOCATION_REQUESTED', bookingId: String(booking._id) },
+      },
+    }).catch((err) => logger.error(`Location request push failed for booking ${booking._id}: ${err.message}`));
+  }
+
+  const last = booking.lastKnownLocation;
+  return {
+    requested: true,
+    riderOnline,
+    lastKnownLocation: last?.lat != null && last?.lng != null ? last : null,
+  };
 };
 
 // Rider's app responding to the LOCATION_REQUESTED event above.
@@ -1183,6 +1216,7 @@ export const reportLiveLocation = async (bookingId, userId, { lat, lng, accuracy
 
   const updatedAt = new Date();
   booking.lastKnownLocation = { lat, lng, accuracy: accuracy ?? null, updatedAt };
+  booking.locationRequestedAt = null;
   await booking.save();
 
   const io = getIO();
