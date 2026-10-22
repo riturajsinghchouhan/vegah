@@ -29,6 +29,51 @@ export const getTaxBilling = async (req, res, next) => {
   }
 };
 
+export const createInvoice = async (req, res, next) => {
+  try {
+    const data = await financeService.createInvoice(req.body, req.user?._id);
+    sendSuccess(res, 201, 'Invoice created successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteInvoice = async (req, res, next) => {
+  try {
+    const data = await financeService.deleteInvoice(req.params.id, req.user?._id);
+    sendSuccess(res, 200, 'Invoice moved to bin', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listDeletedInvoices = async (req, res, next) => {
+  try {
+    const data = await financeService.listDeletedInvoices();
+    sendSuccess(res, 200, 'Deleted invoices fetched successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const restoreInvoice = async (req, res, next) => {
+  try {
+    const data = await financeService.restoreInvoice(req.params.id);
+    sendSuccess(res, 200, 'Invoice restored', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const purgeInvoice = async (req, res, next) => {
+  try {
+    const data = await financeService.purgeInvoice(req.params.id);
+    sendSuccess(res, 200, 'Invoice permanently deleted', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAccountingSummary = async (req, res, next) => {
   try {
     const data = await accountingService.getAccountingSummary(req.query);

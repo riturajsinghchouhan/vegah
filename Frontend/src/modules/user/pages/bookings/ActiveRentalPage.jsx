@@ -10,12 +10,15 @@ import {
   X,
   Hourglass,
   CheckCircle2,
+  CalendarPlus,
 } from "lucide-react";
 import Button from "../../../../components/common/Button";
 import MetricCard from "../../../../components/common/MetricCard";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { bookingService } from "../../../../services/bookingService";
 import { initSocket } from "../../../../services/socketService";
+import { formatCurrency } from "../../../../utils/formatters";
+import { loadRazorpayScript } from "../../../../utils/razorpay";
 
 const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
 
@@ -49,6 +52,11 @@ const ActiveRentalPage = () => {
   const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(true);
   const [extending, setExtending] = useState(false);
+  const [showPlans, setShowPlans] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [payingPlanId, setPayingPlanId] = useState(null);
+  const [planError, setPlanError] = useState("");
   const [error, setError] = useState("");
   const [reminderAlert, setReminderAlert] = useState(null);
   const remindedRef = useRef(false);
@@ -155,23 +163,84 @@ const ActiveRentalPage = () => {
     return () => clearInterval(interval);
   }, [deadline]);
 
-  const handleExtendRental = async () => {
+  const openExtendPlans = async () => {
     const targetId = activeBooking?._id || activeBooking?.id;
     if (!targetId) return;
 
+    setShowPlans(true);
+    setPlanError("");
+    setPlansLoading(true);
+    // Warm the checkout SDK while the user reads the plans.
+    loadRazorpayScript();
     try {
-      setExtending(true);
-      setError("");
-      await bookingService.extendBooking(targetId, 1);
-      // A fresh deadline means a fresh reminder is due.
-      remindedRef.current = false;
-      setReminderAlert(null);
-      await loadActiveBooking();
+      const data = await bookingService.getExtensionPlans(targetId);
+      setPlans(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Failed to extend rental:", err);
-      setError(err?.response?.data?.message || "Could not extend the rental. Please try again.");
+      console.error("Failed to load extension plans:", err);
+      setPlanError(err?.response?.data?.message || "Could not load plans. Please try again.");
     } finally {
-      setExtending(false);
+      setPlansLoading(false);
+    }
+  };
+
+  const handleSelectPlan = async (plan) => {
+    const targetId = activeBooking?._id || activeBooking?.id;
+    if (!targetId || payingPlanId) return;
+
+    try {
+      setPayingPlanId(plan.id);
+      setPlanError("");
+      const [sdkLoaded, order] = await Promise.all([
+        loadRazorpayScript(),
+        bookingService.createExtensionOrder(targetId, plan.id),
+      ]);
+
+      if (!sdkLoaded || !window.Razorpay) {
+        setPlanError("Could not load the payment window. Please check your connection and try again.");
+        setPayingPlanId(null);
+        return;
+      }
+
+      const paymentObject = new window.Razorpay({
+        key: order.razorpayKeyId,
+        amount: Math.round(order.amount * 100),
+        currency: order.currency || "INR",
+        name: "Vegah EVs",
+        description: `Rental extension - ${plan.name}`,
+        order_id: order.razorpayOrderId,
+        handler: async (response) => {
+          setExtending(true);
+          try {
+            await bookingService.verifyExtensionPayment(targetId, {
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            // A fresh deadline means a fresh reminder is due.
+            remindedRef.current = false;
+            setReminderAlert(null);
+            setShowPlans(false);
+            await loadActiveBooking();
+          } catch (err) {
+            console.error("Extension payment verification failed:", err);
+            setPlanError(err?.response?.data?.message || "Payment verification failed. Please contact support.");
+          } finally {
+            setExtending(false);
+            setPayingPlanId(null);
+          }
+        },
+        modal: { ondismiss: () => setPayingPlanId(null) },
+        theme: { color: "#ea580c" },
+      });
+      paymentObject.on("payment.failed", () => {
+        setPlanError("Payment failed! Please try again.");
+        setPayingPlanId(null);
+      });
+      paymentObject.open();
+    } catch (err) {
+      console.error("Failed to start extension payment:", err);
+      setPlanError(err?.response?.data?.message || "Could not start the payment. Please try again.");
+      setPayingPlanId(null);
     }
   };
 
@@ -327,7 +396,7 @@ const ActiveRentalPage = () => {
         />
         <MetricCard caption="Booking reference" label="Booking ID" value={live?.bookingId || activeBooking?.bookingId || "—"} />
         <MetricCard
-          caption="Instant 1-hr extension"
+          caption="Weekly / monthly plans"
           label="Extend rental"
           value={isAwaitingReturnCheck ? "Unavailable" : "Available"}
         />
@@ -384,8 +453,13 @@ const ActiveRentalPage = () => {
                   <Navigation size={18} />
                   Navigate to Drop & Return
                 </Button>
-                <Button onClick={handleExtendRental} disabled={extending}>
-                  {extending ? "Extending..." : "+ Extend Rental (+1 Hour)"}
+                <Button
+                  className="flex items-center justify-center gap-2"
+                  onClick={openExtendPlans}
+                  disabled={extending}
+                >
+                  <CalendarPlus size={18} />
+                  {extending ? "Extending..." : "Extend Rental"}
                 </Button>
               </>
             )}
@@ -402,6 +476,71 @@ const ActiveRentalPage = () => {
           </div>
         </div>
       </section>
+
+      {showPlans && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center"
+          onClick={() => !payingPlanId && setShowPlans(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-app-text">Extend your rental</h3>
+                <p className="mt-1 text-xs text-app-subtle">Pick a plan. Time is added to your current return deadline.</p>
+              </div>
+              <button
+                onClick={() => setShowPlans(false)}
+                disabled={Boolean(payingPlanId)}
+                className="rounded-lg p-1.5 text-app-subtle hover:bg-gray-100 disabled:opacity-50"
+                aria-label="Close plans"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {planError && (
+              <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <span>{planError}</span>
+              </div>
+            )}
+
+            <div className="mt-4 space-y-3">
+              {plansLoading ? (
+                <p className="py-8 text-center text-sm font-semibold text-app-subtle">Loading plans...</p>
+              ) : plans.length === 0 ? (
+                <p className="py-8 text-center text-sm font-semibold text-app-subtle">
+                  No plans are available for this EV right now. Please contact support.
+                </p>
+              ) : (
+                plans.map((plan) => (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => handleSelectPlan(plan)}
+                    disabled={Boolean(payingPlanId)}
+                    className="flex w-full items-center justify-between rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40 disabled:opacity-60"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-app-text">{plan.name}</p>
+                      <p className="text-xs text-app-subtle">+{plan.durationDays} days added to your rental</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-bold text-app-text">{formatCurrency(plan.price)}</p>
+                      <p className="text-[11px] font-semibold text-app-primary">
+                        {payingPlanId === plan.id ? "Opening payment..." : "Pay & extend"}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

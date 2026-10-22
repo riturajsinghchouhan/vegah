@@ -33,6 +33,14 @@ router.patch(
   bookingsController.updateBookingStatus
 );
 
+// ADMIN edits booking details (schedule, deadline, location, plate, money, notes)
+router.patch(
+  '/:id',
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  validate(bookingsValidation.adminUpdateBookingSchema),
+  bookingsController.adminUpdateBooking
+);
+
 // GET live status of an active booking
 router.get(
   '/:id/live',
@@ -45,6 +53,25 @@ router.patch(
   '/:id/extend',
   validate(bookingsValidation.extendBookingSchema),
   bookingsController.extendBooking
+);
+
+// Paid plan extension: list the EV's plans, open a Razorpay order, verify it
+router.get(
+  '/:id/extension-plans',
+  validate(bookingsValidation.idParamSchema),
+  bookingsController.getExtensionPlans
+);
+
+router.post(
+  '/:id/extension-order',
+  validate(bookingsValidation.extensionOrderSchema),
+  bookingsController.createExtensionOrder
+);
+
+router.post(
+  '/:id/extension-verify',
+  validate(bookingsValidation.extensionVerifySchema),
+  bookingsController.verifyExtensionPayment
 );
 
 // --- Rental handover lifecycle ---

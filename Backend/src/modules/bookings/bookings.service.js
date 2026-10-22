@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import Booking from '../../models/Booking.js';
 import BatterySwapLog from '../../models/BatterySwapLog.js';
@@ -22,6 +23,7 @@ import { calculateRentalCost, calculateTotalAmount, deriveHourlyRate } from '../
 import * as settingsService from '../settings/settings.service.js';
 import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '../../utils/errors.js';
 import env from '../../config/env.js';
+import razorpay from '../../config/razorpay.js';
 import { getIO } from '../../config/socket.js';
 import { sendAdminBookingNotification, notifyUser, notifyAdmins } from '../../services/notification.service.js';
 import { sendNotificationToOwner } from '../../services/firebase.service.js';
@@ -496,7 +498,7 @@ const raiseDepositRefund = async (booking, session) => {
 
   // Refund.payment is required, so a booking that never produced a payment row
   // cannot raise one. Logged rather than thrown: the return itself must still close.
-  const payment = await Payment.findOne({ booking: booking._id })
+  const payment = await Payment.findOne({ booking: booking._id, purpose: { $ne: 'EXTENSION' } })
     .sort({ createdAt: -1 })
     .session(session);
   if (!payment) {
@@ -1069,7 +1071,13 @@ export const getLiveBookingStatus = async (id, userId) => {
   };
 };
 
-export const extendBooking = async (bookingId, userId, extraHours) => {
+const EXTENDABLE_STATUSES = [
+  BOOKING_STATUS.CONFIRMED,
+  BOOKING_STATUS.ACTIVE,
+  BOOKING_STATUS.OVERDUE,
+];
+
+const loadExtendableBooking = async (bookingId, userId) => {
   const booking = await Booking.findById(bookingId).populate('vehicle');
   if (!booking) throw new NotFoundError('Booking not found');
 
@@ -1077,23 +1085,18 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
     throw new ForbiddenError('Not allowed to extend this booking');
   }
 
-  const extendable = [
-    BOOKING_STATUS.CONFIRMED,
-    BOOKING_STATUS.ACTIVE,
-    BOOKING_STATUS.OVERDUE,
-  ];
-  if (!extendable.includes(booking.status)) {
+  if (!EXTENDABLE_STATUSES.includes(booking.status)) {
     throw new BadRequestError(`Cannot extend a booking with status: ${booking.status}`);
   }
+  return booking;
+};
 
-  if (!extraHours || extraHours < 1 || extraHours > 24) {
-    throw new BadRequestError('Extra hours must be between 1 and 24');
-  }
-
-  const extraMs = extraHours * 60 * 60 * 1000;
-  // Pro-rated off the plan price. Multiplying `pricePerHour` (really the MONTHLY
-  // price) by extraHours charged a full month for each extra hour.
-  const extensionCost = Math.round(deriveHourlyRate(booking.vehicle, booking.rentalType) * extraHours);
+/**
+ * Pushes the deadline out by `extraMs` and adds `extensionCost` to the booking.
+ * Shared by the hourly extension and the paid plan extension.
+ */
+const applyExtension = async (booking, userId, { extraMs, extensionCost, note }) => {
+  const bookingId = booking._id;
 
   const newEndDate = new Date(new Date(booking.endDate).getTime() + extraMs);
   booking.endDate = newEndDate;
@@ -1113,7 +1116,7 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
     status: booking.status,
     at: new Date(),
     by: 'USER',
-    note: `Extended by ${extraHours}h`,
+    note,
   });
 
   await booking.save();
@@ -1150,7 +1153,222 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
   }
 
   return { booking: updated || booking, extensionCost, newEndDate, newTripEndsAt };
-}
+};
+
+export const extendBooking = async (bookingId, userId, extraHours) => {
+  const booking = await loadExtendableBooking(bookingId, userId);
+
+  if (!extraHours || extraHours < 1 || extraHours > 24) {
+    throw new BadRequestError('Extra hours must be between 1 and 24');
+  }
+
+  // Pro-rated off the plan price. Multiplying `pricePerHour` (really the MONTHLY
+  // price) by extraHours charged a full month for each extra hour.
+  const extensionCost = Math.round(deriveHourlyRate(booking.vehicle, booking.rentalType) * extraHours);
+
+  return applyExtension(booking, userId, {
+    extraMs: extraHours * 60 * 60 * 1000,
+    extensionCost,
+    note: `Extended by ${extraHours}h`,
+  });
+};
+
+// --- Paid plan extensions ---
+// The plans are the Weekly / Monthly prices the admin sets on each EV
+// (`pricePerDay` = weekly, `pricePerHour` = monthly; see utils/pricing.js).
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const buildExtensionPlans = (vehicle) => [
+  { id: 'WEEKLY', name: 'Weekly plan', durationDays: 7, price: Number(vehicle?.pricePerDay) || 0 },
+  { id: 'MONTHLY', name: 'Monthly plan', durationDays: 30, price: Number(vehicle?.pricePerHour) || 0 },
+].filter((plan) => plan.price > 0);
+
+const findExtensionPlan = (vehicle, planId) => {
+  const plan = buildExtensionPlans(vehicle).find((p) => p.id === String(planId || '').toUpperCase());
+  if (!plan) throw new BadRequestError('This plan is not available for your EV');
+  return plan;
+};
+
+export const getExtensionPlans = async (bookingId, userId) => {
+  const booking = await loadExtendableBooking(bookingId, userId);
+  return buildExtensionPlans(booking.vehicle);
+};
+
+export const createExtensionOrder = async (bookingId, userId, planId) => {
+  const booking = await loadExtendableBooking(bookingId, userId);
+  const plan = findExtensionPlan(booking.vehicle, planId);
+
+  if (!razorpay) {
+    throw new BadRequestError('Online payments are not configured. Please contact support.');
+  }
+
+  const order = await razorpay.orders.create({
+    amount: Math.round(plan.price * 100), // paise
+    currency: 'INR',
+    receipt: `${booking.bookingId}-EXT-${Date.now()}`.slice(0, 40),
+    notes: { bookingId: booking._id.toString(), userId, purpose: 'EXTENSION', planId: plan.id },
+  });
+
+  await Payment.create({
+    booking: booking._id,
+    amount: plan.price,
+    method: 'ONLINE',
+    status: 'INITIATED',
+    purpose: 'EXTENSION',
+    extensionPlan: plan.id,
+    razorpayOrderId: order.id,
+    idempotencyKey: `ext-${booking._id}-${order.id}`,
+  });
+
+  return {
+    plan,
+    razorpayOrderId: order.id,
+    razorpayKeyId: env.RAZORPAY_KEY_ID,
+    amount: plan.price,
+    currency: 'INR',
+    bookingId: booking.bookingId,
+  };
+};
+
+export const verifyExtensionPayment = async (bookingId, userId, { razorpayOrderId, razorpayPaymentId, razorpaySignature }) => {
+  const payment = await Payment.findOne({
+    booking: bookingId,
+    razorpayOrderId,
+    purpose: 'EXTENSION',
+  });
+  if (!payment) throw new NotFoundError('Extension payment not found');
+
+  const expectedSignature = crypto
+    .createHmac('sha256', env.RAZORPAY_KEY_SECRET || '')
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest('hex');
+  if (!env.RAZORPAY_KEY_SECRET || expectedSignature !== razorpaySignature) {
+    if (payment.status !== 'SUCCESS') {
+      payment.status = 'FAILED';
+      await payment.save();
+    }
+    throw new BadRequestError('Payment verification failed: Invalid signature');
+  }
+
+  // Claim the payment atomically so a retried verify call cannot extend twice.
+  const claimed = await Payment.findOneAndUpdate(
+    { _id: payment._id, status: { $ne: 'SUCCESS' } },
+    {
+      status: 'SUCCESS',
+      razorpayPaymentId,
+      razorpaySignature,
+      signatureVerified: true,
+      paidAt: new Date(),
+    },
+    { new: true },
+  );
+  if (!claimed) {
+    throw new ConflictError('This extension payment has already been applied');
+  }
+
+  const booking = await loadExtendableBooking(bookingId, userId);
+  const plan = findExtensionPlan(booking.vehicle, payment.extensionPlan);
+
+  return applyExtension(booking, userId, {
+    extraMs: plan.durationDays * DAY_MS,
+    extensionCost: payment.amount,
+    note: `Extended with ${plan.name} (${plan.durationDays} days) - paid online`,
+  });
+};
+
+// --- Admin edit ---
+// Booking details an admin may correct by hand. Status is deliberately not here:
+// it has its own lifecycle actions (approve, pickup, return, cancel) with side
+// effects on stock, deposits and payments.
+const ADMIN_EDITABLE_FIELDS = [
+  'startDate', 'startTime', 'endDate', 'endTime', 'tripEndsAt',
+  'pickupLocation', 'assignedPlateNumber', 'paymentMethod', 'depositStatus',
+  'securityDeposit', 'lateFee', 'totalAmount', 'notes',
+];
+const DATE_FIELDS = ['startDate', 'endDate', 'tripEndsAt'];
+
+const sameValue = (a, b) => {
+  if (a instanceof Date || b instanceof Date) {
+    return a && b && new Date(a).getTime() === new Date(b).getTime();
+  }
+  return (a ?? null) === (b ?? null);
+};
+
+export const adminUpdateBooking = async (bookingId, adminId, data = {}) => {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new NotFoundError('Booking not found');
+
+  const changed = [];
+  for (const field of ADMIN_EDITABLE_FIELDS) {
+    if (data[field] === undefined) continue;
+    let value = data[field];
+    if (DATE_FIELDS.includes(field) && value !== null) value = new Date(value);
+    if (typeof value === 'string') value = value.trim();
+    if (field === 'assignedPlateNumber' && value) value = value.toUpperCase();
+    if (sameValue(booking[field], value)) continue;
+    booking[field] = value;
+    changed.push(field);
+  }
+
+  if (changed.length === 0) {
+    throw new BadRequestError('Nothing to update');
+  }
+
+  if (new Date(booking.endDate) <= new Date(booking.startDate)) {
+    throw new BadRequestError('End date must be after start date');
+  }
+  if (changed.includes('tripEndsAt') && !booking.actualPickupAt) {
+    throw new BadRequestError('Return deadline can only be changed after the trip has started');
+  }
+
+  const deadlineMoved = changed.includes('tripEndsAt');
+  if (deadlineMoved) {
+    // A new deadline deserves a fresh reminder.
+    booking.reminderSentAt = null;
+  }
+
+  booking.statusHistory.push({
+    status: booking.status,
+    at: new Date(),
+    by: 'ADMIN',
+    note: `Edited by admin: ${changed.join(', ')}`,
+  });
+
+  await booking.save();
+
+  if (deadlineMoved && [BOOKING_STATUS.ACTIVE, BOOKING_STATUS.OVERDUE].includes(booking.status)) {
+    if (booking.status === BOOKING_STATUS.OVERDUE && booking.tripEndsAt > new Date()) {
+      await handleStatusTransition(bookingId, BOOKING_STATUS.ACTIVE, {
+        actorRole: 'ADMIN',
+        note: 'Return deadline moved by admin',
+      });
+    }
+    try {
+      await scheduleTripJobs(booking);
+    } catch (err) {
+      logger.error(`Failed to reschedule trip jobs after admin edit: ${err.message}`);
+    }
+  }
+
+  const updated = await Booking.findById(bookingId)
+    .select('-kycDocuments')
+    .populate({ path: 'vehicle', populate: { path: 'zone' } })
+    .populate('user', 'fullName phone email');
+
+  try {
+    const io = getIO();
+    if (io) {
+      io.to(`user_${booking.user}`).emit('BOOKING_STATUS_UPDATED', updated);
+      io.to('admin_room').emit('BOOKING_STATUS_UPDATED', updated);
+    }
+  } catch (err) {
+    logger.error(`Socket emission error on admin edit: ${err.message}`);
+  }
+
+  logger.info(`Booking ${booking.bookingId} edited by admin ${adminId}: ${changed.join(', ')}`);
+  return updated;
+};
 
 // Admin asks the rider's app, right now, to report its GPS position. Nothing is
 // polled or stored continuously - this only ever reflects the one moment the

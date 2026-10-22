@@ -9,6 +9,13 @@ router.get('/summary', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeC
 router.get('/settlements', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getSettlements);
 router.get('/tax-billing', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getTaxBilling);
 
+// Tax & Billing invoices: create, delete (to bin), bin, restore, delete forever
+router.post('/tax-billing/invoices', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.createInvoice);
+router.delete('/tax-billing/invoices/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.deleteInvoice);
+router.get('/tax-billing/bin', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.listDeletedInvoices);
+router.post('/tax-billing/bin/:id/restore', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.restoreInvoice);
+router.delete('/tax-billing/bin/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.purgeInvoice);
+
 // Accounting: manual expenses against booking earnings
 router.get('/accounting/summary', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getAccountingSummary);
 router.get('/expenses/meta', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getExpenseMeta);

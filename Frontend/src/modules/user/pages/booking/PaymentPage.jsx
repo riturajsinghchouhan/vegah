@@ -9,34 +9,9 @@ import { bookingService } from "../../../../services/bookingService";
 import { walletService } from "../../../../services/walletService";
 import { adminService } from "../../../admin/services/adminService";
 import { formatCurrency } from "../../../../utils/formatters";
+import { loadRazorpayScript } from "../../../../utils/razorpay";
 
 import { useEffect, useRef, useState } from "react";
-
-const RAZORPAY_SRC = "https://checkout.razorpay.com/v1/checkout.js";
-
-// One shared promise for the whole app: the SDK is fetched at most once, and every
-// caller after the first resolves instantly instead of injecting another <script>.
-let razorpayScriptPromise = null;
-const loadRazorpayScript = () => {
-  if (window.Razorpay) return Promise.resolve(true);
-  if (razorpayScriptPromise) return razorpayScriptPromise;
-
-  razorpayScriptPromise = new Promise((resolve) => {
-    const existing = document.querySelector(`script[src="${RAZORPAY_SRC}"]`);
-    const script = existing || document.createElement("script");
-    script.addEventListener("load", () => resolve(true));
-    script.addEventListener("error", () => {
-      razorpayScriptPromise = null; // let a retry re-attempt the download
-      resolve(false);
-    });
-    if (!existing) {
-      script.src = RAZORPAY_SRC;
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  });
-  return razorpayScriptPromise;
-};
 
 const paymentMethods = [
   { id: "ONLINE", title: "Pay Online", description: "UPI, Credit/Debit Cards, Net Banking", icon: Landmark },

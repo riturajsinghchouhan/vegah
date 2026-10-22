@@ -150,6 +150,10 @@ export const adminService = {
     const res = await adminApi.get(`/bookings/${id}`);
     return res.data.data;
   },
+  async updateBooking(id, data) {
+    const res = await adminApi.patch(`/bookings/${id}`, data);
+    return res.data.data;
+  },
   async updateBookingStatus(id, status) {
     const res = await adminApi.patch(`/bookings/${id}/status`, { status });
     return res.data.data;
@@ -259,6 +263,26 @@ export const adminService = {
   },
   async getTaxBilling(params = {}) {
     const res = await adminApi.get('/admin/finance/tax-billing', { params });
+    return res.data.data;
+  },
+  async createInvoice(data) {
+    const res = await adminApi.post('/admin/finance/tax-billing/invoices', data);
+    return res.data.data;
+  },
+  async deleteInvoice(id) {
+    const res = await adminApi.delete(`/admin/finance/tax-billing/invoices/${id}`);
+    return res.data.data;
+  },
+  async getDeletedInvoices() {
+    const res = await adminApi.get('/admin/finance/tax-billing/bin');
+    return res.data.data || [];
+  },
+  async restoreInvoice(id) {
+    const res = await adminApi.post(`/admin/finance/tax-billing/bin/${id}/restore`);
+    return res.data.data;
+  },
+  async purgeInvoice(id) {
+    const res = await adminApi.delete(`/admin/finance/tax-billing/bin/${id}`);
     return res.data.data;
   },
 

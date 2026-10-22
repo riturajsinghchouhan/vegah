@@ -92,6 +92,42 @@ export const extendBooking = async (req, res, next) => {
   }
 };
 
+export const adminUpdateBooking = async (req, res, next) => {
+  try {
+    const booking = await bookingsService.adminUpdateBooking(req.params.id, req.user.id, req.body);
+    sendSuccess(res, 200, 'Booking updated successfully', booking);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getExtensionPlans = async (req, res, next) => {
+  try {
+    const plans = await bookingsService.getExtensionPlans(req.params.id, req.user.id);
+    sendSuccess(res, 200, 'Extension plans fetched', plans);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createExtensionOrder = async (req, res, next) => {
+  try {
+    const result = await bookingsService.createExtensionOrder(req.params.id, req.user.id, req.body.planId);
+    sendSuccess(res, 200, 'Extension payment initiated', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyExtensionPayment = async (req, res, next) => {
+  try {
+    const result = await bookingsService.verifyExtensionPayment(req.params.id, req.user.id, req.body);
+    sendSuccess(res, 200, 'Payment verified and rental extended', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * ADMIN — step 4: confirm the customer has physically collected the vehicle.
  * This is what starts the trip timer.

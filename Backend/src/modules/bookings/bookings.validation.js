@@ -145,3 +145,48 @@ export const listBookingsSchema = {
     vehicleId: Joi.string().hex().length(24),
   }),
 };
+
+export const extensionOrderSchema = {
+  params: Joi.object({
+    id: Joi.string().hex().length(24).required(),
+  }),
+  body: Joi.object({
+    planId: Joi.string().valid('WEEKLY', 'MONTHLY').required(),
+  }),
+};
+
+export const extensionVerifySchema = {
+  params: Joi.object({
+    id: Joi.string().hex().length(24).required(),
+  }),
+  body: Joi.object({
+    razorpayOrderId: Joi.string().required(),
+    razorpayPaymentId: Joi.string().required(),
+    razorpaySignature: Joi.string().required(),
+  }),
+};
+
+const timeString = Joi.string().trim().pattern(/^([01]\d|2[0-3]):[0-5]\d$/).messages({
+  'string.pattern.base': 'Time must be in HH:mm format',
+});
+
+export const adminUpdateBookingSchema = {
+  params: Joi.object({
+    id: Joi.string().hex().length(24).required(),
+  }),
+  body: Joi.object({
+    startDate: Joi.date().iso(),
+    startTime: timeString,
+    endDate: Joi.date().iso(),
+    endTime: timeString,
+    tripEndsAt: Joi.date().iso(),
+    pickupLocation: Joi.string().trim().min(2).max(300),
+    assignedPlateNumber: Joi.string().trim().max(30).allow('', null),
+    paymentMethod: Joi.string().valid('ONLINE', 'WALLET', 'CASH'),
+    depositStatus: Joi.string().valid('PENDING', 'COLLECTED', 'REFUNDED'),
+    securityDeposit: Joi.number().min(0),
+    lateFee: Joi.number().min(0),
+    totalAmount: Joi.number().min(0),
+    notes: Joi.string().trim().max(1000).allow('', null),
+  }).min(1),
+};

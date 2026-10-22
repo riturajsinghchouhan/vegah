@@ -107,6 +107,22 @@ export const bookingService = {
     return response.data.data;
   },
 
+  // Paid extension: the EV's Weekly/Monthly plans, then a Razorpay order for one.
+  async getExtensionPlans(bookingId) {
+    const response = await api.get(`/bookings/${bookingId}/extension-plans`);
+    return response.data.data;
+  },
+
+  async createExtensionOrder(bookingId, planId) {
+    const response = await api.post(`/bookings/${bookingId}/extension-order`, { planId });
+    return response.data.data;
+  },
+
+  async verifyExtensionPayment(bookingId, payload) {
+    const response = await api.post(`/bookings/${bookingId}/extension-verify`, payload);
+    return response.data.data;
+  },
+
   // Rider's app answering an admin's LOCATION_REQUESTED socket event with a
   // one-off GPS fix - nothing is tracked continuously.
   async reportLocation(bookingId, { lat, lng, accuracy }) {

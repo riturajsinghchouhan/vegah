@@ -16,6 +16,9 @@ const paymentSchema = new Schema({
   razorpaySignature: { type: String, default: null, select: false },
   razorpayResponse: { type: Schema.Types.Mixed, default: null, select: false },
   signatureVerified: { type: Boolean, default: false },
+  // BOOKING = the original booking charge, EXTENSION = a paid plan extension.
+  purpose: { type: String, enum: ['BOOKING', 'EXTENSION'], default: 'BOOKING' },
+  extensionPlan: { type: String, enum: ['WEEKLY', 'MONTHLY', null], default: null },
   idempotencyKey: { type: String, unique: true, sparse: true },
   paidAt: { type: Date, default: null },
 }, { timestamps: true });

@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
-import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging } from 'lucide-react';
+import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging, Pencil } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
 import { adminService } from '../services/adminService';
 import RiderLocationMapModal from '../components/RiderLocationMapModal';
+import EditBookingModal from '../components/EditBookingModal';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
 
@@ -62,6 +63,7 @@ export default function AdminBookings() {
   const [actionLoading, setActionLoading] = useState(null);
   const [pickupPromptBookingId, setPickupPromptBookingId] = useState(null);
   const [pickupPlateNumber, setPickupPlateNumber] = useState('');
+  const [editingBooking, setEditingBooking] = useState(null);
   // IDs from the last fetch, so the poll can tell which bookings are new.
   const knownBookingIdsRef = useRef(null);
 
@@ -489,6 +491,7 @@ export default function AdminBookings() {
           onReject={handleRejectBooking}
           onConfirmPickup={handleConfirmPickup}
           actionLoading={actionLoading}
+          onEdit={setEditingBooking}
         />
       ) : activeTab === 'live' ? (
         <LiveRentalsTable
@@ -498,6 +501,7 @@ export default function AdminBookings() {
           onConfirmReturn={handleConfirmReturn}
           onRejectReturn={handleRejectReturn}
           actionLoading={actionLoading}
+          onEdit={setEditingBooking}
         />
       ) : activeTab === 'cancelled' ? (
         <AllBookingsTable
@@ -506,6 +510,7 @@ export default function AdminBookings() {
           onReject={handleRejectBooking}
           onConfirmPickup={handleConfirmPickup}
           actionLoading={actionLoading}
+          onEdit={setEditingBooking}
         />
       ) : (
         <UpcomingPickupsTable
@@ -514,8 +519,15 @@ export default function AdminBookings() {
           onReject={handleRejectBooking}
           onConfirmPickup={handleConfirmPickup}
           actionLoading={actionLoading}
+          onEdit={setEditingBooking}
         />
       )}
+
+      <EditBookingModal
+        booking={editingBooking}
+        onClose={() => setEditingBooking(null)}
+        onSaved={() => fetchAllBookings({ silent: true })}
+      />
 
       {/* Custom Modal for Pickup Plate Number */}
       <Modal 
@@ -568,7 +580,7 @@ export default function AdminBookings() {
 }
 
 // --- ALL BOOKINGS TABLE ---
-function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading }) {
+function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading, onEdit }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -708,6 +720,14 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
                         </span>
                       )}
 
+                      <button
+                        title="Edit Booking"
+                        aria-label="Edit Booking"
+                        className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                        onClick={() => onEdit?.(item.raw)}
+                      >
+                        <Pencil size={18} />
+                      </button>
                       <button 
                         title="View Details" 
                         aria-label="View Details"
@@ -833,7 +853,7 @@ const fmtDateTime = (value) => {
 };
 
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRejectReturn, actionLoading }) {
+function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRejectReturn, actionLoading, onEdit }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   // bookingId -> { lat, lng, accuracy, updatedAt } reported back over the socket
@@ -1155,6 +1175,14 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
                     })()}
 
                     <button
+                      title="Edit Booking"
+                      aria-label="Edit Booking"
+                      className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                      onClick={() => onEdit?.(rental.raw)}
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    <button
                       title="View Details"
                       aria-label="View Details"
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -1266,7 +1294,7 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
 }
 
 // --- UPCOMING PICKUPS TABLE ---
-function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading }) {
+function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPickup, actionLoading, onEdit }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPickup, setSelectedPickup] = useState(null);
 
@@ -1399,6 +1427,14 @@ function UpcomingPickupsTable({ allBookings, onApprove, onReject, onConfirmPicku
                         </span>
                       )}
 
+                      <button
+                        title="Edit Booking"
+                        aria-label="Edit Booking"
+                        className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                        onClick={() => onEdit?.(pickup.raw)}
+                      >
+                        <Pencil size={18} />
+                      </button>
                       <button 
                         title="View Details" 
                         aria-label="View Details"
