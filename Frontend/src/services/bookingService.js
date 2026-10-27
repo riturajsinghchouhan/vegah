@@ -123,6 +123,11 @@ export const bookingService = {
     return response.data.data;
   },
 
+  async extendWithCash(bookingId, planId) {
+    const response = await api.post(`/bookings/${bookingId}/extension-cash`, { planId });
+    return response.data.data;
+  },
+
   // Rider's app answering an admin's LOCATION_REQUESTED socket event with a
   // one-off GPS fix - nothing is tracked continuously.
   async reportLocation(bookingId, { lat, lng, accuracy }) {

@@ -74,6 +74,13 @@ router.post(
   bookingsController.verifyExtensionPayment
 );
 
+// Cash (COD) plan extension: extends now, cash is collected at the hub
+router.post(
+  '/:id/extension-cash',
+  validate(bookingsValidation.extensionOrderSchema),
+  bookingsController.extendWithCash
+);
+
 // --- Rental handover lifecycle ---
 
 // USER declares the vehicle dropped at the hub -> PENDING_RETURN
