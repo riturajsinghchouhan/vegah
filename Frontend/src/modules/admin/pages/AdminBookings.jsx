@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
-import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging, Pencil } from 'lucide-react';
+import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging, Pencil, CalendarPlus } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
@@ -60,6 +60,7 @@ export default function AdminBookings() {
   const [loading, setLoading] = useState(true);
   const [newBookingAlert, setNewBookingAlert] = useState(null);
   const [returnAlert, setReturnAlert] = useState(null);
+  const [extensionAlert, setExtensionAlert] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [pickupPromptBookingId, setPickupPromptBookingId] = useState(null);
   const [pickupPlateNumber, setPickupPlateNumber] = useState('');
@@ -150,6 +151,14 @@ export default function AdminBookings() {
     };
     socket.on('RETURN_REQUESTED', handleReturnRequested);
 
+    // A rider extended their rental - online payment or cash (COD) to collect.
+    const handleBookingExtended = (payload) => {
+      playNotificationSound();
+      setExtensionAlert(payload);
+      fetchAllBookings({ silent: true });
+    };
+    socket.on('BOOKING_EXTENDED', handleBookingExtended);
+
     requestNotificationPermission();
     const unsubscribeFcm = onForegroundMessage((payload) => {
       console.log("🔥 [FCM] Foreground notification:", payload);
@@ -160,6 +169,7 @@ export default function AdminBookings() {
       socket.off('NEW_BOOKING', handleNewBooking);
       socket.off('BOOKING_STATUS_UPDATED', handleStatusUpdated);
       socket.off('RETURN_REQUESTED', handleReturnRequested);
+      socket.off('BOOKING_EXTENDED', handleBookingExtended);
       unsubscribeFcm();
     };
   }, [searchParams]);
@@ -399,6 +409,37 @@ export default function AdminBookings() {
               <X size={18} />
             </button>
           </div>
+        </div>
+      )}
+
+      {extensionAlert && (
+        <div className={`${extensionAlert.paymentMode === 'CASH' ? 'bg-amber-600 border-amber-500' : 'bg-green-700 border-green-500'} text-white p-4 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center justify-between border gap-4`}>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-black/15 rounded-lg">
+              <CalendarPlus className="h-6 w-6 text-yellow-200 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-bold text-sm tracking-wide text-yellow-200">
+                {extensionAlert.paymentMode === 'CASH'
+                  ? '💵 RENTAL EXTENDED — CASH (COD) TO COLLECT'
+                  : '💳 RENTAL EXTENDED — PAID ONLINE'}
+              </p>
+              <p className="text-xs text-white/90 mt-1">
+                {extensionAlert.customerName || 'A customer'} extended booking{' '}
+                <span className="font-mono font-bold bg-black/20 px-1.5 py-0.5 rounded">{extensionAlert.bookingId || extensionAlert.id}</span>{' '}
+                with the {extensionAlert.planName} (+{extensionAlert.durationDays} days, ₹{extensionAlert.amount})
+                {extensionAlert.paymentMode === 'CASH' ? ' — collect the cash at the hub.' : ' — payment received online.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setExtensionAlert(null)}
+            className="self-end md:self-auto p-2 hover:bg-black/15 rounded-lg text-white/80 hover:text-white transition-colors border border-white/30"
+            title="Dismiss Alert"
+          >
+            <X size={18} />
+          </button>
         </div>
       )}
 

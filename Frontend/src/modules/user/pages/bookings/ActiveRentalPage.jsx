@@ -11,6 +11,8 @@ import {
   Hourglass,
   CheckCircle2,
   CalendarPlus,
+  CreditCard,
+  Banknote,
 } from "lucide-react";
 import Button from "../../../../components/common/Button";
 import MetricCard from "../../../../components/common/MetricCard";
@@ -57,6 +59,9 @@ const ActiveRentalPage = () => {
   const [plansLoading, setPlansLoading] = useState(false);
   const [payingPlanId, setPayingPlanId] = useState(null);
   const [planError, setPlanError] = useState("");
+  // "ONLINE" (Razorpay) or "CASH" (pay at the hub); chosen before the plan.
+  const [paymentMode, setPaymentMode] = useState(null);
+  const [extendSuccess, setExtendSuccess] = useState("");
   const [error, setError] = useState("");
   const [reminderAlert, setReminderAlert] = useState(null);
   const remindedRef = useRef(false);
@@ -169,6 +174,8 @@ const ActiveRentalPage = () => {
 
     setShowPlans(true);
     setPlanError("");
+    setPaymentMode(null);
+    setExtendSuccess("");
     setPlansLoading(true);
     // Warm the checkout SDK while the user reads the plans.
     loadRazorpayScript();
@@ -183,7 +190,42 @@ const ActiveRentalPage = () => {
     }
   };
 
+  // A fresh deadline means a fresh reminder is due.
+  const afterExtended = async (message) => {
+    remindedRef.current = false;
+    setReminderAlert(null);
+    setShowPlans(false);
+    setExtendSuccess(message);
+    await loadActiveBooking();
+  };
+
+  const handleCashExtend = async (plan) => {
+    const targetId = activeBooking?._id || activeBooking?.id;
+    if (!targetId || payingPlanId) return;
+
+    try {
+      setPayingPlanId(plan.id);
+      setPlanError("");
+      setExtending(true);
+      await bookingService.extendWithCash(targetId, plan.id);
+      await afterExtended(
+        `Rental extended with the ${plan.name}. Please pay ${formatCurrency(plan.price)} in cash at the hub.`
+      );
+    } catch (err) {
+      console.error("Cash extension failed:", err);
+      setPlanError(err?.response?.data?.message || "Could not extend the rental. Please try again.");
+    } finally {
+      setExtending(false);
+      setPayingPlanId(null);
+    }
+  };
+
   const handleSelectPlan = async (plan) => {
+    if (paymentMode === "CASH") {
+      handleCashExtend(plan);
+      return;
+    }
+
     const targetId = activeBooking?._id || activeBooking?.id;
     if (!targetId || payingPlanId) return;
 
@@ -216,11 +258,7 @@ const ActiveRentalPage = () => {
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
             });
-            // A fresh deadline means a fresh reminder is due.
-            remindedRef.current = false;
-            setReminderAlert(null);
-            setShowPlans(false);
-            await loadActiveBooking();
+            await afterExtended(`Payment received. Rental extended with the ${plan.name}.`);
           } catch (err) {
             console.error("Extension payment verification failed:", err);
             setPlanError(err?.response?.data?.message || "Payment verification failed. Please contact support.");
@@ -302,6 +340,18 @@ const ActiveRentalPage = () => {
         <div className="mb-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {extendSuccess && (
+        <div className="mb-4 flex items-start justify-between gap-2 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+            <span>{extendSuccess}</span>
+          </div>
+          <button onClick={() => setExtendSuccess("")} className="rounded-lg p-1 hover:bg-green-100" aria-label="Dismiss">
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -489,7 +539,11 @@ const ActiveRentalPage = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-app-text">Extend your rental</h3>
-                <p className="mt-1 text-xs text-app-subtle">Pick a plan. Time is added to your current return deadline.</p>
+                <p className="mt-1 text-xs text-app-subtle">
+                  {paymentMode
+                    ? "Pick a plan. Time is added to your current return deadline."
+                    : "How would you like to pay for the extension?"}
+                </p>
               </div>
               <button
                 onClick={() => setShowPlans(false)}
@@ -508,7 +562,50 @@ const ActiveRentalPage = () => {
               </div>
             )}
 
+            {!paymentMode ? (
+              <div className="mt-4 grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setPaymentMode("ONLINE"); setPlanError(""); }}
+                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40"
+                >
+                  <div className="rounded-xl bg-orange-50 p-2 text-orange-600">
+                    <CreditCard size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-app-text">Pay online</p>
+                    <p className="text-xs text-app-subtle">UPI, card or net banking via Razorpay</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPaymentMode("CASH"); setPlanError(""); }}
+                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40"
+                >
+                  <div className="rounded-xl bg-green-50 p-2 text-green-600">
+                    <Banknote size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-app-text">Cash on delivery (COD)</p>
+                    <p className="text-xs text-app-subtle">Extend now, pay in cash at the hub</p>
+                  </div>
+                </button>
+              </div>
+            ) : (
             <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs font-semibold text-app-subtle">
+                <span>
+                  Paying by: <span className="text-app-text">{paymentMode === "CASH" ? "Cash on delivery" : "Online"}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode(null)}
+                  disabled={Boolean(payingPlanId)}
+                  className="text-app-primary hover:underline disabled:opacity-50"
+                >
+                  Change
+                </button>
+              </div>
               {plansLoading ? (
                 <p className="py-8 text-center text-sm font-semibold text-app-subtle">Loading plans...</p>
               ) : plans.length === 0 ? (
@@ -531,13 +628,16 @@ const ActiveRentalPage = () => {
                     <div className="text-right">
                       <p className="text-base font-bold text-app-text">{formatCurrency(plan.price)}</p>
                       <p className="text-[11px] font-semibold text-app-primary">
-                        {payingPlanId === plan.id ? "Opening payment..." : "Pay & extend"}
+                        {payingPlanId === plan.id
+                          ? (paymentMode === "CASH" ? "Extending..." : "Opening payment...")
+                          : (paymentMode === "CASH" ? "Extend, pay cash" : "Pay & extend")}
                       </p>
                     </div>
                   </button>
                 ))
               )}
             </div>
+            )}
           </div>
         </div>
       )}

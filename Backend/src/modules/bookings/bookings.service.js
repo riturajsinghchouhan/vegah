@@ -1270,11 +1270,64 @@ export const verifyExtensionPayment = async (bookingId, userId, { razorpayOrderI
   const booking = await loadExtendableBooking(bookingId, userId);
   const plan = findExtensionPlan(booking.vehicle, payment.extensionPlan);
 
-  return applyExtension(booking, userId, {
+  const result = await applyExtension(booking, userId, {
     extraMs: plan.durationDays * DAY_MS,
     extensionCost: payment.amount,
     note: `Extended with ${plan.name} (${plan.durationDays} days) - paid online`,
   });
+  await notifyAdminsOfExtension(result.booking, plan, 'ONLINE');
+  return result;
+};
+
+/**
+ * Cash (COD) plan extension: the time is added straight away and the plan
+ * price is recorded as a PENDING cash payment for the hub team to collect.
+ */
+export const extendWithCash = async (bookingId, userId, planId) => {
+  const booking = await loadExtendableBooking(bookingId, userId);
+  const plan = findExtensionPlan(booking.vehicle, planId);
+
+  await Payment.create({
+    booking: booking._id,
+    amount: plan.price,
+    method: 'CASH',
+    status: 'PENDING',
+    purpose: 'EXTENSION',
+    extensionPlan: plan.id,
+  });
+
+  const result = await applyExtension(booking, userId, {
+    extraMs: plan.durationDays * DAY_MS,
+    extensionCost: plan.price,
+    note: `Extended with ${plan.name} (${plan.durationDays} days) - cash on delivery`,
+  });
+  await notifyAdminsOfExtension(result.booking, plan, 'CASH');
+  return result;
+};
+
+// Tells the admins a rider extended, and whether they paid online or chose cash.
+const notifyAdminsOfExtension = async (booking, plan, paymentMode) => {
+  const isCash = paymentMode === 'CASH';
+  try {
+    await notifyAdmins({
+      event: 'BOOKING_EXTENDED',
+      title: isCash ? 'Rental extended - cash to collect' : 'Rental extended - paid online',
+      body: `${booking.user?.fullName || 'A customer'} extended booking ${booking.bookingId} with the ${plan.name} `
+        + `(+${plan.durationDays} days, Rs ${plan.price}) - ${isCash ? 'cash on delivery, collect at the hub' : 'paid online'}.`,
+      payload: {
+        bookingId: booking.bookingId,
+        id: String(booking._id),
+        customerName: booking.user?.fullName || '',
+        planId: plan.id,
+        planName: plan.name,
+        durationDays: plan.durationDays,
+        amount: plan.price,
+        paymentMode,
+      },
+    });
+  } catch (err) {
+    logger.error(`Admin extension notification failed: ${err.message}`);
+  }
 };
 
 // --- Admin edit ---

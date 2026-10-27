@@ -128,6 +128,15 @@ export const verifyExtensionPayment = async (req, res, next) => {
   }
 };
 
+export const extendWithCash = async (req, res, next) => {
+  try {
+    const result = await bookingsService.extendWithCash(req.params.id, req.user.id, req.body.planId);
+    sendSuccess(res, 200, 'Rental extended - pay cash at the hub', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * ADMIN — step 4: confirm the customer has physically collected the vehicle.
  * This is what starts the trip timer.
