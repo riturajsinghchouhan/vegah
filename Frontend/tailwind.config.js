@@ -4,18 +4,19 @@ const require = createRequire(import.meta.url);
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
         app: {
-          DEFAULT: "#0B1118",
-          surface: "#161F2C",
-          card: "#1C2635",
-          muted: "#243041",
-          border: "#38475C",
-          text: "#F5F7FA",
-          subtle: "#9FACC0",
+          DEFAULT: "rgb(var(--c-bg) / <alpha-value>)",
+          surface: "rgb(var(--c-surface) / <alpha-value>)",
+          card: "rgb(var(--c-card) / <alpha-value>)",
+          muted: "rgb(var(--c-muted) / <alpha-value>)",
+          border: "rgb(var(--c-border) / <alpha-value>)",
+          text: "rgb(var(--c-text) / <alpha-value>)",
+          subtle: "rgb(var(--c-subtle) / <alpha-value>)",
           primary: "#2E7BE0",
           primaryHover: "#4C90EB",
           accent: "#D1FF42",

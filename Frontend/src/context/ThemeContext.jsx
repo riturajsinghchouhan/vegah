@@ -1,0 +1,36 @@
+import { createContext, useEffect, useState } from "react";
+
+export const ThemeContext = createContext(null);
+
+const STORAGE_KEY = "evora-theme";
+
+const getInitialTheme = () => {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch (err) {
+    // ignore storage access errors
+  }
+  return "dark";
+};
+
+export const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("light", theme === "light");
+    try {
+      window.localStorage.setItem(STORAGE_KEY, theme);
+    } catch (err) {
+      // ignore storage access errors
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+
+  return (
+    <ThemeContext.Provider value={{ theme, isDark: theme === "dark", setTheme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};

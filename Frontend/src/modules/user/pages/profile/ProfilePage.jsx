@@ -11,7 +11,8 @@ import WalletSummary from "../../../../components/profile/WalletSummary";
 import PersonalInfoModal from "../../../../components/profile/PersonalInfoModal";
 import PaymentMethodsModal from "../../../../components/profile/PaymentMethodsModal";
 import NotificationsModal from "../../../../components/profile/NotificationsModal";
-import { accountSettings, quickActions } from "../../../../data/profileData";
+import Preferences from "../../../../components/profile/Preferences";
+import { accountSettings, preferences, quickActions } from "../../../../data/profileData";
 import { useAuth } from "../../../../hooks/useAuth";
 import { env } from "../../../../config/env";
 import { bookingService } from "../../../../services/bookingService";
@@ -167,6 +168,8 @@ const ProfilePage = () => {
       <QuickActions actions={quickActions} />
       
       <AccountSettings settings={accountSettings} onItemClick={handleAccountSettingClick} />
+
+      <Preferences preferences={preferences} />
       
       {/* Manage Details Section */}
       <div className="px-5 mb-8">

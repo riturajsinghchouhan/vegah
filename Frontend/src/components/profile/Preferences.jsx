@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useTheme } from "../../hooks/useTheme";
 
 const Toggle = ({ active, onChange }) => (
-  <button 
+  <button
     onClick={onChange}
     className={`w-[34px] h-[20px] rounded-full p-0.5 transition-colors ${
-      active ? "bg-[#2E7BE0]" : "bg-gray-200"
+      active ? "bg-[#D1FF42]" : "bg-app-muted"
     }`}
   >
     <div className={`w-[16px] h-[16px] bg-app-card rounded-full shadow-sm transition-transform ${
@@ -14,19 +15,27 @@ const Toggle = ({ active, onChange }) => (
 );
 
 const Preferences = ({ preferences }) => {
+  const { isDark, toggleTheme } = useTheme();
+
   if (!preferences || preferences.length === 0) return null;
 
   // Simple local state for toggles just for UI demonstration
   const [toggleStates, setToggleStates] = useState(
     preferences.reduce((acc, pref) => {
-      if (pref.isToggle) acc[pref.id] = pref.defaultState;
+      if (pref.isToggle && pref.id !== "dark_mode") acc[pref.id] = pref.defaultState;
       return acc;
     }, {})
   );
 
   const handleToggle = (id) => {
+    if (id === "dark_mode") {
+      toggleTheme();
+      return;
+    }
     setToggleStates(prev => ({ ...prev, [id]: !prev[id] }));
   };
+
+  const isActive = (id) => (id === "dark_mode" ? isDark : toggleStates[id]);
 
   return (
     <div className="px-5 mb-8">
@@ -41,9 +50,9 @@ const Preferences = ({ preferences }) => {
           >
             <span className="text-[14px] font-medium text-app-text">{pref.label}</span>
             {pref.isToggle ? (
-              <Toggle 
-                active={toggleStates[pref.id]} 
-                onChange={() => handleToggle(pref.id)} 
+              <Toggle
+                active={isActive(pref.id)}
+                onChange={() => handleToggle(pref.id)}
               />
             ) : (
               <span className="text-[12px] font-bold text-[#D1FF42]">{pref.value}</span>

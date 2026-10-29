@@ -42,5 +42,5 @@ export const preferences = [
   { id: "currency", label: "Currency", value: "INR (₹)", isToggle: false },
   { id: "notifications_pref", label: "Push Notifications", isToggle: true, defaultState: true },
   { id: "location", label: "Location Access", isToggle: true, defaultState: true },
-  { id: "dark_mode", label: "Dark Mode", isToggle: true, defaultState: false },
+  { id: "dark_mode", label: "Dark Mode", isToggle: true, defaultState: true },
 ];
