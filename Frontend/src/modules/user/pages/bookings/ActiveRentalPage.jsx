@@ -345,11 +345,13 @@ const ActiveRentalPage = () => {
 
       {extendSuccess && (
         <div className="mb-4 flex items-start justify-between gap-2 rounded-2xl border border-green-200 bg-green-500/15 p-4 text-sm font-semibold text-green-400">
+        <div className="mb-4 flex items-start justify-between gap-2 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
           <div className="flex items-start gap-2">
             <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
             <span>{extendSuccess}</span>
           </div>
           <button onClick={() => setExtendSuccess("")} className="rounded-lg p-1 hover:bg-green-500/20" aria-label="Dismiss">
+          <button onClick={() => setExtendSuccess("")} className="rounded-lg p-1 hover:bg-green-100" aria-label="Dismiss">
             <X size={16} />
           </button>
         </div>
@@ -570,6 +572,9 @@ const ActiveRentalPage = () => {
                   className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40"
                 >
                   <div className="rounded-xl bg-orange-500/15 p-2 text-orange-400">
+                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40"
+                >
+                  <div className="rounded-xl bg-orange-50 p-2 text-orange-600">
                     <CreditCard size={20} />
                   </div>
                   <div>
@@ -583,6 +588,9 @@ const ActiveRentalPage = () => {
                   className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40"
                 >
                   <div className="rounded-xl bg-green-500/15 p-2 text-green-400">
+                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40"
+                >
+                  <div className="rounded-xl bg-green-50 p-2 text-green-600">
                     <Banknote size={20} />
                   </div>
                   <div>
@@ -594,6 +602,7 @@ const ActiveRentalPage = () => {
             ) : (
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between rounded-xl bg-app-muted px-3 py-2 text-xs font-semibold text-app-subtle">
+              <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs font-semibold text-app-subtle">
                 <span>
                   Paying by: <span className="text-app-text">{paymentMode === "CASH" ? "Cash on delivery" : "Online"}</span>
                 </span>
