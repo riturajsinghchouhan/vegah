@@ -198,11 +198,33 @@ export const adminSidebarMenu = [
         permissionKey: "reports",
       },
       {
-        type: "link",
+        type: "collapse",
         label: "Accounting",
         icon: FileText,
         path: "/admin/accounting",
         permissionKey: "reports",
+        items: [
+          {
+            type: "link",
+            label: "Overview",
+            path: "/admin/accounting",
+          },
+          {
+            type: "link",
+            label: "Balance",
+            path: "/admin/accounting/balance",
+          },
+          {
+            type: "link",
+            label: "Profit & Loss",
+            path: "/admin/accounting/profit-loss",
+          },
+          {
+            type: "link",
+            label: "Revenue",
+            path: "/admin/accounting/revenue",
+          },
+        ],
       },
       {
         type: "link",

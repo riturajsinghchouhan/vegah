@@ -60,10 +60,10 @@ export default function StatCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500">
             {title}
           </p>
-          <p className="mt-2 text-2xl font-bold leading-tight tracking-tight text-foreground">
+          <p className="mt-2 text-2xl font-bold leading-tight tracking-tight text-gray-900">
             {value}
           </p>
           {(helper || trend) && (
@@ -73,8 +73,8 @@ export default function StatCard({
                   className={cn(
                     "inline-flex items-center gap-0.5 text-[11px] font-semibold",
                     trendDirection === "up"
-                      ? "text-[var(--just-order-success)]"
-                      : "text-[var(--just-order-danger)]"
+                      ? "text-green-600"
+                      : "text-red-600"
                   )}
                 >
                   {trendDirection === "up" ? (
@@ -86,7 +86,7 @@ export default function StatCard({
                 </span>
               )}
               {helper && (
-                <span className="line-clamp-1 text-[11px] font-medium text-muted-foreground">
+                <span className="line-clamp-1 text-[11px] font-medium text-gray-500">
                   {helper}
                 </span>
               )}
@@ -101,7 +101,7 @@ export default function StatCard({
       </div>
       {clickable && (
         <div className="absolute bottom-2 right-2 translate-x-2 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
-          <ArrowUpRight className="h-3.5 w-3.5 text-primary/60" />
+          <ArrowUpRight className="h-3.5 w-3.5 text-blue-600/60" />
         </div>
       )}
     </div>
