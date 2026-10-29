@@ -2,24 +2,40 @@ import {
   BadgeIndianRupee,
   Bell,
   Calendar,
+  CalendarPlus,
   ChevronDown,
   ChevronRight,
   Copy,
   Headphones,
   MapPin,
   Mic,
+  Navigation,
   Search,
   ShieldCheck,
   Tag,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import VehicleCard from "../../../../components/vehicle/VehicleCard";
 import { useAuth } from "../../../../hooks/useAuth";
 import { useUserLocation } from "../../../../hooks/useLocation";
+import { bookingService } from "../../../../services/bookingService";
 import { userService } from "../../../../services/userService";
 import { vehicleService } from "../../../../services/vehicleService";
+
+const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
+
+const pad = (n) => String(Math.max(0, n)).padStart(2, "0");
+
+const splitDuration = (ms) => {
+  const safe = Math.max(0, ms);
+  return {
+    hours: pad(Math.floor(safe / (1000 * 60 * 60))),
+    minutes: pad(Math.floor((safe % (1000 * 60 * 60)) / (1000 * 60))),
+    seconds: pad(Math.floor((safe % (1000 * 60)) / 1000)),
+  };
+};
 
 // Category fallback icons
 const CATEGORY_IMAGES = {
@@ -52,7 +68,40 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
 
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [activeLive, setActiveLive] = useState(null);
+  const [activeDeadline, setActiveDeadline] = useState(null);
+  const [activeTimeLeft, setActiveTimeLeft] = useState(null);
 
+  const loadActiveBooking = useCallback(async () => {
+    try {
+      const bookings = await bookingService.listBookings({ status: IN_TRIP_STATUSES, limit: 1 });
+      const current = Array.isArray(bookings) && bookings.length ? bookings[0] : null;
+      setActiveBooking(current);
+      if (current) {
+        const live = await bookingService.getLiveStatus(current._id || current.id);
+        setActiveLive(live);
+        if (live?.timer?.endsAt) setActiveDeadline(new Date(live.timer.endsAt));
+      } else {
+        setActiveLive(null);
+        setActiveDeadline(null);
+      }
+    } catch (err) {
+      console.error("Failed to load active booking on home:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadActiveBooking();
+  }, [loadActiveBooking]);
+
+  useEffect(() => {
+    if (!activeDeadline) return undefined;
+    const tick = () => setActiveTimeLeft(splitDuration(activeDeadline.getTime() - Date.now()));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [activeDeadline]);
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -206,6 +255,62 @@ const HomePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Active Rental — the quickest path to Extend / End, right on Home */}
+      {activeBooking && (
+        <div className="px-4 mb-6">
+          <div className="rounded-[20px] border border-app-border bg-app-card p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#D1FF42]">
+                  {activeLive?.timer?.isOverdue ? "Overdue" : "Ride in progress"}
+                </p>
+                <h3 className="mt-0.5 truncate text-base font-bold text-app-text">
+                  {activeLive?.vehicle?.name || activeBooking?.vehicle?.name || "Your EV"}
+                </h3>
+                <p className="text-[11px] text-app-subtle">
+                  {activeLive?.assignedPlateNumber || activeBooking?.assignedPlateNumber || "—"}
+                </p>
+              </div>
+              {activeTimeLeft && (
+                <div className="shrink-0 rounded-2xl bg-app-muted px-3 py-2 text-right">
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-app-subtle">
+                    {activeLive?.timer?.isOverdue ? "Overdue by" : "Time left"}
+                  </p>
+                  <p className="font-mono text-base font-bold text-app-text">
+                    {activeTimeLeft.hours}:{activeTimeLeft.minutes}:{activeTimeLeft.seconds}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate("/user/rental/active", { state: { autoExtend: true } })
+                }
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-[#D1FF42] py-2.5 text-[13px] font-bold text-[#1A2230] active:scale-95 transition-all"
+              >
+                <CalendarPlus size={16} />
+                Extend Ride
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/user/navigation?type=drop&bookingId=${activeBooking._id || activeBooking.id}`
+                  )
+                }
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-app-border bg-app-muted py-2.5 text-[13px] font-bold text-app-text active:scale-95 transition-all"
+              >
+                <Navigation size={16} />
+                End Ride
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Categories from API (Commented Out) */}
       {/*

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BatteryCharging,
   Clock3,
@@ -50,6 +50,7 @@ const playChime = () => {
 
 const ActiveRentalPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeBooking, setActiveBooking] = useState(null);
   const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -189,6 +190,15 @@ const ActiveRentalPage = () => {
       setPlansLoading(false);
     }
   };
+
+  // Home's "Extend Ride" button sends us here wanting the plans modal open
+  // immediately, instead of making the rider find the button again.
+  useEffect(() => {
+    if (!location.state?.autoExtend || !activeBooking) return;
+    openExtendPlans();
+    navigate(location.pathname, { replace: true, state: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBooking, location.state]);
 
   // A fresh deadline means a fresh reminder is due.
   const afterExtended = async (message) => {
