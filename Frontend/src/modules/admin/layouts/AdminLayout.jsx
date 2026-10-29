@@ -21,7 +21,10 @@ export default function AdminLayout() {
           }`}
       >
         <header className="h-16 sticky top-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-800 hidden sm:block">Vegah</h2>
+          <div className="hidden sm:flex items-center gap-2">
+            <img src="/assets/swoop/icon-falcon-reversed.svg" alt="Swoop" className="h-7 w-auto" />
+            <h2 className="text-xl font-semibold text-gray-800">Swoop</h2>
+          </div>
 
           <div className="flex-1 flex justify-center px-4 sm:px-8">
             <div className="relative w-full max-w-md group">

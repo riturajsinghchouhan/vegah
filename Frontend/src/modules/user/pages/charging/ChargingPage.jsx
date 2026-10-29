@@ -65,7 +65,7 @@ const ChargingPage = () => {
   }
 
   return (
-    <div className="bg-[#F8F9FA] min-h-screen pb-28 font-sans">
+    <div className="bg-app min-h-screen pb-28 font-sans">
       <ChargingHeader />
       
       <SearchBar onFilterClick={() => setIsFilterOpen(true)} />

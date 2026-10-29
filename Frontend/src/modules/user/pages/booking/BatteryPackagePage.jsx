@@ -40,13 +40,13 @@ const BatteryPackagePage = () => {
           <div key={step} className="flex items-center">
             <div
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 4 ? "bg-app-primary text-white" : step < 4 ? "bg-app-primary/20 text-app-primary" : "bg-[#f1f4f1] text-app-subtle"
+                step === 4 ? "bg-app-primary text-white" : step < 4 ? "bg-app-primary/20 text-app-primary" : "bg-app text-app-subtle"
               }`}
             >
               {step}
             </div>
             {index < arr.length - 1 && (
-              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 4 ? "bg-app-primary/20" : "bg-[#f1f4f1]"}`} />
+              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 4 ? "bg-app-primary/20" : "bg-app"}`} />
             )}
           </div>
         ))}
@@ -62,13 +62,13 @@ const BatteryPackagePage = () => {
               <button
                 key={pkg.id}
                 className={`flex w-full items-center justify-between rounded-[18px] border p-4 text-left transition ${
-                  booking.batteryPackage === pkg.id ? "border-app-primary bg-[#eff9f1]" : "border-app-border bg-white"
+                  booking.batteryPackage === pkg.id ? "border-app-primary bg-[#13301F]" : "border-app-border bg-app-card"
                 }`}
                 onClick={() => updateBookingField("batteryPackage", pkg.id)}
                 type="button"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`rounded-xl p-3 ${booking.batteryPackage === pkg.id ? "bg-white text-app-primary" : "bg-[#f1f4f1] text-app-subtle"}`}>
+                  <div className={`rounded-xl p-3 ${booking.batteryPackage === pkg.id ? "bg-app-card text-app-primary" : "bg-app text-app-subtle"}`}>
                     <pkg.icon size={20} />
                   </div>
                   <div>
@@ -76,7 +76,7 @@ const BatteryPackagePage = () => {
                     <p className="mt-1 text-xs text-app-subtle">{pkg.description}</p>
                   </div>
                 </div>
-                <div className={`h-4 w-4 rounded-full border ${booking.batteryPackage === pkg.id ? "border-app-primary bg-app-primary" : "border-app-border bg-white"}`} />
+                <div className={`h-4 w-4 rounded-full border ${booking.batteryPackage === pkg.id ? "border-app-primary bg-app-primary" : "border-app-border bg-app-card"}`} />
               </button>
             ))}
           </div>

@@ -9,23 +9,26 @@ export default {
     extend: {
       colors: {
         app: {
-          DEFAULT: "#FAFAFA",
-          surface: "#FFFFFF",
-          card: "#FFFFFF",
-          muted: "#F3F4F6",
-          border: "#E5E7EB",
-          text: "#111827",
-          subtle: "#6B7280",
-          primary: "#272664",
-          primaryHover: "#1e1d4d",
-          secondary: "#F9FAFB",
+          DEFAULT: "#0B1118",
+          surface: "#161F2C",
+          card: "#1C2635",
+          muted: "#243041",
+          border: "#38475C",
+          text: "#F5F7FA",
+          subtle: "#9FACC0",
+          primary: "#2E7BE0",
+          primaryHover: "#4C90EB",
+          accent: "#D1FF42",
+          accentHover: "#A9CF2A",
+          night: "#0B1118",
+          secondary: "#1C2635",
           success: "#10B981",
           warning: "#F59E0B",
           danger: "#EF4444",
         },
       },
       boxShadow: {
-        glow: "0 4px 15px rgba(39, 38, 100, 0.2)",
+        glow: "0 4px 15px rgba(2, 81, 176, 0.25)",
         soft: "0 2px 10px rgba(0, 0, 0, 0.05)",
       },
       borderRadius: {
@@ -35,7 +38,7 @@ export default {
         sans: ['"Open Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
       backgroundImage: {
-        'hero-gradient': 'linear-gradient(135deg, #111827 0%, #1F2937 100%)',
+        'hero-gradient': 'linear-gradient(135deg, #0B1118 0%, #0251B0 100%)',
       }
     },
   },

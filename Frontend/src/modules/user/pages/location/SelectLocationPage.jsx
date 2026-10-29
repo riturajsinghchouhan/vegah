@@ -17,16 +17,16 @@ const SelectLocationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-12 font-sans relative">
+    <div className="min-h-screen bg-app pb-12 font-sans relative">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-20 shadow-xs">
+      <div className="bg-app-card border-b border-app-border px-4 py-4 flex items-center gap-3 sticky top-0 z-20 shadow-xs">
         <button
           onClick={() => navigate(-1)}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-700 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-app-muted text-app-text transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">Select Location</h1>
+        <h1 className="text-base font-bold text-app-text">Select Location</h1>
       </div>
 
       <div className="p-4 space-y-6 max-w-lg mx-auto">
@@ -34,43 +34,43 @@ const SelectLocationPage = () => {
         <button
           onClick={handleUseCurrentLocation}
           disabled={status === "loading"}
-          className="w-full bg-white rounded-2xl border border-gray-100 p-4 shadow-xs flex items-center justify-between hover:border-[#272664]/30 hover:bg-[#e8e8f2]/30 transition-all duration-200 group text-left"
+          className="w-full bg-app-card rounded-2xl border border-app-border p-4 shadow-xs flex items-center justify-between hover:border-[#2E7BE0]/30 hover:bg-app/30 transition-all duration-200 group text-left"
         >
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-[#e8e8f2] flex items-center justify-center text-[#272664] shrink-0">
+            <div className="w-10 h-10 rounded-full bg-app-muted flex items-center justify-center text-[#D1FF42] shrink-0">
               <Navigation size={18} className={status === "loading" ? "animate-spin" : ""} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#272664] group-hover:text-[#1e1d4d]">
+              <h3 className="text-sm font-bold text-[#D1FF42] group-hover:text-[#D1FF42]">
                 {status === "loading" ? "Detecting GPS Location..." : "Use Current Location"}
               </h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Enable GPS for accuracy</p>
+              <p className="text-[11px] text-app-subtle mt-0.5">Enable GPS for accuracy</p>
             </div>
           </div>
-          <ChevronRight size={18} className="text-gray-400 group-hover:text-[#272664] transition-colors" />
+          <ChevronRight size={18} className="text-app-subtle group-hover:text-[#D1FF42] transition-colors" />
         </button>
 
         {/* Saved Addresses Section */}
         <div>
           <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500">
+            <h2 className="text-[12px] font-bold uppercase tracking-wider text-app-subtle">
               Saved Addresses
             </h2>
             <button
               onClick={() => navigate("/user/add-location")}
-              className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
+              className="text-[12px] font-bold text-[#D1FF42] flex items-center gap-1 hover:text-[#D1FF42] transition-colors"
             >
               <Plus size={14} /> Add New
             </button>
           </div>
 
           {savedAddresses.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-xs">
+            <div className="bg-app-card rounded-2xl border border-app-border p-6 text-center shadow-xs">
               <Home size={32} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-xs text-gray-500 mb-3">No saved addresses yet.</p>
+              <p className="text-xs text-app-subtle mb-3">No saved addresses yet.</p>
               <button
                 onClick={() => navigate("/user/add-location")}
-                className="px-4 py-2 bg-[#272664] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#1e1d4d] transition-colors"
+                className="px-4 py-2 bg-[#D1FF42] text-[#1A2230] text-xs font-bold rounded-xl shadow-xs hover:bg-[#A9CF2A] transition-colors"
               >
                 + Add Delivery Location
               </button>
@@ -83,31 +83,31 @@ const SelectLocationPage = () => {
                   <div
                     key={addr.id}
                     onClick={() => handleSelectAddress(addr)}
-                    className={`w-full bg-white rounded-2xl border p-4 shadow-xs flex items-start justify-between cursor-pointer transition-all duration-200 ${
+                    className={`w-full bg-app-card rounded-2xl border p-4 shadow-xs flex items-start justify-between cursor-pointer transition-all duration-200 ${
                       isSelected
-                        ? "border-[#272664] bg-[#e8e8f2]/20 ring-1 ring-[#272664]/30"
-                        : "border-gray-100 hover:border-gray-200"
+                        ? "border-[#2E7BE0] bg-app-muted 20 ring-1 ring-[#2E7BE0]/30"
+                        : "border-app-border hover:border-app-border"
                     }`}
                   >
                     <div className="flex items-start gap-3.5 pr-2">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 shrink-0 mt-0.5">
+                      <div className="w-10 h-10 rounded-full bg-app-muted flex items-center justify-center text-app-subtle shrink-0 mt-0.5">
                         <Home size={18} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-gray-900">{addr.type || "Home"}</h3>
+                          <h3 className="text-sm font-bold text-app-text">{addr.type || "Home"}</h3>
                           {isSelected && (
-                            <span className="text-[9px] bg-[#272664] text-white px-2 py-0.5 rounded-full font-bold">
+                            <span className="text-[9px] bg-[#D1FF42] text-[#1A2230] px-2 py-0.5 rounded-full font-bold">
                               Selected
                             </span>
                           )}
                         </div>
                         {addr.phone && (
-                          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                          <p className="text-[11px] text-app-subtle font-medium mt-0.5">
                             Phone: {addr.phone}
                           </p>
                         )}
-                        <p className="text-[11px] text-gray-500 line-clamp-2 mt-1 leading-relaxed">
+                        <p className="text-[11px] text-app-subtle line-clamp-2 mt-1 leading-relaxed">
                           {addr.formattedAddress || `${addr.primaryAddress}, ${addr.secondaryAddress || ""}, ${addr.city}`}
                         </p>
                       </div>
@@ -120,7 +120,7 @@ const SelectLocationPage = () => {
                           e.stopPropagation();
                           deleteSavedAddress(addr.id);
                         }}
-                        className="w-7 h-7 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        className="w-7 h-7 flex items-center justify-center text-red-500 hover:bg-red-500/15 rounded-full transition-colors"
                         title="Delete Address"
                       >
                         <Trash2 size={14} />

@@ -10,7 +10,7 @@ const ChargingStationCard = ({ station = {} }) => {
   const isBusy = rawStatus.includes("BUSY") || rawStatus.includes("FULL");
 
   const statusLabel = isAvailable ? "Available" : isBusy ? "Busy" : "Unavailable";
-  const statusColor = isAvailable ? "text-emerald-600" : isBusy ? "text-amber-500" : "text-red-500";
+  const statusColor = isAvailable ? "text-emerald-400" : isBusy ? "text-amber-500" : "text-red-500";
   const statusBg = isAvailable ? "bg-emerald-500" : isBusy ? "bg-amber-500" : "bg-red-500";
 
   const rawPrice = Number(station.pricePerKwh || station.price);
@@ -23,7 +23,7 @@ const ChargingStationCard = ({ station = {} }) => {
   return (
     <Link 
       to={stationId ? `/charging/${stationId}` : "#"}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4 hover:shadow-md transition-shadow mb-3 block"
+      className="bg-app-card rounded-2xl border border-app-border shadow-sm p-4 flex gap-4 hover:shadow-md transition-shadow mb-3 block"
     >
       {/* Left: Image / Icon Container */}
       <div className="w-20 h-24 shrink-0 bg-slate-900 rounded-xl flex items-center justify-center p-2 overflow-hidden relative">
@@ -45,12 +45,12 @@ const ChargingStationCard = ({ station = {} }) => {
         {/* Header: Title, Address, Distance & Status */}
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-gray-900 truncate">{station.name || "Charging Station"}</h3>
-            <p className="text-xs text-gray-500 truncate mt-0.5">{station.address || "Bengaluru, Karnataka"}</p>
+            <h3 className="text-sm font-bold text-app-text truncate">{station.name || "Charging Station"}</h3>
+            <p className="text-xs text-app-subtle truncate mt-0.5">{station.address || "Bengaluru, Karnataka"}</p>
           </div>
           
           <div className="flex items-center gap-2.5 shrink-0">
-            <span className="text-xs text-gray-500 font-medium">{distance} km</span>
+            <span className="text-xs text-app-subtle font-medium">{distance} km</span>
             <div className={`flex items-center gap-1.5 text-xs font-bold ${statusColor}`}>
               <span className={`w-2 h-2 rounded-full ${statusBg}`} />
               {statusLabel}
@@ -63,14 +63,14 @@ const ChargingStationCard = ({ station = {} }) => {
           {/* Chips */}
           <div className="flex flex-wrap gap-1.5">
             {station.chargingType && (
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700">
-                {station.chargingType === "AC" ? <Cable size={12} className="text-indigo-600" /> : <Zap size={12} className="text-orange-500" />}
+              <div className="flex items-center gap-1 bg-app-muted border border-app-border rounded-lg px-2 py-1 text-app-text">
+                {station.chargingType === "AC" ? <Cable size={12} className="text-indigo-400" /> : <Zap size={12} className="text-orange-500" />}
                 <span className="text-[10px] font-bold">{station.chargingType}</span>
               </div>
             )}
             {station.connector && (
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700">
-                <Cable size={12} className="text-gray-400" />
+              <div className="flex items-center gap-1 bg-app-muted border border-app-border rounded-lg px-2 py-1 text-app-text">
+                <Cable size={12} className="text-app-subtle" />
                 <span className="text-[10px] font-bold">{station.connector}</span>
               </div>
             )}
@@ -79,16 +79,16 @@ const ChargingStationCard = ({ station = {} }) => {
           {/* Price & Port Indicator */}
           <div className="flex items-center gap-3 shrink-0 ml-auto">
             <div className="text-right">
-              <p className="text-sm font-bold text-gray-900 leading-none">
-                ₹{price}<span className="text-[10px] text-gray-500 font-normal">/kWh</span>
+              <p className="text-sm font-bold text-app-text leading-none">
+                ₹{price}<span className="text-[10px] text-app-subtle font-normal">/kWh</span>
               </p>
             </div>
             
             <div className="flex flex-col items-center justify-center">
-              <div className="w-8 h-8 rounded-full border border-indigo-950 text-indigo-950 flex items-center justify-center hover:bg-indigo-50 transition-colors mb-0.5">
+              <div className="w-8 h-8 rounded-full border border-indigo-950 text-indigo-950 flex items-center justify-center hover:bg-indigo-500/15 transition-colors mb-0.5">
                 <ArrowRight size={16} strokeWidth={2.5} />
               </div>
-              <p className="text-[9px] text-gray-500 font-medium leading-none text-center">
+              <p className="text-[9px] text-app-subtle font-medium leading-none text-center">
                 {availablePorts}/{totalPorts} Available
               </p>
             </div>

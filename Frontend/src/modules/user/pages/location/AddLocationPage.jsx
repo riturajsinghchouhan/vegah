@@ -156,31 +156,31 @@ const AddLocationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-12 font-sans relative flex flex-col">
+    <div className="min-h-screen bg-app-card pb-12 font-sans relative flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-30 shadow-xs">
+      <div className="bg-app-card border-b border-app-border px-4 py-4 flex items-center gap-3 sticky top-0 z-30 shadow-xs">
         <button
           onClick={() => navigate(-1)}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-700 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-app-muted text-app-text transition-colors"
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">Add delivery location</h1>
+        <h1 className="text-base font-bold text-app-text">Add delivery location</h1>
       </div>
 
       {/* Map Container & Search Overlay */}
-      <div className="relative w-full h-[280px] bg-gray-100 border-b border-gray-200">
+      <div className="relative w-full h-[280px] bg-app-muted border-b border-app-border">
         {/* Search Input Bar */}
         <div className="absolute top-4 left-4 right-4 z-20">
-          <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-3 shadow-md border border-gray-100">
-            <Search size={18} className="text-[#272664]" />
+          <div className="flex items-center gap-2 bg-app-card rounded-2xl px-4 py-3 shadow-md border border-app-border">
+            <Search size={18} className="text-[#D1FF42]" />
             <input
               id="location-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search area, street, landmark..."
-              className="flex-1 bg-transparent text-xs text-gray-900 placeholder-gray-400 outline-none"
+              className="flex-1 bg-transparent text-xs text-app-text placeholder-app-subtle outline-none"
             />
           </div>
         </div>
@@ -188,7 +188,7 @@ const AddLocationPage = () => {
         {/* Map View Element */}
         <div id="add-location-map" className="w-full h-full">
           {!mapLoaded && (
-            <div className="w-full h-full flex items-center justify-center bg-[#E5E3DF] text-xs font-semibold text-gray-600">
+            <div className="w-full h-full flex items-center justify-center bg-app-muted text-xs font-semibold text-app-subtle">
               Initializing Google Map...
             </div>
           )}
@@ -207,9 +207,9 @@ const AddLocationPage = () => {
         {/* Floating "Use My Location" Button */}
         <button
           onClick={handleUseMyLocation}
-          className="absolute bottom-4 right-4 z-20 bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-100 text-xs font-bold text-[#272664] flex items-center gap-2 hover:bg-[#e8e8f2] transition-all active:scale-95"
+          className="absolute bottom-4 right-4 z-20 bg-app-card px-4 py-2.5 rounded-full shadow-lg border border-app-border text-xs font-bold text-[#D1FF42] flex items-center gap-2 hover:bg-app transition-all active:scale-95"
         >
-          <Navigation size={14} className="fill-[#272664]" />
+          <Navigation size={14} className="fill-[#2E7BE0]" />
           Use My Location
         </button>
       </div>
@@ -217,12 +217,12 @@ const AddLocationPage = () => {
       {/* Address Form Section */}
       <div className="flex-1 p-4 max-w-lg mx-auto w-full space-y-4">
         {/* Pinned Location Card */}
-        <div className="bg-[#FFF5F2] border border-[#FFE0D6] rounded-2xl p-4 shadow-xs">
+        <div className="bg-[#3A2418] border border-[#3A2418] rounded-2xl p-4 shadow-xs">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#C5221F] mb-1">
             <MapPin size={14} />
             <span className="uppercase tracking-wider">PINNED LOCATION</span>
           </div>
-          <p className="text-xs text-gray-800 leading-relaxed font-medium">
+          <p className="text-xs text-app-text leading-relaxed font-medium">
             {isGeocodingLoading ? "Updating pinned address..." : addressForm.formattedAddress}
           </p>
         </div>
@@ -230,7 +230,7 @@ const AddLocationPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Primary Address */}
           <div>
-            <label className="block text-[11px] font-bold text-gray-800 mb-1.5">
+            <label className="block text-[11px] font-bold text-app-text mb-1.5">
               Primary Address (Street / Area / Landmark)
             </label>
             <input
@@ -238,21 +238,21 @@ const AddLocationPage = () => {
               required
               value={addressForm.primaryAddress}
               onChange={(e) => setAddressForm({ ...addressForm, primaryAddress: e.target.value })}
-              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
+              className="w-full bg-app-card rounded-xl border border-app-border px-4 py-3 text-xs text-app-text focus:border-[#2E7BE0] focus:ring-1 focus:ring-[#2E7BE0] outline-none transition-all"
               placeholder="e.g. Pawar Villa"
             />
           </div>
 
           {/* Secondary Address */}
           <div>
-            <label className="block text-[11px] font-bold text-gray-800 mb-1.5">
+            <label className="block text-[11px] font-bold text-app-text mb-1.5">
               Secondary Address (House No. / Flat / Floor)
             </label>
             <input
               type="text"
               value={addressForm.secondaryAddress}
               onChange={(e) => setAddressForm({ ...addressForm, secondaryAddress: e.target.value })}
-              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
+              className="w-full bg-app-card rounded-xl border border-app-border px-4 py-3 text-xs text-app-text focus:border-[#2E7BE0] focus:ring-1 focus:ring-[#2E7BE0] outline-none transition-all"
               placeholder="e.g. Talawali Chanda"
             />
           </div>
@@ -260,24 +260,24 @@ const AddLocationPage = () => {
           {/* City & State Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-gray-800 mb-1.5">City</label>
+              <label className="block text-[11px] font-bold text-app-text mb-1.5">City</label>
               <input
                 type="text"
                 required
                 value={addressForm.city}
                 onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
+                className="w-full bg-app-card rounded-xl border border-app-border px-4 py-3 text-xs text-app-text focus:border-[#2E7BE0] focus:ring-1 focus:ring-[#2E7BE0] outline-none transition-all"
                 placeholder="Indore"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-gray-800 mb-1.5">State</label>
+              <label className="block text-[11px] font-bold text-app-text mb-1.5">State</label>
               <input
                 type="text"
                 required
                 value={addressForm.state}
                 onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
+                className="w-full bg-app-card rounded-xl border border-app-border px-4 py-3 text-xs text-app-text focus:border-[#2E7BE0] focus:ring-1 focus:ring-[#2E7BE0] outline-none transition-all"
                 placeholder="Madhya Pradesh"
               />
             </div>
@@ -285,13 +285,13 @@ const AddLocationPage = () => {
 
           {/* Pincode / ZIP */}
           <div>
-            <label className="block text-[11px] font-bold text-gray-800 mb-1.5">Pincode / ZIP</label>
+            <label className="block text-[11px] font-bold text-app-text mb-1.5">Pincode / ZIP</label>
             <input
               type="text"
               required
               value={addressForm.pincode}
               onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
-              className="w-full bg-white rounded-xl border border-gray-200 px-4 py-3 text-xs text-gray-900 focus:border-[#272664] focus:ring-1 focus:ring-[#272664] outline-none transition-all"
+              className="w-full bg-app-card rounded-xl border border-app-border px-4 py-3 text-xs text-app-text focus:border-[#2E7BE0] focus:ring-1 focus:ring-[#2E7BE0] outline-none transition-all"
               placeholder="452007"
             />
           </div>
@@ -299,7 +299,7 @@ const AddLocationPage = () => {
           {/* Save Button */}
           <button
             type="submit"
-            className="w-full py-3.5 bg-[#272664] text-white font-bold text-xs rounded-xl shadow-md hover:bg-[#1e1d4d] active:scale-95 transition-all mt-4"
+            className="w-full py-3.5 bg-[#D1FF42] text-[#1A2230] font-bold text-xs rounded-xl shadow-md hover:bg-[#A9CF2A] active:scale-95 transition-all mt-4"
           >
             Save Address & Set Location
           </button>

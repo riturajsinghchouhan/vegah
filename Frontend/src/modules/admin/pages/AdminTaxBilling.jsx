@@ -734,7 +734,7 @@ export default function AdminTaxBilling() {
 
               {/* Footer */}
               <div className="text-[11px] text-gray-400 text-center border-t border-gray-100 pt-4">
-                Thank you for choosing Vegah EV Mobility. This is a computer-generated tax invoice.
+                Thank you for choosing Swoop EV Mobility. This is a computer-generated tax invoice.
               </div>
             </div>
           </div>

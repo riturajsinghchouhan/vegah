@@ -92,11 +92,11 @@ const BookingSuccessPage = () => {
   const targetId = latestBooking?._id || latestBooking?.id || latestBooking?.bookingId;
 
   return (
-    <main className="page-padding min-h-screen flex flex-col bg-[#fcfcfc]">
+    <main className="page-padding min-h-screen flex flex-col bg-app">
       <PageHeader title={isApproved ? "Booking Approved" : isRejected ? "Booking Rejected" : "Booking Status"} />
 
       <div className="flex-1 flex flex-col items-center justify-center py-8">
-        <section className="surface-card w-full max-w-2xl p-6 sm:p-10 text-center relative shadow-sm border border-app-border rounded-3xl bg-white">
+        <section className="surface-card w-full max-w-2xl p-6 sm:p-10 text-center relative shadow-sm border border-app-border rounded-3xl bg-app-card">
 
           {confirmedAlert && !isRejected && (
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-[90%] sm:w-full bg-emerald-600 text-white px-5 py-4 rounded-2xl shadow-xl flex items-start gap-4 border-2 border-white animate-bounce-short z-10">
@@ -114,7 +114,7 @@ const BookingSuccessPage = () => {
           )}
 
           <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full transition-all duration-500 mb-8 ${
-            isApproved ? "bg-emerald-100 text-emerald-600 ring-[12px] ring-emerald-50" : isRejected ? "bg-red-100 text-red-600 ring-[12px] ring-red-50" : "bg-amber-100 text-amber-600 ring-[12px] ring-amber-50"
+            isApproved ? "bg-emerald-500/20 text-emerald-400 ring-[12px] ring-emerald-50" : isRejected ? "bg-red-500/20 text-red-400 ring-[12px] ring-red-50" : "bg-amber-500/20 text-amber-400 ring-[12px] ring-amber-50"
           }`}>
             {isApproved ? <CheckCircle2 size={48} className="animate-in zoom-in duration-500" /> : isRejected ? <X size={48} className="animate-in zoom-in duration-500" /> : <Clock size={48} className="animate-spin" style={{ animationDuration: '3s' }} />}
           </div>
@@ -132,25 +132,25 @@ const BookingSuccessPage = () => {
           </p>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 text-left">
-            <div className="bg-[#f9fbf9] p-4 rounded-2xl border border-app-border/50">
+            <div className="bg-app-muted p-4 rounded-2xl border border-app-border/50">
               <p className="text-[11px] font-bold uppercase tracking-wider text-app-subtle mb-1">Vehicle</p>
               <p className="text-base font-semibold text-app-text truncate">{vehicleName}</p>
             </div>
-            <div className="bg-[#f9fbf9] p-4 rounded-2xl border border-app-border/50">
+            <div className="bg-app-muted p-4 rounded-2xl border border-app-border/50">
               <p className="text-[11px] font-bold uppercase tracking-wider text-app-subtle mb-1">Amount</p>
               <p className="text-base font-semibold text-app-text">
                 {loading ? "..." : formatCurrency(bookingAmount)}
               </p>
             </div>
-            <div className="bg-[#f9fbf9] p-4 rounded-2xl border border-app-border/50 col-span-2 sm:col-span-1">
+            <div className="bg-app-muted p-4 rounded-2xl border border-app-border/50 col-span-2 sm:col-span-1">
               <p className="text-[11px] font-bold uppercase tracking-wider text-app-subtle mb-1">Pickup Hub</p>
               <p className="text-sm font-medium text-app-text line-clamp-2">{pickupLoc}</p>
             </div>
-            <div className="bg-[#f9fbf9] p-4 rounded-2xl border border-app-border/50 col-span-2 sm:col-span-1">
+            <div className="bg-app-muted p-4 rounded-2xl border border-app-border/50 col-span-2 sm:col-span-1">
               <p className="text-[11px] font-bold uppercase tracking-wider text-app-subtle mb-1">Status</p>
               <div className="mt-1">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                  isApproved ? "bg-emerald-100 text-emerald-700" : isRejected ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700 animate-pulse"
+                  isApproved ? "bg-emerald-500/20 text-emerald-400" : isRejected ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400 animate-pulse"
                 }`}>
                   {isApproved ? "✓ APPROVED" : isRejected ? "✕ REJECTED" : "⏳ PENDING"}
                 </span>
@@ -159,9 +159,9 @@ const BookingSuccessPage = () => {
           </div>
 
           {isApproved && (
-            <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-left flex items-start gap-3">
-              <MapPin size={18} className="mt-0.5 shrink-0 text-blue-600" />
-              <p className="text-xs leading-relaxed text-blue-900">
+            <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-500/15/60 p-4 text-left flex items-start gap-3">
+              <MapPin size={18} className="mt-0.5 shrink-0 text-[#D1FF42]" />
+              <p className="text-xs leading-relaxed text-[#D1FF42]">
                 Your rental timer starts only when the hub team confirms the handover — not now. Take your time getting there.
               </p>
             </div>

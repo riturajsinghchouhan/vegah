@@ -28,11 +28,11 @@ const CATEGORY_IMAGES = {
 };
 
 const VehicleSkeleton = () => (
-  <div className="min-w-[160px] bg-white rounded-[16px] border border-gray-100 p-3 animate-pulse">
-    <div className="h-[90px] bg-gray-100 rounded-lg mb-3" />
-    <div className="h-3 bg-gray-100 rounded w-3/4 mb-2" />
-    <div className="h-3 bg-gray-100 rounded w-1/2 mb-2" />
-    <div className="h-4 bg-gray-100 rounded w-2/3" />
+  <div className="min-w-[160px] bg-app-card rounded-[16px] border border-app-border p-3 animate-pulse">
+    <div className="h-[90px] bg-app-muted rounded-lg mb-3" />
+    <div className="h-3 bg-app-muted rounded w-3/4 mb-2" />
+    <div className="h-3 bg-app-muted rounded w-1/2 mb-2" />
+    <div className="h-4 bg-app-muted rounded w-2/3" />
   </div>
 );
 
@@ -145,34 +145,34 @@ const HomePage = () => {
   const activeCoupon = coupons[activeCouponIndex];
 
   return (
-    <div className="bg-[#FAFAFA] min-h-screen pb-24 relative overflow-x-hidden font-sans">
+    <div className="bg-app min-h-screen pb-24 relative overflow-x-hidden font-sans">
       
       {/* Header (Image 3) */}
       <div className="px-4 pt-5 pb-3 flex items-center justify-between">
         <div 
           onClick={() => navigate("/user/select-location")}
-          className="flex items-start gap-2.5 cursor-pointer group p-1 -ml-1 rounded-xl hover:bg-gray-100/60 transition-colors"
+          className="flex items-start gap-2.5 cursor-pointer group p-1 -ml-1 rounded-xl hover:bg-app-muted/60 transition-colors"
         >
-          <MapPin size={22} className="text-[#272664] mt-0.5 shrink-0" />
+          <MapPin size={22} className="text-[#D1FF42] mt-0.5 shrink-0" />
           <div>
             <div className="flex items-center gap-1">
-              <h2 className="text-sm font-bold text-gray-900 group-hover:text-[#272664] transition-colors truncate max-w-[180px]">
+              <h2 className="text-sm font-bold text-app-text group-hover:text-[#D1FF42] transition-colors truncate max-w-[180px]">
                 {location?.title || location?.primaryAddress || "Select Location"}
               </h2>
-              <ChevronDown size={14} className="text-gray-900 group-hover:text-[#272664] transition-colors shrink-0" />
+              <ChevronDown size={14} className="text-app-text group-hover:text-[#D1FF42] transition-colors shrink-0" />
             </div>
-            <p className="text-[10px] text-gray-500 truncate max-w-[200px]">
+            <p className="text-[10px] text-app-subtle truncate max-w-[200px]">
               {location?.subtitle || (location?.city ? `${location.city}, ${location.state || "India"}` : "Madhya Pradesh, India")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="relative p-1 hover:bg-gray-100 rounded-full transition-colors">
-            <Bell size={22} className="text-gray-800" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#272664] border-2 border-white" />
+          <button className="relative p-1 hover:bg-app-muted rounded-full transition-colors">
+            <Bell size={22} className="text-app-text" />
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#2E7BE0] border-2 border-white" />
           </button>
           <Link to="/user/profile">
-            <div className="h-8 w-8 rounded-full bg-[#272664] flex items-center justify-center text-white font-bold text-sm shadow-sm hover:scale-105 transition-transform">
+            <div className="h-8 w-8 rounded-full bg-[#D1FF42] flex items-center justify-center text-[#1A2230] font-bold text-sm shadow-sm hover:scale-105 transition-transform">
               {userInitial}
             </div>
           </Link>
@@ -181,26 +181,26 @@ const HomePage = () => {
 
       {/* Search Bar */}
       <div className="px-4 mb-5 flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-white rounded-full border border-gray-200 px-4 py-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500">
-          <Search size={18} className="text-gray-400" />
+        <div className="flex-1 flex items-center gap-2 bg-app-card rounded-full border border-app-border px-4 py-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500">
+          <Search size={18} className="text-app-subtle" />
           <input
             type="text"
             placeholder="Search destination, scoot or offer"
-            className="flex-1 bg-transparent text-xs text-gray-800 placeholder-gray-400 outline-none"
+            className="flex-1 bg-transparent text-xs text-app-text placeholder-app-subtle outline-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <Mic 
             size={18} 
-            className={`cursor-pointer transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-800 hover:text-blue-600'}`} 
+            className={`cursor-pointer transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-app-text hover:text-[#D1FF42]'}`} 
             onClick={startVoiceSearch} 
           />
         </div>
-        <div className="flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-3 py-2 shadow-sm whitespace-nowrap">
+        <div className="flex items-center gap-1.5 bg-app-card rounded-full border border-app-border px-3 py-2 shadow-sm whitespace-nowrap">
           <Tag size={18} className="text-pink-500" />
           <div className="leading-tight">
-            <p className="text-[10px] font-bold text-gray-900">Offers</p>
-            <p className="text-[8px] text-gray-500">
+            <p className="text-[10px] font-bold text-app-text">Offers</p>
+            <p className="text-[8px] text-app-subtle">
               {coupons.length > 0 ? `${coupons.length} Active` : "Loading..."}
             </p>
           </div>
@@ -213,10 +213,10 @@ const HomePage = () => {
         <div className="flex items-center gap-3 w-max">
           {loading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-100 w-[80px] py-3 shadow-sm animate-pulse">
-                  <div className="h-8 w-14 bg-gray-100 rounded mb-2" />
-                  <div className="h-2 w-12 bg-gray-100 rounded mb-1" />
-                  <div className="h-2 w-10 bg-gray-100 rounded" />
+                <div key={i} className="flex flex-col items-center justify-center bg-app-card rounded-2xl border border-app-border w-[80px] py-3 shadow-sm animate-pulse">
+                  <div className="h-8 w-14 bg-app-muted rounded mb-2" />
+                  <div className="h-2 w-12 bg-app-muted rounded mb-1" />
+                  <div className="h-2 w-10 bg-app-muted rounded" />
                 </div>
               ))
             : categories.length > 0
@@ -224,8 +224,8 @@ const HomePage = () => {
                   <Link
                     key={cat._id}
                     to={`/user/vehicles?category=${cat._id}`}
-                    className={`flex flex-col items-center justify-center bg-white rounded-2xl border w-[80px] py-3 shadow-sm transition-colors ${
-                      i === 0 ? "border-[#272664]" : "border-gray-100"
+                    className={`flex flex-col items-center justify-center bg-app-card rounded-2xl border w-[80px] py-3 shadow-sm transition-colors ${
+                      i === 0 ? "border-[#2E7BE0]" : "border-app-border"
                     }`}
                   >
                     <img
@@ -234,12 +234,12 @@ const HomePage = () => {
                       className="h-8 object-contain mb-2"
                       onError={(e) => { e.target.src = CATEGORY_IMAGES.default1; }}
                     />
-                    <span className="text-[10px] font-bold text-gray-900 text-center leading-tight px-1">{cat.name}</span>
-                    <span className="text-[8px] text-gray-500">From ₹{cat.basePrice || 799}</span>
+                    <span className="text-[10px] font-bold text-app-text text-center leading-tight px-1">{cat.name}</span>
+                    <span className="text-[8px] text-app-subtle">From ₹{cat.basePrice || 799}</span>
                   </Link>
                 ))
               : (
-                  <div className="flex items-center justify-center w-full py-4 text-gray-400">
+                  <div className="flex items-center justify-center w-full py-4 text-app-subtle">
                     <p className="text-xs">No categories found</p>
                   </div>
                 )}
@@ -249,7 +249,7 @@ const HomePage = () => {
 
       {/* Hero Banner */}
       <div className="px-4 mb-6">
-        <Link to="/user/vehicles" className="block relative rounded-[20px] overflow-hidden shadow-md bg-white">
+        <Link to="/user/vehicles" className="block relative rounded-[20px] overflow-hidden shadow-md bg-app-card">
           <img
             src="/assets/herobanner.png"
             alt="Drive More, Save Big! Up to 40% OFF"
@@ -264,32 +264,32 @@ const HomePage = () => {
       {(loading || coupons.length > 0) && (
         <div className="px-4 mb-6">
           {loading ? (
-            <div className="bg-[#F0FDF4] border border-green-200 border-dashed rounded-xl p-3 animate-pulse h-16" />
+            <div className="bg-[#13301F] border border-green-200 border-dashed rounded-xl p-3 animate-pulse h-16" />
           ) : activeCoupon ? (
-            <div className="bg-[#F0FDF4] border border-green-200 border-dashed rounded-xl p-3 flex items-center justify-between transition-all">
+            <div className="bg-[#13301F] border border-green-200 border-dashed rounded-xl p-3 flex items-center justify-between transition-all">
               <div className="flex items-center gap-3">
-                <div className="bg-green-100 rounded-lg p-2 text-green-600">
+                <div className="bg-green-500/20 rounded-lg p-2 text-green-400">
                   <Tag size={20} />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-gray-900">
+                  <h3 className="text-xs font-bold text-app-text">
                     {activeCoupon.type === "PERCENTAGE"
                       ? `Flat ${activeCoupon.value}% OFF!`
                       : `₹${activeCoupon.value} OFF!`}
                     {activeCoupon.description && ` — ${activeCoupon.description}`}
                   </h3>
-                  <p className="text-[10px] text-gray-600 mt-0.5">
+                  <p className="text-[10px] text-app-subtle mt-0.5">
                     Use code{" "}
-                    <span className="font-bold text-green-600">{activeCoupon.code}</span>
+                    <span className="font-bold text-green-400">{activeCoupon.code}</span>
                     {activeCoupon.minBookingAmount > 0 && (
-                      <span className="text-gray-400"> · Min ₹{activeCoupon.minBookingAmount}</span>
+                      <span className="text-app-subtle"> · Min ₹{activeCoupon.minBookingAmount}</span>
                     )}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => handleCopyCode(activeCoupon.code)}
-                className="flex items-center gap-1 border border-green-500 text-green-600 text-[10px] font-bold px-3 py-1.5 rounded-full bg-white transition-colors hover:bg-green-50"
+                className="flex items-center gap-1 border border-green-500 text-green-400 text-[10px] font-bold px-3 py-1.5 rounded-full bg-app-card transition-colors hover:bg-green-500/15"
               >
                 <Copy size={10} />
                 {copiedCode === activeCoupon.code ? "Copied!" : "Copy"}
@@ -305,7 +305,7 @@ const HomePage = () => {
                   key={i}
                   onClick={() => setActiveCouponIndex(i)}
                   className={`h-1.5 rounded-full transition-all ${
-                    i === activeCouponIndex ? "w-4 bg-green-500" : "w-1.5 bg-gray-300"
+                    i === activeCouponIndex ? "w-4 bg-green-500" : "w-1.5 bg-app-subtle"
                   }`}
                 />
               ))}
@@ -317,13 +317,13 @@ const HomePage = () => {
       {/* Scoots in the user's zone */}
       <div className="mb-6 px-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-gray-900">
+          <h2 className="text-base font-bold text-app-text">
             {loading ? "Finding scoots near you..." : userZone ? `Scoots in ${userZone.name}` : "Scoots Near You"}
           </h2>
           {!loading && vehicles.length > 0 && (
             <Link
               to={userZone ? `/user/vehicles?zone=${userZone._id}` : "/user/vehicles"}
-              className="text-xs font-bold text-[#272664] flex items-center"
+              className="text-xs font-bold text-[#D1FF42] flex items-center"
             >
               View All <ChevronRight size={14} />
             </Link>
@@ -342,7 +342,7 @@ const HomePage = () => {
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center w-full py-8 text-gray-400">
+          <div className="flex items-center justify-center w-full py-8 text-app-subtle">
             <div className="text-center">
               <MapPin className="mx-auto mb-2" size={24} />
               <p className="text-xs">

@@ -50,7 +50,7 @@ const VehicleDetailsPage = () => {
                   {vehicle.rating} rating from {vehicle.reviewsCount} reviews
                 </p>
               </div>
-              <div className="rounded-[1.5rem] bg-emerald-50 px-4 py-3 text-right">
+              <div className="rounded-[1.5rem] bg-emerald-500/15 px-4 py-3 text-right">
                 <p className="text-sm text-app-subtle">From</p>
                 <p className="text-2xl font-semibold text-app-primary">Rs {vehicle.prices.day}/wk</p>
               </div>
@@ -59,7 +59,7 @@ const VehicleDetailsPage = () => {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {vehicle.features.map((feature) => (
                 <div key={feature} className="flex items-center gap-3 rounded-2xl border border-app-border bg-app-card p-3">
-                  <div className="rounded-xl bg-white p-2 text-app-primary">
+                  <div className="rounded-xl bg-app-card p-2 text-app-primary">
                     <Check size={16} />
                   </div>
                   <span className="text-sm text-app-text">{feature}</span>

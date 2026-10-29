@@ -155,7 +155,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="bg-[#F8F9FA] min-h-screen pb-28 font-sans">
+    <div className="bg-app min-h-screen pb-28 font-sans">
       <ProfileHeader />
       
       <ProfileHero user={mappedUser} />
@@ -170,35 +170,35 @@ const ProfilePage = () => {
       
       {/* Manage Details Section */}
       <div className="px-5 mb-8">
-        <h3 className="text-[16px] font-bold text-gray-900 mb-3 px-1">Manage Details</h3>
-        <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+        <h3 className="text-[16px] font-bold text-app-text mb-3 px-1">Manage Details</h3>
+        <div className="bg-app-card rounded-[24px] border border-app-border shadow-sm overflow-hidden">
           <Link 
             to="/user/profile/aadhar"
-            className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-50"
+            className="flex items-center justify-between p-4 bg-app-card hover:bg-app-muted active:bg-app-muted transition-colors border-b border-app-border"
           >
             <div className="flex items-center gap-4">
-              <div className="text-gray-500">
+              <div className="text-app-subtle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="14" x="3" y="5" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="7" x2="9" y1="13" y2="13"/><line x1="7" x2="11" y1="17" y2="17"/></svg>
               </div>
-              <span className="text-[14px] font-medium text-gray-800">
+              <span className="text-[14px] font-medium text-app-text">
                 Aadhar Verification
               </span>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-app-subtle"><polyline points="9 18 15 12 9 6"/></svg>
           </Link>
           <Link 
             to="/user/profile/license"
-            className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="flex items-center justify-between p-4 bg-app-card hover:bg-app-muted active:bg-app-muted transition-colors"
           >
             <div className="flex items-center gap-4">
-              <div className="text-gray-500">
+              <div className="text-app-subtle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M12 14v4"/><path d="M8 14h8"/></svg>
               </div>
-              <span className="text-[14px] font-medium text-gray-800">
+              <span className="text-[14px] font-medium text-app-text">
                 Driving License
               </span>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-app-subtle"><polyline points="9 18 15 12 9 6"/></svg>
           </Link>
         </div>
       </div>
@@ -207,7 +207,7 @@ const ProfilePage = () => {
       <div className="px-5 mt-2">
         <button 
           onClick={() => setIsLogoutOpen(true)}
-          className="flex items-center gap-3 px-4 py-4 w-full bg-white rounded-[20px] border border-red-100 shadow-sm hover:bg-red-50 active:bg-red-100 transition-colors"
+          className="flex items-center gap-3 px-4 py-4 w-full bg-app-card rounded-[20px] border border-red-100 shadow-sm hover:bg-red-500/15 active:bg-red-500/20 transition-colors"
         >
           <LogOut size={20} className="text-[#DC2626]" />
           <span className="text-[14px] font-bold text-[#DC2626]">Logout</span>

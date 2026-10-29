@@ -76,7 +76,7 @@ const BookingsPage = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "ACTIVE": return <Navigation size={14} className="text-blue-500" />;
+      case "ACTIVE": return <Navigation size={14} className="text-[#D1FF42]" />;
       case "OVERDUE": return <AlertTriangle size={14} className="text-red-500" />;
       case "PENDING_RETURN": return <PackageCheck size={14} className="text-purple-500" />;
       case "CONFIRMED": return <CheckCircle2 size={14} className="text-emerald-500" />;
@@ -90,15 +90,15 @@ const BookingsPage = () => {
 
   const getStatusBadgeColor = (status) => {
     switch (status) {
-      case "ACTIVE": return "bg-blue-50 text-blue-600 border-blue-100";
-      case "OVERDUE": return "bg-red-50 text-red-600 border-red-200 font-bold";
-      case "PENDING_RETURN": return "bg-purple-50 text-purple-700 border-purple-200 font-bold";
-      case "CONFIRMED": return "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold";
-      case "COMPLETED": return "bg-green-50 text-green-600 border-green-100";
+      case "ACTIVE": return "bg-blue-500/15 text-[#D1FF42] border-blue-100";
+      case "OVERDUE": return "bg-red-500/15 text-red-400 border-red-200 font-bold";
+      case "PENDING_RETURN": return "bg-purple-500/15 text-purple-400 border-purple-200 font-bold";
+      case "CONFIRMED": return "bg-emerald-500/15 text-emerald-400 border-emerald-200 font-bold";
+      case "COMPLETED": return "bg-green-500/15 text-green-400 border-green-100";
       case "CANCELLED_BY_USER":
       case "CANCELLED_BY_ADMIN":
-      case "CANCELLED": return "bg-red-50 text-red-600 border-red-100";
-      default: return "bg-amber-50 text-amber-600 border-amber-100";
+      case "CANCELLED": return "bg-red-500/15 text-red-400 border-red-100";
+      default: return "bg-amber-500/15 text-amber-400 border-amber-100";
     }
   };
 
@@ -117,11 +117,11 @@ const BookingsPage = () => {
   };
 
   return (
-    <div className="bg-[#FAFAFA] min-h-screen pb-24 font-sans relative">
+    <div className="bg-app min-h-screen pb-24 font-sans relative">
       {/* Header Section */}
-      <div className="bg-white px-5 pt-8 pb-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative z-10">
-        <h1 className="text-[24px] font-bold text-gray-900 leading-tight">My Bookings</h1>
-        <p className="text-[13px] text-gray-500 mt-1">Track your upcoming and past EV rides</p>
+      <div className="bg-app-card px-5 pt-8 pb-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] relative z-10">
+        <h1 className="text-[24px] font-bold text-app-text leading-tight">My Bookings</h1>
+        <p className="text-[13px] text-app-subtle mt-1">Track your upcoming and past EV rides</p>
 
         {/* Tabs */}
         <div className="flex gap-3 overflow-x-auto no-scrollbar mt-6">
@@ -131,8 +131,8 @@ const BookingsPage = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-all duration-300 ${
                 activeTab === tab 
-                  ? "bg-[#272664] text-white shadow-md shadow-[#272664]/20" 
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-[#D1FF42] text-[#1A2230] shadow-md shadow-[#D1FF42]/20" 
+                  : "bg-app-muted text-app-subtle hover:bg-gray-200"
               }`}
             >
               {tab}
@@ -144,21 +144,21 @@ const BookingsPage = () => {
       {/* Bookings List */}
       <div className="p-4">
         {loading ? (
-          <div className="py-12 text-center text-gray-500 font-semibold">Loading your bookings...</div>
+          <div className="py-12 text-center text-app-subtle font-semibold">Loading your bookings...</div>
         ) : filteredBookings.length ? (
           <div className="space-y-4 mt-2">
             {filteredBookings.map((booking) => (
               <div 
                 key={booking.id} 
-                className="bg-white rounded-[20px] p-4 shadow-sm border border-gray-100 overflow-hidden relative"
+                className="bg-app-card rounded-[20px] p-4 shadow-sm border border-app-border overflow-hidden relative"
               >
                 {/* Header Row */}
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 tracking-wider mb-1">
+                    <p className="text-[10px] font-bold text-app-subtle tracking-wider mb-1">
                       ID: {booking.id}
                     </p>
-                    <h2 className="text-[16px] font-bold text-gray-900">{booking.vehicleName}</h2>
+                    <h2 className="text-[16px] font-bold text-app-text">{booking.vehicleName}</h2>
                   </div>
                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold ${getStatusBadgeColor(booking.status)}`}>
                     {getStatusIcon(booking.status)}
@@ -167,31 +167,31 @@ const BookingsPage = () => {
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-1 gap-3 bg-[#F8F9FA] rounded-xl p-3 mb-4">
+                <div className="grid grid-cols-1 gap-3 bg-app-muted rounded-xl p-3 mb-4">
                   <div className="flex items-start gap-2.5">
-                    <Calendar size={14} className="text-gray-400 mt-0.5 shrink-0" />
+                    <Calendar size={14} className="text-app-subtle mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-[10px] font-bold text-gray-500">Date & Time</p>
-                      <p className="text-[12px] font-semibold text-gray-800 leading-snug">
+                      <p className="text-[10px] font-bold text-app-subtle">Date & Time</p>
+                      <p className="text-[12px] font-semibold text-app-text leading-snug">
                         {booking.dateRange}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">
-                    <MapPin size={14} className="text-[#272664] mt-0.5 shrink-0" />
+                    <MapPin size={14} className="text-[#D1FF42] mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-[10px] font-bold text-gray-500">Pickup & Drop-off</p>
-                      <p className="text-[12px] font-semibold text-gray-800 leading-snug">
+                      <p className="text-[10px] font-bold text-app-subtle">Pickup & Drop-off</p>
+                      <p className="text-[12px] font-semibold text-app-text leading-snug">
                         {booking.location}
                       </p>
                     </div>
                   </div>
                   {booking.plateNumber && (
                     <div className="flex items-start gap-2.5">
-                      <KeyRound size={14} className="text-emerald-600 mt-0.5 shrink-0" />
+                      <KeyRound size={14} className="text-emerald-400 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[10px] font-bold text-gray-500">Your EV (Plate No.)</p>
-                        <p className="text-[13px] font-mono font-bold text-emerald-700 leading-snug">
+                        <p className="text-[10px] font-bold text-app-subtle">Your EV (Plate No.)</p>
+                        <p className="text-[13px] font-mono font-bold text-emerald-400 leading-snug">
                           {booking.plateNumber}
                         </p>
                       </div>
@@ -200,10 +200,10 @@ const BookingsPage = () => {
                 </div>
 
                 {/* Footer / Actions */}
-                <div className="flex items-center justify-between mt-2 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between mt-2 pt-4 border-t border-app-border">
                   <div>
-                    <p className="text-[10px] font-bold text-gray-500">Total Amount</p>
-                    <p className="text-[16px] font-bold text-gray-900">
+                    <p className="text-[10px] font-bold text-app-subtle">Total Amount</p>
+                    <p className="text-[16px] font-bold text-app-text">
                       {formatCurrency(booking.amount).replace('.00', '')}
                     </p>
                   </div>
@@ -226,14 +226,14 @@ const BookingsPage = () => {
                         </button>
                         <Link
                           to="/user/rental/active"
-                          className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-white bg-[#272664] rounded-xl hover:bg-[#1e1d4d] transition-colors shadow-sm"
+                          className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-[#1A2230] bg-[#D1FF42] rounded-xl hover:bg-[#A9CF2A] transition-colors shadow-sm"
                         >
                           Track Ride <ArrowRight size={14} />
                         </Link>
                       </>
                     )}
                     {booking.status === "PENDING_RETURN" && (
-                      <span className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded-xl">
+                      <span className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-purple-400 bg-purple-500/15 border border-purple-200 rounded-xl">
                         <Clock size={14} className="animate-spin" style={{ animationDuration: '3s' }} />
                         Awaiting hub verification
                       </span>

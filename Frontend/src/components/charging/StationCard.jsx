@@ -2,10 +2,10 @@ import { Clock3, MapPinned, Star, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const StationCard = ({ station }) => (
-  <Link className="block overflow-hidden p-4 bg-white rounded-[22px] shadow-sm border border-white transition-all duration-300 hover:border-emerald-100 hover:shadow-md hover:-translate-y-1" to={`/charging/${station.id}`}>
+  <Link className="block overflow-hidden p-4 bg-app-card rounded-[22px] shadow-sm border border-white transition-all duration-300 hover:border-emerald-100 hover:shadow-md hover:-translate-y-1" to={`/charging/${station.id}`}>
     <div className="relative">
       <img alt={station.name} className="h-40 w-full rounded-2xl object-cover shadow-sm" src={station.image} />
-      <div className="absolute top-3 right-3 rounded-lg bg-white/90 backdrop-blur-md border border-white/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-600 shadow-sm">
+      <div className="absolute top-3 right-3 rounded-lg bg-app-card/90 backdrop-blur-md border border-white/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 shadow-sm">
         {station.openStatus}
       </div>
     </div>

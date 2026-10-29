@@ -142,7 +142,7 @@ const LiveNavigationPage = () => {
       // Fallback if booking fails to load
       targetLat = DEFAULT_COORDS.lat + 0.008;
       targetLng = DEFAULT_COORDS.lng + 0.005;
-      targetAddr = "Vegah Fallback Hub";
+      targetAddr = "Swoop Fallback Hub";
     } else {
       const zone = booking.vehicle?.zone;
 
@@ -151,38 +151,38 @@ const LiveNavigationPage = () => {
         if (zone?.pickupLocation?.latitude && zone?.pickupLocation?.longitude) {
         targetLat = Number(zone.pickupLocation.latitude);
         targetLng = Number(zone.pickupLocation.longitude);
-        targetAddr = zone.pickupLocation.address || zone.name || "Vegah Pickup Hub";
+        targetAddr = zone.pickupLocation.address || zone.name || "Swoop Pickup Hub";
       } else if (booking.vehicle?.coordinates?.coordinates?.length === 2) {
         targetLng = Number(booking.vehicle.coordinates.coordinates[0]);
         targetLat = Number(booking.vehicle.coordinates.coordinates[1]);
-        targetAddr = booking.pickupLocation || booking.vehicle.location || "Vegah Vehicle Hub";
+        targetAddr = booking.pickupLocation || booking.vehicle.location || "Swoop Vehicle Hub";
       } else {
         targetLat = null;
         targetLng = null;
-        targetAddr = booking.pickupLocation || "Vegah Pickup Hub";
+        targetAddr = booking.pickupLocation || "Swoop Pickup Hub";
       }
     } else {
       // Drop location
       if (zone?.dropLocation?.latitude && zone?.dropLocation?.longitude) {
         targetLat = Number(zone.dropLocation.latitude);
         targetLng = Number(zone.dropLocation.longitude);
-        targetAddr = zone.dropLocation.address || zone.name || "Vegah Drop Hub";
+        targetAddr = zone.dropLocation.address || zone.name || "Swoop Drop Hub";
       } else if (zone?.pickupLocation?.latitude && zone?.pickupLocation?.longitude) {
         // Return to same zone hub if specific drop not set
         targetLat = Number(zone.pickupLocation.latitude);
         targetLng = Number(zone.pickupLocation.longitude);
-        targetAddr = zone.dropLocation?.address || zone.pickupLocation.address || "Vegah Return Hub";
+        targetAddr = zone.dropLocation?.address || zone.pickupLocation.address || "Swoop Return Hub";
       } else if (booking.vehicle?.coordinates?.coordinates?.length === 2) {
         // Use vehicle's own coordinates as a fallback
         targetLng = Number(booking.vehicle.coordinates.coordinates[0]);
         targetLat = Number(booking.vehicle.coordinates.coordinates[1]);
-        targetAddr = zone?.dropLocation?.address || booking.pickupLocation || booking.vehicle.location || "Vegah Return Hub";
+        targetAddr = zone?.dropLocation?.address || booking.pickupLocation || booking.vehicle.location || "Swoop Return Hub";
       } else {
         // Last resort: geocode the booking's pickupLocation address string
         // (pickup and drop are at the same hub for this zone)
         targetLat = null;
         targetLng = null;
-        targetAddr = booking.returnLocation || booking.pickupLocation || "Vegah Return Station";
+        targetAddr = booking.returnLocation || booking.pickupLocation || "Swoop Return Station";
       }
     }
     }
@@ -190,7 +190,7 @@ const LiveNavigationPage = () => {
     if (targetLat && targetLng && !isNaN(targetLat) && !isNaN(targetLng)) {
       setDestCoords({ lat: targetLat, lng: targetLng });
       setDestAddress(targetAddr);
-    } else if (targetAddr && targetAddr !== "Vegah Return Station") {
+    } else if (targetAddr && targetAddr !== "Swoop Return Station") {
       // We have an address but no coordinates — try geocoding it
       setDestAddress(targetAddr);
       if (window.google?.maps?.Geocoder) {
@@ -544,7 +544,7 @@ const LiveNavigationPage = () => {
     window.open(url, "_blank");
   };
 
-  const vehicleName = booking?.vehicle?.name || "Vegah EV Scooter";
+  const vehicleName = booking?.vehicle?.name || "Swoop EV Scooter";
   // The exact EV unit is chosen by the hub at handover, so the plate is only known after pickup.
   const plateNumber = booking?.assignedPlateNumber || "Assigned at pickup";
 
@@ -555,14 +555,14 @@ const LiveNavigationPage = () => {
       <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
         <button
           onClick={() => navigate(-1)}
-          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-800 shadow-xl backdrop-blur-md border border-slate-200 hover:scale-105 active:scale-95 transition"
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full bg-app-card text-slate-800 shadow-xl backdrop-blur-md border border-slate-200 hover:scale-105 active:scale-95 transition"
           aria-label="Go Back"
         >
           <ArrowLeft size={20} />
         </button>
 
         {/* Status Chip */}
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-xl backdrop-blur-md border border-slate-200">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-app-card px-4 py-2 text-xs font-semibold text-slate-800 shadow-xl backdrop-blur-md border border-slate-200">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -588,13 +588,13 @@ const LiveNavigationPage = () => {
 
         {/* Fallback View if Google Maps key is missing or errored */}
         {mapError && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
+          <div className="absolute inset-0 bg-app-card/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
             <AlertTriangle className="h-12 w-12 text-amber-500 mb-3" />
             <h3 className="text-lg font-bold text-slate-900 mb-2">Live Map View Unavailable</h3>
             <p className="text-sm text-slate-500 max-w-md mb-6">{mapError}</p>
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 max-w-md w-full text-left mb-6">
               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Destination Hub</p>
-              <p className="text-base font-bold text-slate-900 mt-1">{destAddress || "Vegah Main Hub"}</p>
+              <p className="text-base font-bold text-slate-900 mt-1">{destAddress || "Swoop Main Hub"}</p>
               {destCoords && (
                 <p className="text-xs text-slate-500 mt-1 font-mono">
                   Coordinates: {destCoords.lat.toFixed(4)}, {destCoords.lng.toFixed(4)}
@@ -614,8 +614,8 @@ const LiveNavigationPage = () => {
         {/* Floating Route Distance & ETA Pill */}
         {routeInfo.duration && (
           <div className="absolute top-20 left-4 z-20 pointer-events-none">
-            <div className="rounded-2xl bg-white/95 p-3 shadow-2xl backdrop-blur-md border border-slate-200 text-slate-900 flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${navType === "pickup" ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600"}`}>
+            <div className="rounded-2xl bg-app-card/95 p-3 shadow-2xl backdrop-blur-md border border-slate-200 text-slate-900 flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${navType === "pickup" ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"}`}>
                 <Navigation size={22} className="rotate-45" />
               </div>
               <div>
@@ -632,24 +632,24 @@ const LiveNavigationPage = () => {
 
       {/* 3. BOTTOM FLOATING INTERACTIVE SHEET (Uber/Zomato style) */}
       <div className="z-30 w-full max-w-xl mx-auto px-4 pb-6 pt-2">
-        <div className="rounded-3xl bg-white text-slate-900 p-5 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.15)] backdrop-blur-xl border border-slate-200">
+        <div className="rounded-3xl bg-app-card text-slate-900 p-5 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.15)] backdrop-blur-xl border border-slate-200">
           
           {/* Destination Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                navType === "pickup" ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600"
+                navType === "pickup" ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"
               }`}>
                 <MapPin size={22} />
               </div>
               <div>
                 <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  navType === "pickup" ? "bg-emerald-100 text-emerald-700" : "bg-purple-100 text-purple-700"
+                  navType === "pickup" ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"
                 }`}>
                   {navType === "pickup" ? "Pickup Point" : "Drop Return Point"}
                 </span>
                 <h3 className="text-base font-bold text-slate-900 mt-1 leading-snug">
-                  {destAddress || "Vegah Designated Hub"}
+                  {destAddress || "Swoop Designated Hub"}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
                   <span>Vehicle: <strong className="text-slate-700">{vehicleName}</strong></span>
@@ -671,7 +671,7 @@ const LiveNavigationPage = () => {
           {/* Action Button */}
           <div className="mt-5">
             {actionError && (
-              <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-500/15 p-3 text-xs font-semibold text-red-400">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 <span>{actionError}</span>
               </div>
@@ -689,7 +689,7 @@ const LiveNavigationPage = () => {
             ) : bookingStatus === "PENDING_RETURN" ? (
               <Button
                 disabled
-                className="w-full bg-purple-200 text-purple-800 font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 tracking-wide cursor-not-allowed"
+                className="w-full bg-purple-200 text-purple-400 font-black py-4 rounded-2xl text-base flex items-center justify-center gap-2 tracking-wide cursor-not-allowed"
               >
                 <Hourglass size={22} className="animate-pulse" />
                 Awaiting hub verification
@@ -778,7 +778,7 @@ const LiveNavigationPage = () => {
             </div>
           )}
 
-          <div className={`relative z-50 w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border transition-all duration-500 ${
+          <div className={`relative z-50 w-full max-w-md rounded-3xl bg-app-card p-6 text-center shadow-2xl border transition-all duration-500 ${
             pickupConfirmed ? 'border-emerald-300 scale-105' : 'border-slate-200'
           }`}>
             {/* ── CONFIRMED STATE: celebration animation ── */}
@@ -806,13 +806,13 @@ const LiveNavigationPage = () => {
                 {/* Plate number card */}
                 {confirmedPlate && (
                   <div
-                    className="mt-5 inline-flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-6 py-3"
+                    className="mt-5 inline-flex items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-500/15 px-6 py-3"
                     style={{ animation: 'slide-up 0.5s ease-out 0.6s forwards', opacity: 0 }}
                   >
-                    <KeyRound size={20} className="text-emerald-600" />
+                    <KeyRound size={20} className="text-emerald-400" />
                     <div className="text-left">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Your EV</p>
-                      <p className="font-mono text-xl font-black tracking-wider text-emerald-800">{confirmedPlate}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Your EV</p>
+                      <p className="font-mono text-xl font-black tracking-wider text-emerald-400">{confirmedPlate}</p>
                     </div>
                   </div>
                 )}
@@ -844,7 +844,7 @@ const LiveNavigationPage = () => {
             ) : (
               /* ── WAITING STATE: original "Show this at the hub" ── */
               <>
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 ring-8 ring-emerald-50">
                   <ShieldCheck size={40} />
                 </div>
 
@@ -853,9 +853,9 @@ const LiveNavigationPage = () => {
                   The hub team will verify your booking and hand over the EV. Your trip timer starts the moment they confirm it.
                 </p>
 
-                <div className="mt-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50 p-5">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Booking ID</p>
-                  <p className="mt-1 font-mono text-3xl font-black tracking-wider text-emerald-900">
+                <div className="mt-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-500/15 p-5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">Booking ID</p>
+                  <p className="mt-1 font-mono text-3xl font-black tracking-wider text-emerald-400">
                     {booking?.bookingId || "EVR-----"}
                   </p>
                 </div>
@@ -871,11 +871,11 @@ const LiveNavigationPage = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Pickup Hub:</span>
-                    <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Hub"}</span>
+                    <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Swoop Hub"}</span>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-400">
                   <Hourglass size={16} className="animate-pulse" />
                   Waiting for the hub team to confirm...
                 </div>
@@ -895,8 +895,8 @@ const LiveNavigationPage = () => {
       {/* 4b. RETURN SUBMITTED MODAL - waiting on the admin to verify the drop */}
       {awaitingReturnCheck && !rideCompletedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-purple-100 text-purple-600 ring-8 ring-purple-50">
+          <div className="w-full max-w-md rounded-3xl bg-app-card p-6 text-center shadow-2xl border border-slate-200">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-purple-500/20 text-purple-400 ring-8 ring-purple-50">
               <Hourglass size={40} className="animate-pulse" />
             </div>
 
@@ -912,11 +912,11 @@ const LiveNavigationPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Drop Location:</span>
-                <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Vegah Drop Hub"}</span>
+                <span className="font-bold text-slate-900 text-right max-w-[60%]">{destAddress || "Swoop Drop Hub"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Status:</span>
-                <span className="font-bold text-purple-600">AWAITING VERIFICATION</span>
+                <span className="font-bold text-purple-400">AWAITING VERIFICATION</span>
               </div>
             </div>
 
@@ -933,14 +933,14 @@ const LiveNavigationPage = () => {
       {/* 4c. RIDE COMPLETED CONGRATULATIONS MODAL */}
       {rideCompletedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl border border-slate-200">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50">
+          <div className="w-full max-w-md rounded-3xl bg-app-card p-6 text-center shadow-2xl border border-slate-200">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 ring-8 ring-emerald-50">
               <Sparkles size={40} className="animate-spin" style={{ animationDuration: '6s' }} />
             </div>
 
             <h3 className="mt-5 text-2xl font-black text-slate-900">Ride Completed! 🎉</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Thank you for riding with Vegah! The scooter has been returned to the drop station safely.
+              Thank you for riding with Swoop! The scooter has been returned to the drop station safely.
             </p>
 
             <div className="mt-6 rounded-2xl bg-slate-50 p-4 border border-slate-200 text-left text-xs space-y-2">
@@ -950,11 +950,11 @@ const LiveNavigationPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Return Location:</span>
-                <span className="font-bold text-slate-900">{destAddress || "Vegah Drop Hub"}</span>
+                <span className="font-bold text-slate-900">{destAddress || "Swoop Drop Hub"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Booking Status:</span>
-                <span className="font-bold text-emerald-600">COMPLETED</span>
+                <span className="font-bold text-emerald-400">COMPLETED</span>
               </div>
             </div>
 

@@ -84,13 +84,13 @@ const LicenseDetailsPage = () => {
           <div key={step} className="flex items-center">
             <div
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 3 ? "bg-app-primary text-white" : step < 3 ? "bg-app-primary/20 text-app-primary" : "bg-[#f1f4f1] text-app-subtle"
+                step === 3 ? "bg-app-primary text-white" : step < 3 ? "bg-app-primary/20 text-app-primary" : "bg-app text-app-subtle"
               }`}
             >
               {step}
             </div>
             {index < arr.length - 1 && (
-              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 3 ? "bg-app-primary/20" : "bg-[#f1f4f1]"}`} />
+              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 3 ? "bg-app-primary/20" : "bg-app"}`} />
             )}
           </div>
         ))}
@@ -128,7 +128,7 @@ const LicenseDetailsPage = () => {
                 <img src={booking.licenseFile.dataUrl} alt="License Preview" className="absolute inset-0 w-full h-full object-cover" />
               ) : (
                 <>
-                  <div className="rounded-full bg-[#f1f4f1] p-3 text-app-subtle mb-3">
+                  <div className="rounded-full bg-app-muted p-3 text-app-subtle mb-3">
                     <Upload size={24} />
                   </div>
                   <p className="text-sm font-medium text-app-text">Tap to upload image</p>
@@ -157,7 +157,7 @@ const LicenseDetailsPage = () => {
             <Button className="w-full" onClick={handleNext}>
               Save & Continue
             </Button>
-            <Button variant="outline" className="w-full border-gray-300 text-gray-500" onClick={handleSkip}>
+            <Button variant="outline" className="w-full border-app-border text-app-subtle" onClick={handleSkip}>
               Skip (Optional)
             </Button>
           </div>

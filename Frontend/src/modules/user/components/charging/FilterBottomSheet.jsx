@@ -3,7 +3,7 @@ import { useState } from "react";
 
 const FilterSection = ({ title, options, selected, onSelect }) => (
   <div className="mb-6">
-    <h3 className="text-[14px] font-bold text-gray-900 mb-3">{title}</h3>
+    <h3 className="text-[14px] font-bold text-app-text mb-3">{title}</h3>
     <div className="flex flex-wrap gap-2">
       {options.map((opt) => (
         <button
@@ -11,8 +11,8 @@ const FilterSection = ({ title, options, selected, onSelect }) => (
           onClick={() => onSelect(opt)}
           className={`px-4 py-2 rounded-full border text-[12px] transition-colors ${
             selected === opt 
-              ? "bg-[#e8e8f2] border-[#272664] text-[#272664] font-bold" 
-              : "bg-white border-gray-200 text-gray-600 font-medium hover:bg-gray-50 active:bg-gray-100"
+              ? "bg-app-muted border-[#2E7BE0] text-[#2E7BE0] font-bold" 
+              : "bg-app-card border-app-border text-app-subtle font-medium hover:bg-app-muted active:bg-app-muted"
           }`}
         >
           {opt}
@@ -40,12 +40,12 @@ const FilterBottomSheet = ({ isOpen, onClose, onApply }) => {
         onClick={onClose}
       />
       
-      <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[24px] z-50 flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 bg-app-card rounded-t-[24px] z-50 flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] pb-safe">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-[18px] font-bold text-gray-900">Filters</h2>
-          <button onClick={onClose} className="p-2 bg-gray-50 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+        <div className="flex items-center justify-between p-5 border-b border-app-border">
+          <h2 className="text-[18px] font-bold text-app-text">Filters</h2>
+          <button onClick={onClose} className="p-2 bg-app-muted hover:bg-app-muted rounded-full text-app-subtle transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -89,16 +89,16 @@ const FilterBottomSheet = ({ isOpen, onClose, onApply }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 border-t border-gray-100 flex items-center gap-3 bg-white">
+        <div className="p-5 border-t border-app-border flex items-center gap-3 bg-app-card">
           <button 
             onClick={() => setFilters({ type: "", connector: "", availability: "", distance: "", price: "" })}
-            className="flex-1 py-3.5 rounded-xl border border-gray-200 text-gray-700 font-bold text-[14px] hover:bg-gray-50 active:bg-gray-100 transition-all"
+            className="flex-1 py-3.5 rounded-xl border border-app-border text-app-text font-bold text-[14px] hover:bg-app-muted active:bg-app-muted transition-all"
           >
             Reset
           </button>
           <button 
             onClick={() => onApply(filters)}
-            className="flex-[2] py-3.5 rounded-xl bg-[#272664] text-white font-bold text-[14px] hover:bg-[#1e1d4d] shadow-[0_4px_12px_rgba(255,90,31,0.25)] active:scale-95 transition-all"
+            className="flex-[2] py-3.5 rounded-xl bg-[#2E7BE0] text-white font-bold text-[14px] hover:bg-[#4C90EB] shadow-[0_4px_12px_rgba(255,90,31,0.25)] active:scale-95 transition-all"
           >
             Apply Filters
           </button>

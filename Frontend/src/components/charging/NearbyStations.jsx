@@ -6,13 +6,13 @@ const NearbyStations = ({ stations }) => {
     <div className="px-5 mb-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-[17px] font-bold text-gray-900 leading-tight">Nearby Battery Swapping Stations</h2>
-          <p className="text-[11px] text-gray-500 mt-0.5">Within 5 km radius</p>
+          <h2 className="text-[17px] font-bold text-app-text leading-tight">Nearby Battery Swapping Stations</h2>
+          <p className="text-[11px] text-app-subtle mt-0.5">Within 5 km radius</p>
         </div>
         
-        <button className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium hover:text-gray-800 transition-colors">
-          Sort by: <span className="text-[#272664] font-bold">Distance</span>
-          <ChevronDown size={14} className="text-[#272664]" />
+        <button className="flex items-center gap-1.5 text-[12px] text-app-subtle font-medium hover:text-app-text transition-colors">
+          Sort by: <span className="text-[#D1FF42] font-bold">Distance</span>
+          <ChevronDown size={14} className="text-[#D1FF42]" />
         </button>
       </div>
 
@@ -22,9 +22,9 @@ const NearbyStations = ({ stations }) => {
             <ChargingStationCard key={station.id} station={station} />
           ))
         ) : (
-          <div className="py-8 text-center bg-gray-50 rounded-[20px] border border-gray-100">
-            <h3 className="text-[14px] font-bold text-gray-900 mb-1">No battery swapping stations nearby</h3>
-            <p className="text-[11px] text-gray-500">Try increasing your search radius or changing your filters.</p>
+          <div className="py-8 text-center bg-app-muted rounded-[20px] border border-app-border">
+            <h3 className="text-[14px] font-bold text-app-text mb-1">No battery swapping stations nearby</h3>
+            <p className="text-[11px] text-app-subtle">Try increasing your search radius or changing your filters.</p>
           </div>
         )}
       </div>

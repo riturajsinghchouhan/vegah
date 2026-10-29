@@ -9,7 +9,7 @@ export default function AdminSettings() {
   const [editingContent, setEditingContent] = useState(null);
 
   const [settings, setSettings] = useState({
-    appName: "Vegah Rentals",
+    appName: "Swoop Rentals",
     supportEmail: "support@vegah.com",
     supportPhone: "+91 98765 43210",
     address: "Koramangala, Bangalore",

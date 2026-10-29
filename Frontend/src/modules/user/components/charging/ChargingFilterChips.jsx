@@ -22,13 +22,13 @@ const ChargingFilterChips = ({ activeFilter, setActiveFilter }) => {
               onClick={() => setActiveFilter(filter.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
                 isActive 
-                  ? "bg-[#e8e8f2] border-[#272664] text-[#272664] font-bold" 
-                  : "bg-white border-gray-200 text-gray-700 font-medium hover:bg-gray-50 active:bg-gray-100"
+                  ? "bg-app-muted border-[#2E7BE0] text-[#2E7BE0] font-bold" 
+                  : "bg-app-card border-app-border text-app-text font-medium hover:bg-app-muted active:bg-app-muted"
               }`}
             >
               <Icon 
                 size={14} 
-                className={isActive ? "text-[#272664]" : (filter.iconColor || "text-gray-500")}
+                className={isActive ? "text-[#2E7BE0]" : (filter.iconColor || "text-app-subtle")}
               />
               <span className="text-[12px] whitespace-nowrap">{filter.label}</span>
             </button>

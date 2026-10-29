@@ -120,20 +120,20 @@ const BookingLiveUpdates = () => {
         role="status"
         aria-live="polite"
         onClick={open}
-        className="w-full max-w-md cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+        className="w-full max-w-md cursor-pointer rounded-2xl border border-app-border bg-app-card p-4 shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
       >
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#272664]/10 text-[#272664]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2E7BE0]/10 text-[#2E7BE0]">
             <BellRing size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-bold text-gray-900">{banner.title}</p>
-            {banner.body && <p className="mt-0.5 text-[12px] leading-snug text-gray-600">{banner.body}</p>}
+            <p className="text-[14px] font-bold text-app-text">{banner.title}</p>
+            {banner.body && <p className="mt-0.5 text-[12px] leading-snug text-app-subtle">{banner.body}</p>}
             {banner.plate && (
-              <div className="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5">
-                <KeyRound size={14} className="text-emerald-600" />
-                <span className="text-[11px] font-semibold text-emerald-700">Your EV:</span>
-                <span className="font-mono text-[14px] font-bold tracking-wide text-emerald-800">{banner.plate}</span>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-500/15 px-3 py-1.5">
+                <KeyRound size={14} className="text-emerald-400" />
+                <span className="text-[11px] font-semibold text-emerald-400">Your EV:</span>
+                <span className="font-mono text-[14px] font-bold tracking-wide text-emerald-400">{banner.plate}</span>
               </div>
             )}
           </div>
@@ -144,7 +144,7 @@ const BookingLiveUpdates = () => {
               e.stopPropagation();
               setBanner(null);
             }}
-            className="shrink-0 rounded-full p-1 text-gray-400 hover:bg-gray-100"
+            className="shrink-0 rounded-full p-1 text-app-subtle hover:bg-app-muted"
           >
             <X size={16} />
           </button>

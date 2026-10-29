@@ -1,6 +1,6 @@
 const ChargingSkeleton = () => {
   return (
-    <div className="bg-[#F8F9FA] min-h-screen pb-28 font-sans animate-pulse">
+    <div className="bg-app min-h-screen pb-28 font-sans animate-pulse">
       {/* Header Skeleton */}
       <div className="flex items-center justify-between px-5 pt-8 pb-4 mb-4">
         <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ const ChargingSkeleton = () => {
       {/* Station Cards Skeleton */}
       <div className="px-5 space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-[20px] border border-gray-100 p-4 flex gap-4 h-[132px]">
+          <div key={i} className="bg-app-card rounded-[20px] border border-app-border p-4 flex gap-4 h-[132px]">
             <div className="w-[80px] h-full bg-gray-200 rounded-[16px] shrink-0" />
             <div className="flex-1 flex flex-col justify-between py-1">
               <div className="flex justify-between">

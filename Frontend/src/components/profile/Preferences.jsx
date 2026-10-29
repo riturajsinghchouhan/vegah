@@ -4,10 +4,10 @@ const Toggle = ({ active, onChange }) => (
   <button 
     onClick={onChange}
     className={`w-[34px] h-[20px] rounded-full p-0.5 transition-colors ${
-      active ? "bg-[#272664]" : "bg-gray-200"
+      active ? "bg-[#2E7BE0]" : "bg-gray-200"
     }`}
   >
-    <div className={`w-[16px] h-[16px] bg-white rounded-full shadow-sm transition-transform ${
+    <div className={`w-[16px] h-[16px] bg-app-card rounded-full shadow-sm transition-transform ${
       active ? "translate-x-[14px]" : "translate-x-0"
     }`} />
   </button>
@@ -30,23 +30,23 @@ const Preferences = ({ preferences }) => {
 
   return (
     <div className="px-5 mb-8">
-      <h2 className="text-[17px] font-bold text-gray-900 mb-4">Preferences</h2>
-      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden p-2">
+      <h2 className="text-[17px] font-bold text-app-text mb-4">Preferences</h2>
+      <div className="bg-app-card rounded-[24px] border border-app-border shadow-sm overflow-hidden p-2">
         {preferences.map((pref, index) => (
           <div 
             key={pref.id}
             className={`flex items-center justify-between p-3 ${
-              index !== preferences.length - 1 ? "border-b border-gray-50" : ""
+              index !== preferences.length - 1 ? "border-b border-app-border" : ""
             }`}
           >
-            <span className="text-[14px] font-medium text-gray-800">{pref.label}</span>
+            <span className="text-[14px] font-medium text-app-text">{pref.label}</span>
             {pref.isToggle ? (
               <Toggle 
                 active={toggleStates[pref.id]} 
                 onChange={() => handleToggle(pref.id)} 
               />
             ) : (
-              <span className="text-[12px] font-bold text-[#272664]">{pref.value}</span>
+              <span className="text-[12px] font-bold text-[#D1FF42]">{pref.value}</span>
             )}
           </div>
         ))}

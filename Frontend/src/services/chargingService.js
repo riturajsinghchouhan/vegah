@@ -60,8 +60,8 @@ export const chargingService = {
         lng: parseFloat(s.lng) || null,
         speedLabel: 'Instant Battery Swap',
         amenities: ['Restroom', '24/7 Access'],
-        supportedVehicles: ['Vegah EV', 'All Compatible Scooters'],
-        paymentMethods: ['Vegah Wallet', 'UPI'],
+        supportedVehicles: ['Swoop EV', 'All Compatible Scooters'],
+        paymentMethods: ['Swoop Wallet', 'UPI'],
       }));
       combinedStations.push(...electicaStations);
     } catch (e) {

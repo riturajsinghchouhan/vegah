@@ -53,29 +53,29 @@ const AadharPage = () => {
   };
 
   return (
-    <div className="bg-[#F8F9FA] min-h-screen pb-28 font-sans">
+    <div className="bg-app min-h-screen pb-28 font-sans">
       <PageHeader title="Aadhar Verification" showBack={true} />
       
       <div className="px-5 mt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Aadhar Number Input */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <label className="block text-sm font-bold text-gray-900 mb-2">Aadhar Number</label>
+          <div className="bg-app-card rounded-2xl p-5 border border-app-border shadow-sm">
+            <label className="block text-sm font-bold text-app-text mb-2">Aadhar Number</label>
             <input 
               type="text" 
               placeholder="Enter 12-digit Aadhar Number" 
               maxLength={12}
               value={aadharNumber}
               onChange={(e) => setAadharNumber(e.target.value.replace(/\D/g, ''))}
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[15px] focus:outline-none focus:border-[#272664] focus:ring-1 focus:ring-[#272664]"
+              className="w-full bg-app-muted border border-app-border rounded-xl px-4 py-3 text-[15px] focus:outline-none focus:border-[#2E7BE0] focus:ring-1 focus:ring-[#2E7BE0]"
             />
-            <p className="text-xs text-gray-500 mt-2">Your data is secure and will only be used for verification.</p>
+            <p className="text-xs text-app-subtle mt-2">Your data is secure and will only be used for verification.</p>
           </div>
 
           {/* Front Image Upload */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <label className="block text-sm font-bold text-gray-900 mb-3">Upload Front Side</label>
-            <div className="relative h-40 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center overflow-hidden">
+          <div className="bg-app-card rounded-2xl p-5 border border-app-border shadow-sm">
+            <label className="block text-sm font-bold text-app-text mb-3">Upload Front Side</label>
+            <div className="relative h-40 rounded-xl border-2 border-dashed border-app-border bg-app-muted flex flex-col items-center justify-center overflow-hidden">
               {frontImage ? (
                 <div className="w-full h-full relative group">
                   <img src={frontImage} alt="Aadhar Front" className="w-full h-full object-cover" />
@@ -86,8 +86,8 @@ const AadharPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-gray-500">
-                  <Upload className="mx-auto mb-2 text-[#272664]" size={28} />
+                <div className="text-center text-app-subtle">
+                  <Upload className="mx-auto mb-2 text-[#D1FF42]" size={28} />
                   <span className="text-sm font-medium">Tap to upload front side</span>
                 </div>
               )}
@@ -101,9 +101,9 @@ const AadharPage = () => {
           </div>
 
           {/* Back Image Upload */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <label className="block text-sm font-bold text-gray-900 mb-3">Upload Back Side</label>
-            <div className="relative h-40 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center overflow-hidden">
+          <div className="bg-app-card rounded-2xl p-5 border border-app-border shadow-sm">
+            <label className="block text-sm font-bold text-app-text mb-3">Upload Back Side</label>
+            <div className="relative h-40 rounded-xl border-2 border-dashed border-app-border bg-app-muted flex flex-col items-center justify-center overflow-hidden">
               {backImage ? (
                 <div className="w-full h-full relative group">
                   <img src={backImage} alt="Aadhar Back" className="w-full h-full object-cover" />
@@ -114,8 +114,8 @@ const AadharPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-gray-500">
-                  <Upload className="mx-auto mb-2 text-[#272664]" size={28} />
+                <div className="text-center text-app-subtle">
+                  <Upload className="mx-auto mb-2 text-[#D1FF42]" size={28} />
                   <span className="text-sm font-medium">Tap to upload back side</span>
                 </div>
               )}

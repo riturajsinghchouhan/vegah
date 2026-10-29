@@ -37,13 +37,13 @@ const UserPhotoPage = () => {
           <div key={step} className="flex items-center">
             <div
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 5 ? "bg-app-primary text-white" : step < 5 ? "bg-app-primary/20 text-app-primary" : "bg-[#f1f4f1] text-app-subtle"
+                step === 5 ? "bg-app-primary text-white" : step < 5 ? "bg-app-primary/20 text-app-primary" : "bg-app text-app-subtle"
               }`}
             >
               {step}
             </div>
             {index < arr.length - 1 && (
-              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 5 ? "bg-app-primary/20" : "bg-[#f1f4f1]"}`} />
+              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 5 ? "bg-app-primary/20" : "bg-app"}`} />
             )}
           </div>
         ))}
@@ -71,7 +71,7 @@ const UserPhotoPage = () => {
                 </>
               ) : (
                 <>
-                  <div className="rounded-full bg-[#f1f4f1] p-4 text-app-subtle mb-3">
+                  <div className="rounded-full bg-app-muted p-4 text-app-subtle mb-3">
                     <Camera size={32} />
                   </div>
                   <p className="text-sm font-medium text-app-text">Take a selfie or upload</p>

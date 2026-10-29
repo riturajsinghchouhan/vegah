@@ -43,11 +43,11 @@ const NotificationsModal = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
       <div 
-        className="w-full max-w-lg bg-white rounded-t-[28px] sm:rounded-[28px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 max-h-[85vh] flex flex-col"
+        className="w-full max-w-lg bg-app-card rounded-t-[28px] sm:rounded-[28px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-app-border flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold relative">
               <Bell size={18} />
@@ -58,8 +58,8 @@ const NotificationsModal = ({ isOpen, onClose }) => {
               )}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Notifications</h2>
-              <p className="text-xs text-gray-500">Your latest alerts & trip updates</p>
+              <h2 className="text-lg font-bold text-app-text">Notifications</h2>
+              <p className="text-xs text-app-subtle">Your latest alerts & trip updates</p>
             </div>
           </div>
 
@@ -74,7 +74,7 @@ const NotificationsModal = ({ isOpen, onClose }) => {
             )}
             <button 
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 text-app-subtle hover:text-app-subtle rounded-full hover:bg-app-muted transition-colors"
             >
               <X size={20} />
             </button>
@@ -84,17 +84,17 @@ const NotificationsModal = ({ isOpen, onClose }) => {
         {/* List Content */}
         <div className="flex-1 overflow-y-auto mt-4 pr-1 space-y-3">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center text-gray-400">
+            <div className="py-12 flex flex-col items-center justify-center text-app-subtle">
               <Loader2 size={24} className="animate-spin text-violet-600 mb-2" />
               <p className="text-xs font-medium">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center text-gray-400">
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3 text-gray-400">
+            <div className="py-12 flex flex-col items-center justify-center text-center text-app-subtle">
+              <div className="w-12 h-12 rounded-full bg-app-muted flex items-center justify-center mb-3 text-app-subtle">
                 <Bell size={22} />
               </div>
-              <h4 className="text-sm font-bold text-gray-700">No Notifications Yet</h4>
-              <p className="text-xs text-gray-400 mt-1 max-w-xs">You're all caught up! Trip updates and security alerts will appear here.</p>
+              <h4 className="text-sm font-bold text-app-text">No Notifications Yet</h4>
+              <p className="text-xs text-app-subtle mt-1 max-w-xs">You're all caught up! Trip updates and security alerts will appear here.</p>
             </div>
           ) : (
             notifications.map((item) => (
@@ -102,8 +102,8 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                 key={item._id || item.id}
                 className={`p-3.5 rounded-2xl border transition-all ${
                   item.isRead 
-                    ? "bg-white border-gray-100 text-gray-600" 
-                    : "bg-violet-50/50 border-violet-100 text-gray-900"
+                    ? "bg-app-card border-app-border text-app-subtle" 
+                    : "bg-violet-50/50 border-violet-100 text-app-text"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -112,12 +112,12 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-gray-900">{item.title || "Alert"}</h4>
-                      <span className="text-[10px] text-gray-400 font-medium">
+                      <h4 className="text-xs font-bold text-app-text">{item.title || "Alert"}</h4>
+                      <span className="text-[10px] text-app-subtle font-medium">
                         {item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">{item.message}</p>
+                    <p className="text-xs text-app-subtle mt-1 leading-relaxed">{item.message}</p>
                   </div>
                 </div>
               </div>

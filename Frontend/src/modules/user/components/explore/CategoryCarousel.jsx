@@ -20,14 +20,14 @@ const CategoryCarousel = ({ categories, selectedCategory, onSelectCategory }) =>
               onClick={() => onSelectCategory(category.id)}
               className={`flex flex-col items-center justify-center rounded-2xl w-[85px] py-3.5 shadow-sm transition-all duration-200 ${
                 isActive 
-                  ? "bg-[#e8e8f2] border border-[#272664] text-[#272664]" 
-                  : "bg-white border border-gray-100 text-gray-500 hover:border-gray-200"
+                  ? "bg-app-muted border border-[#2E7BE0] text-[#2E7BE0]" 
+                  : "bg-app-card border border-app-border text-app-subtle hover:border-app-border"
               }`}
             >
-              <div className={`mb-2 ${isActive ? "text-[#272664]" : "text-gray-700"}`}>
+              <div className={`mb-2 ${isActive ? "text-[#2E7BE0]" : "text-app-text"}`}>
                 <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
               </div>
-              <span className={`text-[11px] font-bold ${isActive ? "text-[#272664]" : "text-gray-900"}`}>
+              <span className={`text-[11px] font-bold ${isActive ? "text-[#2E7BE0]" : "text-app-text"}`}>
                 {category.name}
               </span>
             </button>

@@ -6,10 +6,10 @@ const VehicleGallery = ({ vehicle }) => {
 
   return (
     <section className="surface-card overflow-hidden p-4">
-      <div className="bg-gray-50 rounded-[1.75rem] p-4 flex items-center justify-center">
+      <div className="bg-app-muted rounded-[1.75rem] p-4 flex items-center justify-center">
         <img 
           alt={vehicle.name} 
-          className="h-72 w-full object-contain mix-blend-multiply sm:h-96" 
+          className="h-72 w-full object-contain sm:h-96" 
           src={images[activeIndex]} 
         />
       </div>
@@ -20,9 +20,9 @@ const VehicleGallery = ({ vehicle }) => {
               key={idx} 
               type="button"
               onClick={() => setActiveIndex(idx)}
-              className={`h-16 w-16 bg-gray-50 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${activeIndex === idx ? 'border-[#272664]' : 'border-transparent hover:border-gray-300'}`}
+              className={`h-16 w-16 bg-app-muted flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${activeIndex === idx ? 'border-[#2E7BE0]' : 'border-transparent hover:border-app-border'}`}
             >
-              <img src={img} className="h-full w-full object-cover mix-blend-multiply" alt={`${vehicle.name} ${idx + 1}`} />
+              <img src={img} className="h-full w-full object-cover" alt={`${vehicle.name} ${idx + 1}`} />
             </button>
           ))}
         </div>

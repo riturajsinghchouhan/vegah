@@ -132,16 +132,16 @@ const StationDetailsPage = () => {
                 <p className="mt-1 text-sm text-app-subtle">{station.address}</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <div className="rounded-2xl bg-orange-50 px-4 py-2.5">
-                  <p className="text-xs text-orange-600 font-medium">Pricing</p>
-                  <p className="mt-0.5 text-lg font-bold text-[#272664]">
+                <div className="rounded-2xl bg-orange-500/15 px-4 py-2.5">
+                  <p className="text-xs text-orange-400 font-medium">Pricing</p>
+                  <p className="mt-0.5 text-lg font-bold text-[#D1FF42]">
                     ₹{(Number(station.pricePerKwh || station.price) || 18.0).toFixed(2)}
-                    <span className="text-xs font-normal text-gray-500">/kWh</span>
+                    <span className="text-xs font-normal text-app-subtle">/kWh</span>
                   </p>
                 </div>
-                <div className="rounded-2xl bg-emerald-50 px-4 py-2.5">
-                  <p className="text-xs text-emerald-700 font-medium">{station.openStatus || 'Operational'}</p>
-                  <p className="mt-0.5 text-lg font-bold text-emerald-600">
+                <div className="rounded-2xl bg-emerald-500/15 px-4 py-2.5">
+                  <p className="text-xs text-emerald-400 font-medium">{station.openStatus || 'Operational'}</p>
+                  <p className="mt-0.5 text-lg font-bold text-emerald-400">
                     {station.availableChargers ?? station.availablePorts ?? 0}/{station.totalChargers ?? station.totalPorts ?? 0} Available
                   </p>
                 </div>
@@ -155,23 +155,23 @@ const StationDetailsPage = () => {
                     <Star size={16} fill="currentColor" />
                     <span>{station.rating} / 5</span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">User Satisfaction Score</p>
+                  <p className="mt-1 text-xs text-app-subtle">User Satisfaction Score</p>
                 </div>
               )}
               {station.distanceKm > 0 && (
                 <div className="rounded-2xl border border-app-border bg-app-card p-3.5">
-                  <p className="text-xs text-gray-500 font-medium">Distance</p>
+                  <p className="text-xs text-app-subtle font-medium">Distance</p>
                   <p className="mt-1 text-sm font-bold text-app-text">{station.distanceKm} km away</p>
                 </div>
               )}
               {station.speedLabel && (
                 <div className="rounded-2xl border border-app-border bg-app-card p-3.5">
-                  <div className="flex items-center gap-1.5 text-indigo-600 font-bold">
+                  <div className="flex items-center gap-1.5 text-indigo-400 font-bold">
                     <Zap size={16} />
                     <span>{station.speedLabel}</span>
                   </div>
                   {connectorTypes.length > 0 && (
-                    <p className="mt-1 text-xs text-gray-500">Type: {connectorTypes.join(", ")}</p>
+                    <p className="mt-1 text-xs text-app-subtle">Type: {connectorTypes.join(", ")}</p>
                   )}
                 </div>
               )}
@@ -200,10 +200,10 @@ const StationDetailsPage = () => {
                         : rawState.replace('_', ' ');
 
                   const badgeColor = isAvailable 
-                    ? 'bg-emerald-100 text-emerald-800' 
+                    ? 'bg-emerald-500/20 text-emerald-400' 
                     : isCharging 
-                      ? 'bg-blue-100 text-blue-800' 
-                      : 'bg-gray-100 text-gray-700';
+                      ? 'bg-blue-500/20 text-[#D1FF42]' 
+                      : 'bg-app-muted text-app-text';
 
                   const badgeText = (podData.soc !== undefined && podData.soc !== null)
                     ? `${podData.soc}%` 
@@ -219,7 +219,7 @@ const StationDetailsPage = () => {
                         <div>
                           <p className="text-sm font-bold text-app-text">Pod {podNumber}</p>
                           <p className="mt-0.5 text-xs text-app-subtle capitalize">
-                            Status: <span className="font-semibold text-gray-700">{statusText}</span>
+                            Status: <span className="font-semibold text-app-text">{statusText}</span>
                             {bmsId ? ` • Tag: ${bmsId.slice(-8)}` : ''}
                           </p>
                         </div>
@@ -229,7 +229,7 @@ const StationDetailsPage = () => {
                       </div>
                       {podData.health && podData.health !== 'unknown' && (
                         <p className="mt-2 text-xs text-app-subtle">
-                          Health Condition: <span className="font-semibold text-gray-700">{podData.health}</span>
+                          Health Condition: <span className="font-semibold text-app-text">{podData.health}</span>
                         </p>
                       )}
                     </div>
@@ -245,13 +245,13 @@ const StationDetailsPage = () => {
                           {charger.speed} • {charger.connector}
                         </p>
                       </div>
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{charger.status}</span>
+                      <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-400">{charger.status}</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-4 bg-gray-50 rounded-2xl text-center">
-                  <p className="text-xs text-gray-500 font-medium">All charging pods online & operational</p>
+                <div className="p-4 bg-app-muted rounded-2xl text-center">
+                  <p className="text-xs text-app-subtle font-medium">All charging pods online & operational</p>
                 </div>
               )}
             </div>
@@ -260,10 +260,10 @@ const StationDetailsPage = () => {
           <section className="surface-card p-5">
             <h3 className="text-lg font-semibold text-app-text">Station Overview</h3>
             <div className="mt-4 space-y-2 text-sm text-app-subtle">
-              {amenities.length > 0 && <p><span className="font-semibold text-gray-700">Amenities:</span> {amenities.join(", ")}</p>}
-              {supportedVehicles.length > 0 && <p><span className="font-semibold text-gray-700">Supported EVs:</span> {supportedVehicles.join(", ")}</p>}
-              {paymentMethods.length > 0 && <p><span className="font-semibold text-gray-700">Payment Modes:</span> {paymentMethods.join(", ")}</p>}
-              <p><span className="font-semibold text-gray-700">Pricing:</span> ₹{(Number(station.pricePerKwh || station.price) || 18.0).toFixed(2)}/kWh</p>
+              {amenities.length > 0 && <p><span className="font-semibold text-app-text">Amenities:</span> {amenities.join(", ")}</p>}
+              {supportedVehicles.length > 0 && <p><span className="font-semibold text-app-text">Supported EVs:</span> {supportedVehicles.join(", ")}</p>}
+              {paymentMethods.length > 0 && <p><span className="font-semibold text-app-text">Payment Modes:</span> {paymentMethods.join(", ")}</p>}
+              <p><span className="font-semibold text-app-text">Pricing:</span> ₹{(Number(station.pricePerKwh || station.price) || 18.0).toFixed(2)}/kWh</p>
             </div>
 
             <div className="mt-5 grid gap-3">
@@ -286,34 +286,34 @@ const StationDetailsPage = () => {
       {/* Live Swap Modal */}
       {swapState && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl">
-            <h2 className="text-xl font-bold mb-3 text-gray-900">Battery Swap Process</h2>
+          <div className="bg-app-card rounded-3xl p-6 w-full max-w-sm shadow-xl">
+            <h2 className="text-xl font-bold mb-3 text-app-text">Battery Swap Process</h2>
             
             {swapState === 'starting' && (
-              <div className="p-4 bg-blue-50 text-blue-800 rounded-2xl text-sm font-medium animate-pulse">
+              <div className="p-4 bg-blue-500/15 text-[#D1FF42] rounded-2xl text-sm font-medium animate-pulse">
                 Initiating handshake with station hardware...
               </div>
             )}
             
             {swapState === 'polling' && swapData && (
               <div className="space-y-3">
-                <div className="p-4 bg-indigo-50 text-indigo-900 rounded-2xl text-sm font-bold border border-indigo-100">
+                <div className="p-4 bg-indigo-500/15 text-indigo-400 rounded-2xl text-sm font-bold border border-indigo-100">
                   {swapData.step === 'insert' && `📥 Put your discharged battery in Pod ${swapData.pod || 1}`}
                   {swapData.step === 'pickup' && `📤 Take your fully charged battery from Pod ${swapData.pod || 2}`}
                   {!swapData.step && `Swap Status: ${swapData.status}`}
                 </div>
-                <p className="text-xs text-gray-500 text-center">Do not close window until swap completes.</p>
+                <p className="text-xs text-app-subtle text-center">Do not close window until swap completes.</p>
               </div>
             )}
             
             {swapState === 'completed' && (
-              <div className="p-4 bg-emerald-50 text-emerald-800 rounded-2xl text-sm font-bold border border-emerald-200">
+              <div className="p-4 bg-emerald-500/15 text-emerald-400 rounded-2xl text-sm font-bold border border-emerald-200">
                 🎉 Battery Swap Complete! You're good to go.
               </div>
             )}
             
             {swapState === 'failed' && (
-              <div className="p-4 bg-red-50 text-red-800 rounded-2xl text-sm font-medium border border-red-200">
+              <div className="p-4 bg-red-500/15 text-red-400 rounded-2xl text-sm font-medium border border-red-200">
                 ⚠️ Swap Error: {errorMessage}
               </div>
             )}

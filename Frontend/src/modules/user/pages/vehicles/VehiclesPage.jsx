@@ -15,15 +15,15 @@ import { useUserLocation } from "../../../../hooks/useLocation";
 import { vehicleService } from "../../../../services/vehicleService";
 
 const VehicleSkeletonCard = () => (
-  <div className="bg-white rounded-[20px] border border-gray-100 p-3.5 animate-pulse">
-    <div className="h-[100px] bg-gray-100 rounded-xl mb-3" />
-    <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
-    <div className="h-3 bg-gray-100 rounded w-1/2 mb-3" />
+  <div className="bg-app-card rounded-[20px] border border-app-border p-3.5 animate-pulse">
+    <div className="h-[100px] bg-app-muted rounded-xl mb-3" />
+    <div className="h-4 bg-app-muted rounded w-3/4 mb-2" />
+    <div className="h-3 bg-app-muted rounded w-1/2 mb-3" />
     <div className="flex gap-2 mb-3">
-      <div className="h-3 bg-gray-100 rounded w-1/3" />
-      <div className="h-3 bg-gray-100 rounded w-1/3" />
+      <div className="h-3 bg-app-muted rounded w-1/3" />
+      <div className="h-3 bg-app-muted rounded w-1/3" />
     </div>
-    <div className="h-5 bg-gray-100 rounded w-2/3" />
+    <div className="h-5 bg-app-muted rounded w-2/3" />
   </div>
 );
 
@@ -162,7 +162,7 @@ const VehiclesPage = () => {
   }, [vehicles, debouncedSearch, selectedCategory, activeFilters]);
 
   return (
-    <div className="bg-[#F8F9FA] min-h-screen pb-24 font-sans relative">
+    <div className="bg-app min-h-screen pb-24 font-sans relative">
       <ExploreHeader />
       
       <SearchAndFilter 
@@ -183,9 +183,9 @@ const VehiclesPage = () => {
       <div className="mb-8 px-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-[17px] font-bold text-gray-900">Explore EV Fleet</h2>
+            <h2 className="text-[17px] font-bold text-app-text">Explore EV Fleet</h2>
             {!loading && (
-              <span className="text-[11px] font-semibold bg-[#e8e8f2] text-[#272664] px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-semibold bg-app-muted text-[#D1FF42] px-2 py-0.5 rounded-full">
                 {filteredVehicles.length} available
               </span>
             )}
@@ -199,26 +199,26 @@ const VehiclesPage = () => {
             ))}
           </div>
         ) : error ? (
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 text-center shadow-sm my-4">
+          <div className="bg-app-card rounded-2xl p-6 border border-app-border text-center shadow-sm my-4">
             <AlertCircle className="mx-auto text-amber-500 mb-2" size={36} />
-            <p className="text-sm font-semibold text-gray-800 mb-1">{error}</p>
+            <p className="text-sm font-semibold text-app-text mb-1">{error}</p>
             <button
               onClick={fetchVehiclesData}
-              className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#272664] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#1e1d4d] transition-colors"
+              className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#D1FF42] text-[#1A2230] text-xs font-bold rounded-xl shadow-sm hover:bg-[#A9CF2A] transition-colors"
             >
               <RefreshCw size={14} /> Retry Loading
             </button>
           </div>
         ) : filteredVehicles.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center shadow-sm my-4">
+          <div className="bg-app-card rounded-2xl p-8 border border-app-border text-center shadow-sm my-4">
             <SearchX className="mx-auto text-gray-300 mb-3" size={44} />
-            <h3 className="text-base font-bold text-gray-800 mb-1">No Vehicles Found</h3>
-            <p className="text-xs text-gray-500 max-w-xs mx-auto mb-4">
+            <h3 className="text-base font-bold text-app-text mb-1">No Vehicles Found</h3>
+            <p className="text-xs text-app-subtle max-w-xs mx-auto mb-4">
               We couldn't find any vehicles matching your search or filters. Try clearing your search parameters.
             </p>
             <button
               onClick={handleResetFilters}
-              className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 bg-app-muted text-app-text text-xs font-bold rounded-xl hover:bg-gray-200 transition-colors"
             >
               Reset Filters
             </button>

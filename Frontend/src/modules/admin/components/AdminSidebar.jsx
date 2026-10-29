@@ -13,13 +13,14 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
       }`}
     >
       <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200">
-        <h1
-          className={`font-bold text-xl text-gray-800 transition-opacity duration-300 ${
+        <div
+          className={`flex items-center gap-2 transition-opacity duration-300 ${
             isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
           }`}
         >
-          Vegah Admin
-        </h1>
+          <img src="/assets/swoop/icon-falcon-reversed.svg" alt="Swoop" className="h-6 w-auto shrink-0" />
+          <h1 className="font-bold text-xl text-gray-800 whitespace-nowrap">Swoop Admin</h1>
+        </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-1 rounded-md hover:bg-gray-100 text-gray-600"

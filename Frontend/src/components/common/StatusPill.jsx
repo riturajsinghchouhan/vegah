@@ -1,7 +1,7 @@
 const statusClasses = {
-  success: "bg-emerald-50 text-app-success",
-  warning: "bg-amber-50 text-app-warning",
-  danger: "bg-rose-50 text-app-danger",
+  success: "bg-emerald-500/15 text-app-success",
+  warning: "bg-amber-500/15 text-app-warning",
+  danger: "bg-rose-500/15 text-app-danger",
   neutral: "bg-app-muted text-app-subtle",
 };
 

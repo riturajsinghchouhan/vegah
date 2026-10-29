@@ -27,7 +27,7 @@ const NamePage = () => {
   };
 
   return (
-    <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-[#F8F9FA] shadow-2xl">
+    <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-app-muted shadow-2xl">
       
       {/* Background Image Layer */}
       <img 
@@ -40,11 +40,11 @@ const NamePage = () => {
       <div className="flex-1" />
 
       {/* --- Form Container (White Card) --- */}
-      <div className="relative z-20 bg-white w-full max-w-md mx-auto rounded-[32px] px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] mb-20 transition-all duration-500 ease-out focus-within:-translate-y-8 focus-within:shadow-[0_40px_80px_rgba(0,0,0,0.15)]">
+      <div className="relative z-20 bg-app-card w-full max-w-md mx-auto rounded-[32px] px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] mb-20 transition-all duration-500 ease-out focus-within:-translate-y-8 focus-within:shadow-[0_40px_80px_rgba(0,0,0,0.15)]">
         
         <div className="mb-8">
-          <h1 className="text-[24px] font-bold text-gray-900 leading-tight">Complete Profile</h1>
-          <p className="text-[14px] text-gray-500 mt-2">
+          <h1 className="text-[24px] font-bold text-app-text leading-tight">Complete Profile</h1>
+          <p className="text-[14px] text-app-subtle mt-2">
             Please enter your full name to continue
           </p>
         </div>
@@ -53,14 +53,14 @@ const NamePage = () => {
           
           <div className="mb-6 relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <UserIcon size={20} className="text-gray-400" />
+              <UserIcon size={20} className="text-app-subtle" />
             </div>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your Full Name"
-              className="w-full h-[56px] pl-11 pr-4 rounded-[16px] border-2 border-gray-100 bg-[#F8F9FA] text-[16px] font-medium text-gray-900 outline-none focus:border-[#272664] focus:bg-white focus:ring-4 focus:ring-[#272664]/10 transition-all"
+              className="w-full h-[56px] pl-11 pr-4 rounded-[16px] border-2 border-app-border bg-app text-[16px] font-medium text-app-text outline-none focus:border-[#2E7BE0] focus:bg-app-card focus:ring-4 focus:ring-[#2E7BE0]/10 transition-all"
               autoFocus
             />
           </div>
@@ -69,7 +69,7 @@ const NamePage = () => {
           <button 
             type="submit"
             disabled={loading || fullName.trim().length < 2}
-            className="w-full h-[52px] bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
+            className="w-full h-[52px] bg-[#D1FF42] hover:bg-[#A9CF2A] disabled:opacity-50 disabled:cursor-not-allowed text-[#1A2230] text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Saving..." : "Continue"}
             {!loading && <ArrowRight size={18} className="ml-2" />}

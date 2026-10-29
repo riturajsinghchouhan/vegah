@@ -247,7 +247,7 @@ const ActiveRentalPage = () => {
         key: order.razorpayKeyId,
         amount: Math.round(order.amount * 100),
         currency: order.currency || "INR",
-        name: "Vegah EVs",
+        name: "Swoop EVs",
         description: `Rental extension - ${plan.name}`,
         order_id: order.razorpayOrderId,
         handler: async (response) => {
@@ -337,19 +337,19 @@ const ActiveRentalPage = () => {
       <PageHeader showBack subtitle="Live rental tracking and session status" title="Active rental" />
 
       {error && (
-        <div className="mb-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        <div className="mb-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-500/15 p-4 text-sm font-semibold text-red-400">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {extendSuccess && (
-        <div className="mb-4 flex items-start justify-between gap-2 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-700">
+        <div className="mb-4 flex items-start justify-between gap-2 rounded-2xl border border-green-200 bg-green-500/15 p-4 text-sm font-semibold text-green-400">
           <div className="flex items-start gap-2">
             <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
             <span>{extendSuccess}</span>
           </div>
-          <button onClick={() => setExtendSuccess("")} className="rounded-lg p-1 hover:bg-green-100" aria-label="Dismiss">
+          <button onClick={() => setExtendSuccess("")} className="rounded-lg p-1 hover:bg-green-500/20" aria-label="Dismiss">
             <X size={16} />
           </button>
         </div>
@@ -357,14 +357,14 @@ const ActiveRentalPage = () => {
 
       {/* Return submitted, waiting on the hub team */}
       {isAwaitingReturnCheck && (
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-purple-200 bg-purple-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-purple-200 bg-purple-500/15 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="shrink-0 rounded-xl bg-purple-100 p-2 text-purple-700">
+            <div className="shrink-0 rounded-xl bg-purple-500/20 p-2 text-purple-400">
               <Hourglass className="h-6 w-6 animate-pulse" />
             </div>
             <div>
-              <p className="text-base font-black tracking-wide text-purple-900">Return submitted</p>
-              <p className="mt-1 text-xs text-purple-800">
+              <p className="text-base font-black tracking-wide text-purple-400">Return submitted</p>
+              <p className="mt-1 text-xs text-purple-400">
                 The hub team is verifying the EV. Your rental closes as soon as they confirm it.
               </p>
             </div>
@@ -379,7 +379,7 @@ const ActiveRentalPage = () => {
       {reminderAlert && !isAwaitingReturnCheck && (
         <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-500 to-orange-600 p-4 text-white shadow-xl sm:flex-row sm:items-center sm:p-5">
           <div className="flex items-start gap-3">
-            <div className="shrink-0 rounded-xl bg-white/20 p-2">
+            <div className="shrink-0 rounded-xl bg-app-card/20 p-2">
               <AlertTriangle className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -390,14 +390,14 @@ const ActiveRentalPage = () => {
           <div className="flex shrink-0 items-center gap-2">
             <Button
               onClick={goToDrop}
-              className="flex items-center gap-1.5 bg-white px-4 py-2 text-xs font-black text-orange-700 shadow-md hover:bg-orange-50"
+              className="flex items-center gap-1.5 bg-app-card px-4 py-2 text-xs font-black text-orange-400 shadow-md hover:bg-orange-500/15"
             >
               <Navigation size={14} />
               Navigate to Drop Now
             </Button>
             <button
               onClick={() => setReminderAlert(null)}
-              className="rounded-lg p-1.5 text-white hover:bg-white/20"
+              className="rounded-lg p-1.5 text-white hover:bg-app-card/20"
               aria-label="Dismiss alert"
             >
               <X size={18} />
@@ -421,7 +421,7 @@ const ActiveRentalPage = () => {
             )}
           </div>
 
-          <div className={`min-w-[180px] rounded-[1.5rem] px-5 py-4 text-white shadow-md ${isOverdue ? "bg-red-600" : "bg-[#272664]"}`}>
+          <div className={`min-w-[180px] rounded-[1.5rem] px-5 py-4 text-[#1A2230] shadow-md ${isOverdue ? "bg-red-600" : "bg-[#D1FF42]"}`}>
             <p className="text-xs font-semibold uppercase tracking-wider text-orange-100">
               {isOverdue ? "Overdue by" : "Rental timer"}
             </p>
@@ -478,7 +478,7 @@ const ActiveRentalPage = () => {
               <span>Rental ends at {formattedReturnTime} on {formattedReturnDate}</span>
             </div>
             {live?.pricing?.lateFee > 0 && (
-              <div className="flex items-center gap-3 font-semibold text-red-600">
+              <div className="flex items-center gap-3 font-semibold text-red-400">
                 <AlertTriangle size={18} />
                 <span>Late fee so far: ₹{live.pricing.lateFee}</span>
               </div>
@@ -490,7 +490,7 @@ const ActiveRentalPage = () => {
           <h3 className="text-lg font-semibold text-app-text">Quick actions</h3>
           <div className="mt-4 grid gap-3">
             {isAwaitingReturnCheck ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 py-3 text-sm font-bold text-purple-700">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-500/15 py-3 text-sm font-bold text-purple-400">
                 <CheckCircle2 size={18} />
                 Drop reported — awaiting hub verification
               </div>
@@ -533,7 +533,7 @@ const ActiveRentalPage = () => {
           onClick={() => !payingPlanId && setShowPlans(false)}
         >
           <div
-            className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl"
+            className="w-full max-w-md rounded-t-3xl bg-app-card p-5 shadow-2xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -548,7 +548,7 @@ const ActiveRentalPage = () => {
               <button
                 onClick={() => setShowPlans(false)}
                 disabled={Boolean(payingPlanId)}
-                className="rounded-lg p-1.5 text-app-subtle hover:bg-gray-100 disabled:opacity-50"
+                className="rounded-lg p-1.5 text-app-subtle hover:bg-app-muted disabled:opacity-50"
                 aria-label="Close plans"
               >
                 <X size={18} />
@@ -556,7 +556,7 @@ const ActiveRentalPage = () => {
             </div>
 
             {planError && (
-              <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+              <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-500/15 p-3 text-xs font-semibold text-red-400">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 <span>{planError}</span>
               </div>
@@ -567,9 +567,9 @@ const ActiveRentalPage = () => {
                 <button
                   type="button"
                   onClick={() => { setPaymentMode("ONLINE"); setPlanError(""); }}
-                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40"
+                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40"
                 >
-                  <div className="rounded-xl bg-orange-50 p-2 text-orange-600">
+                  <div className="rounded-xl bg-orange-500/15 p-2 text-orange-400">
                     <CreditCard size={20} />
                   </div>
                   <div>
@@ -580,9 +580,9 @@ const ActiveRentalPage = () => {
                 <button
                   type="button"
                   onClick={() => { setPaymentMode("CASH"); setPlanError(""); }}
-                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40"
+                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40"
                 >
-                  <div className="rounded-xl bg-green-50 p-2 text-green-600">
+                  <div className="rounded-xl bg-green-500/15 p-2 text-green-400">
                     <Banknote size={20} />
                   </div>
                   <div>
@@ -593,7 +593,7 @@ const ActiveRentalPage = () => {
               </div>
             ) : (
             <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs font-semibold text-app-subtle">
+              <div className="flex items-center justify-between rounded-xl bg-app-muted px-3 py-2 text-xs font-semibold text-app-subtle">
                 <span>
                   Paying by: <span className="text-app-text">{paymentMode === "CASH" ? "Cash on delivery" : "Online"}</span>
                 </span>
@@ -619,7 +619,7 @@ const ActiveRentalPage = () => {
                     type="button"
                     onClick={() => handleSelectPlan(plan)}
                     disabled={Boolean(payingPlanId)}
-                    className="flex w-full items-center justify-between rounded-[18px] border border-app-border bg-white p-4 text-left transition hover:border-app-primary/60 hover:bg-[#eff9f1]/40 disabled:opacity-60"
+                    className="flex w-full items-center justify-between rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40 disabled:opacity-60"
                   >
                     <div>
                       <p className="text-sm font-semibold text-app-text">{plan.name}</p>

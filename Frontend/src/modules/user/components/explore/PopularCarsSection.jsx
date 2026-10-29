@@ -8,10 +8,10 @@ const PopularCarsSection = ({ cars }) => {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between px-4 mb-4">
-        <h2 className="text-[17px] font-bold text-gray-900">Popular Scoots</h2>
+        <h2 className="text-[17px] font-bold text-app-text">Popular Scoots</h2>
         <Link 
           to="/vehicles" 
-          className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
+          className="text-[12px] font-bold text-[#2E7BE0] flex items-center gap-1 hover:text-[#4C90EB] transition-colors"
         >
           View All <ArrowRight size={14} />
         </Link>

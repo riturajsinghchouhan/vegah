@@ -66,7 +66,7 @@ const LoginPage = () => {
   const displayCities = cities.length > 0 ? cities : ["Indore", "Bhopal", "Pune", "Bangalore"];
 
   return (
-    <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-[#F8F9FA] shadow-2xl">
+    <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-app-muted shadow-2xl">
       
       {/* Background Image Layer */}
       <img 
@@ -79,11 +79,11 @@ const LoginPage = () => {
       <div className="flex-1" />
 
       {/* --- Form Container (White Card) --- */}
-      <div className="relative z-20 bg-white w-full max-w-md mx-auto rounded-[32px] px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] mb-20 transition-all duration-500 ease-out focus-within:-translate-y-12 focus-within:shadow-[0_40px_80px_rgba(0,0,0,0.15)]">
+      <div className="relative z-20 bg-app-card w-full max-w-md mx-auto rounded-[32px] px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] mb-20 transition-all duration-500 ease-out focus-within:-translate-y-12 focus-within:shadow-[0_40px_80px_rgba(0,0,0,0.15)]">
         
         <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
           
-          <label className="block text-[13px] font-bold text-gray-900 mb-2 mt-4">
+          <label className="block text-[13px] font-bold text-app-text mb-2 mt-4">
             City
           </label>
           
@@ -93,26 +93,26 @@ const LoginPage = () => {
               type="button"
               onClick={() => setIsDropdownOpen((prev) => !prev)}
               className={`flex items-center justify-between w-full h-[52px] border ${
-                isDropdownOpen ? "border-[#272664] ring-2 ring-[#272664]/10" : "border-gray-200"
-              } rounded-[16px] bg-white px-3.5 transition-all text-left focus:outline-none`}
+                isDropdownOpen ? "border-[#2E7BE0] ring-2 ring-[#2E7BE0]/10" : "border-app-border"
+              } rounded-[16px] bg-app-card px-3.5 transition-all text-left focus:outline-none`}
             >
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <MapPin size={18} className="text-[#272664] shrink-0" />
-                <span className={`text-[15px] font-medium truncate ${city ? "text-gray-900" : "text-gray-400"}`}>
+                <MapPin size={18} className="text-[#D1FF42] shrink-0" />
+                <span className={`text-[15px] font-medium truncate ${city ? "text-app-text" : "text-app-subtle"}`}>
                   {loadingCities ? "Loading cities..." : city || "Select your city"}
                 </span>
               </div>
               <ChevronDown
                 size={18}
-                className={`text-gray-400 transition-transform duration-200 shrink-0 ${
-                  isDropdownOpen ? "rotate-180 text-[#272664]" : ""
+                className={`text-app-subtle transition-transform duration-200 shrink-0 ${
+                  isDropdownOpen ? "rotate-180 text-[#D1FF42]" : ""
                 }`}
               />
             </button>
 
             {/* Floating Menu */}
             {isDropdownOpen && (
-              <div className="absolute top-[calc(100%+6px)] left-0 w-full z-50 bg-white border border-gray-100 rounded-[20px] shadow-[0_12px_32px_rgba(0,0,0,0.14)] p-1.5 flex flex-col gap-1 max-h-48 overflow-y-auto animate-in fade-in-50 duration-150">
+              <div className="absolute top-[calc(100%+6px)] left-0 w-full z-50 bg-app-card border border-app-border rounded-[20px] shadow-[0_12px_32px_rgba(0,0,0,0.14)] p-1.5 flex flex-col gap-1 max-h-48 overflow-y-auto animate-in fade-in-50 duration-150">
                 {displayCities.map((cityName) => {
                   const isSelected = city === cityName;
                   return (
@@ -125,12 +125,12 @@ const LoginPage = () => {
                       }}
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-[14px] text-[14px] transition-all ${
                         isSelected
-                          ? "bg-[#272664]/10 text-[#272664] font-bold"
-                          : "text-gray-700 hover:bg-gray-100 font-medium"
+                          ? "bg-[#2E7BE0]/10 text-[#D1FF42] font-bold"
+                          : "text-app-text hover:bg-app-muted font-medium"
                       }`}
                     >
                       <span className="truncate">{cityName}</span>
-                      {isSelected && <Check size={16} className="text-[#272664] shrink-0" />}
+                      {isSelected && <Check size={16} className="text-[#D1FF42] shrink-0" />}
                     </button>
                   );
                 })}
@@ -138,18 +138,18 @@ const LoginPage = () => {
             )}
           </div>
 
-          <label className="block text-[13px] font-bold text-gray-900 mb-2">
+          <label className="block text-[13px] font-bold text-app-text mb-2">
             Mobile Number
           </label>
           
           {/* Custom Input Field */}
-          <div className="flex items-center w-full h-[52px] border border-gray-200 rounded-[16px] overflow-hidden bg-white focus-within:border-[#272664] focus-within:ring-2 focus-within:ring-[#272664]/10 transition-all">
+          <div className="flex items-center w-full h-[52px] border border-app-border rounded-[16px] overflow-hidden bg-app-card focus-within:border-[#2E7BE0] focus-within:ring-2 focus-within:ring-[#2E7BE0]/10 transition-all">
             
             {/* Country Code Selector */}
-            <div className="flex items-center h-full px-3 bg-white gap-2 cursor-pointer">
+            <div className="flex items-center h-full px-3 bg-app-card gap-2 cursor-pointer">
               <span className="text-[18px]">🇮🇳</span>
-              <span className="text-[14px] font-bold text-gray-900">+91</span>
-              <ChevronDown size={16} className="text-gray-400" />
+              <span className="text-[14px] font-bold text-app-text">+91</span>
+              <ChevronDown size={16} className="text-app-subtle" />
             </div>
             
             {/* Divider */}
@@ -161,7 +161,7 @@ const LoginPage = () => {
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="Enter your mobile number"
-              className="flex-1 h-full bg-transparent px-3 text-[15px] font-medium text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus:outline-none"
+              className="flex-1 h-full bg-transparent px-3 text-[15px] font-medium text-app-text placeholder:text-app-subtle placeholder:font-normal focus:outline-none"
             />
           </div>
 
@@ -169,7 +169,7 @@ const LoginPage = () => {
           <button 
             type="submit"
             disabled={loading || phone.length < 10 || !city}
-            className="w-full h-[52px] mt-6 bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
+            className="w-full h-[52px] mt-6 bg-[#D1FF42] hover:bg-[#A9CF2A] disabled:opacity-50 disabled:cursor-not-allowed text-[#1A2230] text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Please wait..." : "Continue"}
             {!loading && <ArrowRight size={18} className="ml-2" />}
@@ -179,7 +179,7 @@ const LoginPage = () => {
               when no city is picked, so a filled-in number alone looked ready to
               submit but did nothing when tapped. */}
           {phone.length >= 10 && !city && (
-            <p className="mt-2 text-center text-[12px] font-medium text-[#272664]">
+            <p className="mt-2 text-center text-[12px] font-medium text-[#D1FF42]">
               Select your city to continue
             </p>
           )}
@@ -187,12 +187,12 @@ const LoginPage = () => {
         </form>
 
         {/* App Links */}
-        <div className="flex justify-center items-center gap-4 mt-6 text-xs font-medium text-gray-500">
-          <Link to="/user/profile/terms" className="hover:text-[#272664] transition-colors">Terms</Link>
-          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-          <Link to="/user/profile/privacy" className="hover:text-[#272664] transition-colors">Privacy</Link>
-          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-          <Link to="/user/support" className="hover:text-[#272664] transition-colors">Support</Link>
+        <div className="flex justify-center items-center gap-4 mt-6 text-xs font-medium text-app-subtle">
+          <Link to="/user/profile/terms" className="hover:text-[#D1FF42] transition-colors">Terms</Link>
+          <span className="w-1 h-1 bg-app-subtle rounded-full"></span>
+          <Link to="/user/profile/privacy" className="hover:text-[#D1FF42] transition-colors">Privacy</Link>
+          <span className="w-1 h-1 bg-app-subtle rounded-full"></span>
+          <Link to="/user/support" className="hover:text-[#D1FF42] transition-colors">Support</Link>
         </div>
       </div>
 

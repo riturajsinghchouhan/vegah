@@ -13,7 +13,7 @@ const VehicleSpecs = ({ vehicle }) => (
       {specs(vehicle).map(({ icon: Icon, label, value }) => (
         <div key={label} className="rounded-3xl border border-app-border bg-app-card p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-emerald-50 p-2 text-app-primary">
+            <div className="rounded-2xl bg-emerald-500/15 p-2 text-app-primary">
               <Icon size={16} />
             </div>
             <div>

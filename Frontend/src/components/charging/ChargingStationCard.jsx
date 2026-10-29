@@ -11,7 +11,7 @@ const ChargingStationCard = ({ station }) => {
       case "Unavailable":
         return "text-[#DC2626]";
       default:
-        return "text-gray-500";
+        return "text-app-subtle";
     }
   };
 
@@ -31,7 +31,7 @@ const ChargingStationCard = ({ station }) => {
   return (
     <Link
       to={`/user/charging/${station.id}`}
-      className="bg-white rounded-[20px] border border-gray-100 shadow-sm p-4 flex gap-4 hover:shadow-md transition-shadow mb-3 block"
+      className="bg-app-card rounded-[20px] border border-app-border shadow-sm p-4 flex gap-4 hover:shadow-md transition-shadow mb-3 block"
     >
       <div className="w-[80px] h-[100px] shrink-0 bg-[#0B1320] rounded-[16px] flex items-center justify-center p-2 overflow-hidden">
         <img
@@ -43,7 +43,7 @@ const ChargingStationCard = ({ station }) => {
             e.target.nextSibling.style.display = "block";
           }}
         />
-        <div className="hidden text-[#272664] opacity-50">
+        <div className="hidden text-[#D1FF42] opacity-50">
           <Zap size={32} />
         </div>
       </div>
@@ -51,12 +51,12 @@ const ChargingStationCard = ({ station }) => {
       <div className="flex-1 flex flex-col justify-between min-w-0">
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0">
-            <h3 className="text-[15px] font-bold text-gray-900 truncate">{station.name}</h3>
-            <p className="text-[11px] text-gray-500 truncate mt-0.5">{station.address}</p>
+            <h3 className="text-[15px] font-bold text-app-text truncate">{station.name}</h3>
+            <p className="text-[11px] text-app-subtle truncate mt-0.5">{station.address}</p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <span className="text-[11px] text-gray-500 font-medium">{station.distance} km</span>
+            <span className="text-[11px] text-app-subtle font-medium">{station.distance} km</span>
             <div className={`flex items-center gap-1.5 text-[11px] font-bold ${getStatusColor(station.status)}`}>
               <span className={`w-2 h-2 rounded-full ${getStatusBgColor(station.status)}`}></span>
               {station.status}
@@ -66,32 +66,32 @@ const ChargingStationCard = ({ station }) => {
 
         <div className="flex justify-between items-end mt-2 gap-2 flex-wrap sm:flex-nowrap">
           <div className="flex flex-wrap gap-1.5">
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700 whitespace-nowrap">
+            <div className="flex items-center gap-1 bg-app-muted border border-app-border rounded-lg px-2 py-1 text-app-text whitespace-nowrap">
               {station.chargingType === "AC" ? (
-                <Cable size={12} className="text-[#272664]" />
+                <Cable size={12} className="text-[#D1FF42]" />
               ) : (
-                <Zap size={12} className="text-[#272664]" />
+                <Zap size={12} className="text-[#D1FF42]" />
               )}
               <span className="text-[10px] font-bold">{station.chargingType}</span>
             </div>
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-gray-700 whitespace-nowrap">
-              <Cable size={12} className="text-gray-500" />
+            <div className="flex items-center gap-1 bg-app-muted border border-app-border rounded-lg px-2 py-1 text-app-text whitespace-nowrap">
+              <Cable size={12} className="text-app-subtle" />
               <span className="text-[10px] font-bold">{station.connector}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0 ml-auto">
             <div className="text-right">
-              <p className="text-[14px] font-bold text-gray-900 leading-none">
-                ₹{(Number(station?.pricePerKwh || station?.price) || 18.0).toFixed(2)}<span className="text-[11px] text-gray-500 font-medium">/kWh</span>
+              <p className="text-[14px] font-bold text-app-text leading-none">
+                ₹{(Number(station?.pricePerKwh || station?.price) || 18.0).toFixed(2)}<span className="text-[11px] text-app-subtle font-medium">/kWh</span>
               </p>
             </div>
 
             <div className="flex flex-col items-center justify-center">
-              <div className="w-8 h-8 rounded-full border border-[#272664] text-[#272664] flex items-center justify-center hover:bg-[#e8e8f2] transition-colors mb-1 shrink-0">
+              <div className="w-8 h-8 rounded-full border border-[#2E7BE0] text-[#D1FF42] flex items-center justify-center hover:bg-app-muted transition-colors mb-1 shrink-0">
                 <ArrowRight size={16} strokeWidth={2.5} />
               </div>
-              <p className="text-[8px] text-gray-500 font-medium leading-none text-center">
+              <p className="text-[8px] text-app-subtle font-medium leading-none text-center">
                 {station.availablePorts}/{station.totalPorts}
                 <br />
                 Available

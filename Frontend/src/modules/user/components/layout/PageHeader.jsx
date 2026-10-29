@@ -9,7 +9,7 @@ const PageHeader = ({ title, subtitle, showBack = false }) => {
       <div className="flex items-start gap-3">
         {showBack ? (
           <button
-            className="rounded-xl border border-app-border bg-white p-2.5 text-app-text transition hover:border-app-primary hover:text-app-primary"
+            className="rounded-xl border border-app-border bg-app-card p-2.5 text-app-text transition hover:border-app-primary hover:text-app-primary"
             onClick={() => navigate(-1)}
             type="button"
           >
@@ -22,7 +22,7 @@ const PageHeader = ({ title, subtitle, showBack = false }) => {
         </div>
       </div>
 
-      <button className="rounded-xl border border-app-border bg-white p-3 text-app-subtle transition hover:text-app-primary" type="button">
+      <button className="rounded-xl border border-app-border bg-app-card p-3 text-app-subtle transition hover:text-app-primary" type="button">
         <Bell size={18} />
       </button>
     </header>

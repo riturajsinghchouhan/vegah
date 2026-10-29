@@ -7,10 +7,10 @@ const DestinationsSection = ({ destinations }) => {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between px-4 mb-4">
-        <h2 className="text-[17px] font-bold text-gray-900">Top Destinations</h2>
+        <h2 className="text-[17px] font-bold text-app-text">Top Destinations</h2>
         <Link 
           to="/explore-destinations" 
-          className="text-[12px] font-bold text-[#272664] flex items-center gap-1 hover:text-[#1e1d4d] transition-colors"
+          className="text-[12px] font-bold text-[#D1FF42] flex items-center gap-1 hover:text-[#D1FF42] transition-colors"
         >
           View All <ArrowRight size={14} />
         </Link>
@@ -35,8 +35,8 @@ const DestinationsSection = ({ destinations }) => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               
               {/* Distance Badge */}
-              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-0.5 shadow-sm">
-                <MapPin size={10} className="text-[#272664]" />
+              <div className="absolute top-3 left-3 bg-app-card/90 backdrop-blur-sm text-app-text text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-0.5 shadow-sm">
+                <MapPin size={10} className="text-[#D1FF42]" />
                 {destination.distance}
               </div>
 

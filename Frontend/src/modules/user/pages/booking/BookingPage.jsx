@@ -27,13 +27,13 @@ const BookingPage = () => {
           <div key={step} className="flex items-center">
             <div
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 1 ? "bg-app-primary text-white" : step < 1 ? "bg-app-primary/20 text-app-primary" : "bg-[#f1f4f1] text-app-subtle"
+                step === 1 ? "bg-app-primary text-white" : step < 1 ? "bg-app-primary/20 text-app-primary" : "bg-app text-app-subtle"
               }`}
             >
               {step}
             </div>
             {index < arr.length - 1 && (
-              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 1 ? "bg-app-primary/20" : "bg-[#f1f4f1]"}`} />
+              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 1 ? "bg-app-primary/20" : "bg-app"}`} />
             )}
           </div>
         ))}
@@ -50,14 +50,14 @@ const BookingPage = () => {
               <button
                 key={type.value}
                 className={`rounded-[18px] border p-4 text-left transition ${
-                  booking.rentalType === type.value ? "border-app-primary bg-[#eff9f1]" : "border-app-border bg-white"
+                  booking.rentalType === type.value ? "border-app-primary bg-[#13301F]" : "border-app-border bg-app-card"
                 }`}
                 onClick={() => updateBookingField("rentalType", type.value)}
                 type="button"
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-app-text">{type.label}</p>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full">
+                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/20/60 px-2 py-0.5 rounded-full">
                     {type.value === "daily" ? "7 Days" : "30 Days"}
                   </span>
                 </div>
@@ -72,7 +72,7 @@ const BookingPage = () => {
         <section className="surface-card p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-app-text">Schedule details</h2>
-            <span className="text-xs bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
+            <span className="text-xs bg-emerald-500/15 text-emerald-400 font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
               {booking.rentalType === "daily" ? "Weekly (7 Days)" : "Monthly (30 Days)"}
             </span>
           </div>

@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 
 const paymentMethods = [
   { id: "ONLINE", title: "Pay Online", description: "UPI, Credit/Debit Cards, Net Banking", icon: Landmark },
-  { id: "WALLET", title: "Vegah Wallet", description: "Instant payment using your wallet balance", icon: Wallet },
+  { id: "WALLET", title: "Swoop Wallet", description: "Instant payment using your wallet balance", icon: Wallet },
   { id: "CASH", title: "Pay with Cash", description: "Pay when you pick up the vehicle", icon: CreditCard },
 ];
 
@@ -119,7 +119,7 @@ const PaymentPage = () => {
         key: paymentData.razorpayKeyId || "rzp_test_dummy",
         amount: paymentData.amount * 100,
         currency: paymentData.currency || "INR",
-        name: "Vegah EVs",
+        name: "Swoop EVs",
         description: "Booking Payment",
         order_id: paymentData.razorpayOrderId,
         handler: async function (response) {
@@ -177,13 +177,13 @@ const PaymentPage = () => {
           <div key={step} className="flex items-center">
             <div
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
-                step === 6 ? "bg-app-primary text-white" : step < 6 ? "bg-app-primary/20 text-app-primary" : "bg-[#f1f4f1] text-app-subtle"
+                step === 6 ? "bg-app-primary text-white" : step < 6 ? "bg-app-primary/20 text-app-primary" : "bg-app text-app-subtle"
               }`}
             >
               {step}
             </div>
             {index < arr.length - 1 && (
-              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 6 ? "bg-app-primary/20" : "bg-[#f1f4f1]"}`} />
+              <div className={`h-[2px] w-6 sm:w-8 mx-1 ${step < 6 ? "bg-app-primary/20" : "bg-app"}`} />
             )}
           </div>
         ))}
@@ -192,7 +192,7 @@ const PaymentPage = () => {
       <section className="surface-card p-4">
         <p className="text-xs text-app-subtle">Total Amount</p>
         <h2 className="mt-1 text-[30px] font-semibold text-app-text">{formatCurrency(pricing.total)}</h2>
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-[#f7f9f7] px-4 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-app-muted px-4 py-3">
           <span className="text-sm text-app-subtle">Apply Promo Code</span>
           <span className="text-xs font-semibold text-app-primary">APPLY</span>
         </div>
@@ -216,23 +216,23 @@ const PaymentPage = () => {
               key={id}
               onClick={() => setPaymentMode(id)}
               className={`flex w-full items-center justify-between rounded-[18px] border p-4 text-left transition ${
-                paymentMode === id ? "border-app-primary bg-[#eff9f1]/30" : "border-app-border bg-white hover:border-app-primary/50"
+                paymentMode === id ? "border-app-primary bg-[#13301F]/30" : "border-app-border bg-app-card hover:border-app-primary/50"
               }`}
               type="button"
             >
               <div className="flex items-center gap-3">
-                <div className={`rounded-2xl p-3 ${paymentMode === id ? "bg-app-primary text-white" : "bg-[#eff9f1] text-app-primary"}`}>
+                <div className={`rounded-2xl p-3 ${paymentMode === id ? "bg-app-primary text-white" : "bg-[#13301F] text-app-primary"}`}>
                   <Icon size={18} />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-app-text">{title}</p>
-                  <p className={`text-xs ${isWallet && !wallet.loading && !walletUsable ? "text-red-600" : "text-app-subtle"}`}>
+                  <p className={`text-xs ${isWallet && !wallet.loading && !walletUsable ? "text-red-400" : "text-app-subtle"}`}>
                     {subtitle}
                   </p>
                 </div>
               </div>
-              <div className={`h-5 w-5 flex items-center justify-center rounded-full border-2 ${paymentMode === id ? "border-app-primary bg-app-primary" : "border-gray-300"}`}>
-                {paymentMode === id && <div className="h-2 w-2 rounded-full bg-white" />}
+              <div className={`h-5 w-5 flex items-center justify-center rounded-full border-2 ${paymentMode === id ? "border-app-primary bg-app-primary" : "border-app-border"}`}>
+                {paymentMode === id && <div className="h-2 w-2 rounded-full bg-app-card" />}
               </div>
             </button>
             );
@@ -244,13 +244,13 @@ const PaymentPage = () => {
         <PriceBreakdown pricing={pricing} />
       </div>
 
-      <p className="mt-6 text-xs text-gray-500 text-center px-4">
-        By proceeding with the payment, you agree to our <span onClick={() => setShowTerms(!showTerms)} className="underline cursor-pointer hover:text-gray-700">Terms & Conditions</span>.
+      <p className="mt-6 text-xs text-app-subtle text-center px-4">
+        By proceeding with the payment, you agree to our <span onClick={() => setShowTerms(!showTerms)} className="underline cursor-pointer hover:text-app-text">Terms & Conditions</span>.
       </p>
 
       {showTerms && (
         <div 
-          className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 max-h-60 overflow-y-auto show-scrollbar overscroll-contain"
+          className="mt-4 p-4 bg-app-muted border border-app-border rounded-lg text-xs text-app-subtle max-h-60 overflow-y-auto show-scrollbar overscroll-contain"
           onWheel={(e) => e.stopPropagation()}
         >
           {termsContent ? (

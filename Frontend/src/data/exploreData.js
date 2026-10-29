@@ -55,16 +55,16 @@ export const benefits = [
     title: "Safe & Secure",
     description: "Well maintained scoots for your safety",
     icon: "shield",
-    color: "text-[#272664]",
-    bgColor: "bg-[#e8e8f2]",
+    color: "text-[#D1FF42]",
+    bgColor: "bg-[#D1FF42]/15",
   },
   {
     id: "price",
     title: "Best Prices",
     description: "Competitive prices and great offers",
     icon: "indian-rupee",
-    color: "text-blue-500",
-    bgColor: "bg-blue-50",
+    color: "text-[#D1FF42]",
+    bgColor: "bg-[#D1FF42]/15",
   },
   {
     id: "support",
@@ -72,7 +72,7 @@ export const benefits = [
     description: "Our team is always here to help you",
     icon: "headphones",
     color: "text-green-500",
-    bgColor: "bg-green-50",
+    bgColor: "bg-green-500/15",
   },
   {
     id: "easy",
@@ -80,7 +80,7 @@ export const benefits = [
     description: "Quick & easy booking in just a few steps",
     icon: "check-circle",
     color: "text-purple-500",
-    bgColor: "bg-purple-50",
+    bgColor: "bg-purple-500/15",
   },
 ];
 

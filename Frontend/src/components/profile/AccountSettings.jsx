@@ -14,7 +14,7 @@ const AccountSettings = ({ settings, onItemClick }) => {
 
   return (
     <div className="px-5 mb-8">
-      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-app-card rounded-[24px] border border-app-border shadow-sm overflow-hidden">
         {settings.map((item, index) => {
           const Icon = iconMap[item.icon] || User;
           const isLast = index === settings.length - 1;
@@ -24,19 +24,19 @@ const AccountSettings = ({ settings, onItemClick }) => {
               key={item.id} 
               type="button"
               onClick={() => onItemClick && onItemClick(item.id)}
-              className={`w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors text-left ${
-                !isLast ? "border-b border-gray-50" : ""
+              className={`w-full flex items-center justify-between p-4 bg-app-card hover:bg-app-muted active:bg-app-muted transition-colors text-left ${
+                !isLast ? "border-b border-app-border" : ""
               }`}
             >
               <div className="flex items-center gap-4">
-                <div className="text-gray-500">
+                <div className="text-app-subtle">
                   <Icon size={20} strokeWidth={1.5} />
                 </div>
-                <span className="text-[14px] font-medium text-gray-800">
+                <span className="text-[14px] font-medium text-app-text">
                   {item.label}
                 </span>
               </div>
-              <ChevronRight size={18} className="text-gray-400" />
+              <ChevronRight size={18} className="text-app-subtle" />
             </button>
           );
         })}

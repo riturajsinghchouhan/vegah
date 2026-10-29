@@ -55,7 +55,7 @@ const ChargingMap = ({ stations }) => {
 
   return (
     <div className="px-5 mb-8 relative">
-      <div className="w-full h-[160px] rounded-[24px] overflow-hidden shadow-sm border border-gray-200 relative bg-[#E5E3DF]">
+      <div className="w-full h-[160px] rounded-[24px] overflow-hidden shadow-sm border border-app-border relative bg-app-muted">
         {isLoaded ? (
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
@@ -81,7 +81,7 @@ const ChargingMap = ({ stations }) => {
             ))}
           </GoogleMap>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm font-medium">
+          <div className="w-full h-full flex items-center justify-center text-app-subtle text-sm font-medium">
             Loading Map...
           </div>
         )}
@@ -89,7 +89,7 @@ const ChargingMap = ({ stations }) => {
       
       {/* Locate Me Floating Button */}
       <button 
-        className="absolute bottom-4 right-9 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 text-gray-700 hover:text-[#272664] active:scale-95 transition-all z-10"
+        className="absolute bottom-4 right-9 w-10 h-10 bg-app-card rounded-full flex items-center justify-center shadow-md border border-app-border text-app-text hover:text-[#D1FF42] active:scale-95 transition-all z-10"
         onClick={() => {
           if (map && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(

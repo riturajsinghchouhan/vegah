@@ -96,7 +96,7 @@ const OtpPage = () => {
   const city = routerLocation.state?.city ?? "";
 
   return (
-    <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-[#F8F9FA] shadow-2xl">
+    <div className="h-[100dvh] w-full max-w-[430px] mx-auto relative flex flex-col justify-end p-5 font-sans overflow-hidden bg-app-muted shadow-2xl">
       
       {/* Background Image Layer */}
       <img 
@@ -108,21 +108,21 @@ const OtpPage = () => {
       {/* Back Button */}
       <button 
         onClick={() => navigate(-1)}
-        className="absolute top-8 left-6 z-30 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+        className="absolute top-8 left-6 z-30 w-10 h-10 bg-app-card/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-sm hover:bg-app-card transition-colors"
       >
-        <ArrowLeft size={20} className="text-gray-800" />
+        <ArrowLeft size={20} className="text-app-text" />
       </button>
       
       {/* Spacer to push card to bottom */}
       <div className="flex-1" />
 
       {/* --- Form Container (White Card) --- */}
-      <div className="relative z-20 bg-white w-full max-w-md mx-auto rounded-[32px] px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] mb-20 transition-all duration-500 ease-out focus-within:-translate-y-8 focus-within:shadow-[0_40px_80px_rgba(0,0,0,0.15)]">
+      <div className="relative z-20 bg-app-card w-full max-w-md mx-auto rounded-[32px] px-6 py-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] mb-20 transition-all duration-500 ease-out focus-within:-translate-y-8 focus-within:shadow-[0_40px_80px_rgba(0,0,0,0.15)]">
         
         <div className="mb-8">
-          <h1 className="text-[24px] font-bold text-gray-900 leading-tight">Verify Mobile</h1>
-          <p className="text-[14px] text-gray-500 mt-2">
-            Code sent to <span className="font-semibold text-gray-800">{phoneNumber}</span>
+          <h1 className="text-[24px] font-bold text-app-text leading-tight">Verify Mobile</h1>
+          <p className="text-[14px] text-app-subtle mt-2">
+            Code sent to <span className="font-semibold text-app-text">{phoneNumber}</span>
           </p>
         </div>
 
@@ -138,20 +138,20 @@ const OtpPage = () => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-[60px] h-[64px] rounded-[16px] border-2 border-gray-100 bg-[#F8F9FA] text-center text-[24px] font-bold text-gray-900 outline-none focus:border-[#272664] focus:bg-white focus:ring-4 focus:ring-[#272664]/10 transition-all"
+                className="w-[60px] h-[64px] rounded-[16px] border-2 border-app-border bg-app text-center text-[24px] font-bold text-app-text outline-none focus:border-[#2E7BE0] focus:bg-app-card focus:ring-4 focus:ring-[#2E7BE0]/10 transition-all"
               />
             ))}
           </div>
 
           {error && (
-            <p role="alert" className="-mt-3 mb-5 text-[13px] font-semibold text-red-600">
+            <p role="alert" className="-mt-3 mb-5 text-[13px] font-semibold text-red-400">
               {error}
             </p>
           )}
 
           <div className="flex items-center justify-between mb-8">
-            <p className="text-[13px] text-gray-500 font-medium">Didn't receive code?</p>
-            <button type="button" className="text-[13px] font-bold text-[#272664] hover:underline">
+            <p className="text-[13px] text-app-subtle font-medium">Didn't receive code?</p>
+            <button type="button" className="text-[13px] font-bold text-[#D1FF42] hover:underline">
               Resend in 00:30
             </button>
           </div>
@@ -160,19 +160,19 @@ const OtpPage = () => {
           <button 
             type="submit"
             disabled={loading || !isOtpComplete}
-            className="w-full h-[52px] bg-[#272664] hover:bg-[#1e1d4d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
+            className="w-full h-[52px] bg-[#D1FF42] hover:bg-[#A9CF2A] disabled:opacity-50 disabled:cursor-not-allowed text-[#1A2230] text-[16px] font-bold rounded-[16px] flex items-center justify-center transition-all shadow-md active:scale-[0.98]"
           >
             {loading ? "Verifying..." : "Verify and proceed"}
             {!loading && <ArrowRight size={18} className="ml-2" />}
           </button>
 
-          <div className="mt-6 bg-[#f3f3f8] rounded-[16px] p-4 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-[#d0d0e3]">
-              <ShieldCheck size={16} className="text-[#272664]" />
+          <div className="mt-6 bg-app-muted rounded-[16px] p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-app-card flex items-center justify-center shrink-0 border border-app-border">
+              <ShieldCheck size={16} className="text-[#D1FF42]" />
             </div>
             <div>
-              <p className="text-[12px] font-bold text-gray-900 leading-tight">Secure verification</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Your session is protected</p>
+              <p className="text-[12px] font-bold text-app-text leading-tight">Secure verification</p>
+              <p className="text-[11px] text-app-subtle mt-0.5">Your session is protected</p>
             </div>
           </div>
 
