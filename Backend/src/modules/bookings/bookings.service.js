@@ -7,7 +7,7 @@ import Vehicle from '../../models/Vehicle.js';
 import Coupon from '../../models/Coupon.js';
 import Payment from '../../models/Payment.js';
 import Refund from '../../models/Refund.js';
-import { bookingQueue } from '../../config/bullmq.js';
+import { bookingQueue, enqueue, queueOp } from '../../config/bullmq.js';
 import { validateStateTransition } from './bookings.state-machine.js';
 import {
   BOOKING_STATUS,
@@ -27,6 +27,7 @@ import razorpay from '../../config/razorpay.js';
 import { getIO } from '../../config/socket.js';
 import { sendAdminBookingNotification, notifyUser, notifyAdmins } from '../../services/notification.service.js';
 import { sendNotificationToOwner } from '../../services/firebase.service.js';
+import * as ledgerHooks from '../ledger/hooks.js';
 import logger from '../../utils/logger.js';
 
 const generateBookingId = () => {
@@ -297,13 +298,26 @@ export const reserveVehicle = async (userId, data) => {
     }
 
     // 5. Enqueue Expiry Job (Fire and forget, out of transaction)
+    //
+    // The reservation is already committed, so a queue problem must not fail or
+    // stall the response: if the job cannot be enqueued we fall through to the
+    // in-process timer below rather than leaving the caller waiting.
+    let expiryQueued = false;
     if (env.BULLMQ_ENABLED && bookingQueue) {
-      await bookingQueue.add(
-        'reservation-expiry',
-        { bookingId: booking._id.toString() },
-        { delay: RESERVATION_TTL_MS, jobId: `expiry-${booking._id.toString()}` }
-      );
-    } else {
+      try {
+        await enqueue(
+          bookingQueue,
+          'reservation-expiry',
+          { bookingId: booking._id.toString() },
+          { delay: RESERVATION_TTL_MS, jobId: `expiry-${booking._id.toString()}` }
+        );
+        expiryQueued = true;
+      } catch (err) {
+        logger.error(`Could not enqueue reservation expiry for ${booking.bookingId}: ${err.message}`);
+      }
+    }
+
+    if (!expiryQueued) {
       // Fallback if no queue: setTimeout (not ideal for production distributed systems)
       setTimeout(async () => {
         try {
@@ -383,8 +397,11 @@ export const cancelTripJobs = async (bookingId) => {
   if (!env.BULLMQ_ENABLED || !bookingQueue) return;
   for (const jobId of [`reminder-${id}`, `overdue-${id}`]) {
     try {
-      const job = await bookingQueue.getJob(jobId);
-      if (job) await job.remove();
+      // Bounded: an unreachable queue would otherwise stall the caller here.
+      await queueOp(`Removing job ${jobId}`, async () => {
+        const job = await bookingQueue.getJob(jobId);
+        if (job) await job.remove();
+      });
     } catch (err) {
       logger.warn(`Could not remove job ${jobId}: ${err.message}`);
     }
@@ -406,21 +423,19 @@ export const scheduleTripJobs = async (booking) => {
   const overdueDelay = deadline + OVERDUE_GRACE_MS - Date.now();
 
   if (env.BULLMQ_ENABLED && bookingQueue) {
-    if (reminderDelay > 0) {
-      await bookingQueue.add(
-        'rental-reminder',
-        { bookingId: id },
-        { delay: reminderDelay, jobId: `reminder-${id}` }
-      );
+    try {
+      if (reminderDelay > 0) {
+        await enqueue(bookingQueue, 'rental-reminder', { bookingId: id }, { delay: reminderDelay, jobId: `reminder-${id}` });
+      }
+      if (overdueDelay > 0) {
+        await enqueue(bookingQueue, 'rental-overdue', { bookingId: id }, { delay: overdueDelay, jobId: `overdue-${id}` });
+      }
+      return;
+    } catch (err) {
+      // Queue unreachable: drop through to the in-process timers rather than
+      // leaving the trip with no reminder or overdue check at all.
+      logger.error(`Could not queue trip jobs for ${id}, using in-process timers: ${err.message}`);
     }
-    if (overdueDelay > 0) {
-      await bookingQueue.add(
-        'rental-overdue',
-        { bookingId: id },
-        { delay: overdueDelay, jobId: `overdue-${id}` }
-      );
-    }
-    return;
   }
 
   // No queue available - in-process timers keep the flow working in dev.
@@ -741,6 +756,12 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
     await syncVehicleStock(targetVehicleId, session);
 
     await session.commitTransaction();
+
+    // Ledger postings run first, straight after the commit. Everything below
+    // (re-fetch, sockets, push) is presentation, and a failure there must not
+    // cost us the accounting entry. Uses the unpopulated `booking` so
+    // sub-ledger ids stay ObjectIds. Never throws.
+    await ledgerHooks.onBookingStatusChange(booking, oldStatus, newStatus);
 
     // Populate updated booking for notifications
     // The admin console merges socket updates with `{ ...row, ...payload }`, so an

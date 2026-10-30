@@ -312,6 +312,84 @@ export const adminService = {
     return res.data;
   },
 
+  // --- Ledger (double-entry: all three statements come from one ledger) ---
+  async getLedgerBalanceSheet(params = {}) {
+    const res = await adminApi.get('/admin/ledger/balance-sheet', { params });
+    return res.data.data;
+  },
+  async getLedgerProfitLoss(params = {}) {
+    const res = await adminApi.get('/admin/ledger/profit-loss', { params });
+    return res.data.data;
+  },
+  async getLedgerReceiptsPayments(params = {}) {
+    const res = await adminApi.get('/admin/ledger/receipts-payments', { params });
+    return res.data.data;
+  },
+  async getLedgerTrialBalance(params = {}) {
+    const res = await adminApi.get('/admin/ledger/trial-balance', { params });
+    return res.data.data;
+  },
+  async getLedgerDailyCheck(params = {}) {
+    const res = await adminApi.get('/admin/ledger/daily-check', { params });
+    return res.data.data;
+  },
+  async getLedgerJournal(params = {}) {
+    const res = await adminApi.get('/admin/ledger/journal', { params });
+    return { entries: res.data.data || [], meta: res.data.meta || {} };
+  },
+  async getLedgerAccounts() {
+    const res = await adminApi.get('/admin/ledger/accounts');
+    return res.data.data;
+  },
+  async getLedgerPeriods() {
+    const res = await adminApi.get('/admin/ledger/periods');
+    return res.data.data;
+  },
+  async closeLedgerPeriod(periodKey) {
+    const res = await adminApi.post('/admin/ledger/periods/close', { periodKey });
+    return res.data.data;
+  },
+  async reopenLedgerPeriod(periodKey, reason) {
+    const res = await adminApi.post('/admin/ledger/periods/reopen', { periodKey, reason });
+    return res.data.data;
+  },
+  async postLedgerVoucher(payload) {
+    const res = await adminApi.post('/admin/ledger/voucher', payload);
+    return res.data.data;
+  },
+  async reverseLedgerEntry(id, reason) {
+    const res = await adminApi.post(`/admin/ledger/journal/${id}/reverse`, { reason });
+    return res.data.data;
+  },
+  async getLedgerPendingMoney() {
+    const res = await adminApi.get('/admin/ledger/pending-money');
+    return res.data.data;
+  },
+  async recordLedgerCashHandover(payload) {
+    const res = await adminApi.post('/admin/ledger/cash-handover', payload);
+    return res.data.data;
+  },
+  async recordLedgerGatewaySettlement(payload) {
+    const res = await adminApi.post('/admin/ledger/gateway-settlement', payload);
+    return res.data.data;
+  },
+  async installLedgerChart() {
+    const res = await adminApi.post('/admin/ledger/install-chart');
+    return res.data.data;
+  },
+  // Streams the report as a file the browser saves, so the CA can open it in Excel.
+  async downloadLedgerCsv(report, params = {}) {
+    const res = await adminApi.get(`/admin/ledger/export/${report}`, { params, responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${report}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
   // --- Settings ---
   async getSettings(params = {}) {
     const res = await adminApi.get('/admin/settings', { params });

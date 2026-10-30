@@ -224,6 +224,11 @@ export const adminSidebarMenu = [
             label: "Revenue",
             path: "/admin/accounting/revenue",
           },
+          {
+            type: "link",
+            label: "Ledger",
+            path: "/admin/accounting/ledger",
+          },
         ],
       },
       {

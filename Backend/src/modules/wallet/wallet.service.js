@@ -3,6 +3,7 @@ import WalletTransaction from '../../models/WalletTransaction.js';
 import Refund from '../../models/Refund.js';
 import User from '../../models/User.js';
 import { BadRequestError } from '../../utils/errors.js';
+import * as ledgerHooks from '../ledger/hooks.js';
 
 export const getUserWallet = async (userId) => {
   let wallet = await Wallet.findOne({ user: userId });
@@ -45,6 +46,14 @@ export const addFundsToWallet = async (userId, amount, description = 'Wallet Top
     amount: credit,
     description,
     referenceType: 'TOP_UP',
+  });
+
+  // Non-blocking: the credit is already on the wallet either way.
+  await ledgerHooks.onWalletToppedUp({
+    userId,
+    amount: credit,
+    transactionId: transaction._id,
+    date: transaction.createdAt,
   });
 
   return { wallet, transaction };
@@ -266,6 +275,9 @@ export const updateRefundStatus = async (refundId, status, adminId) => {
       referenceType: 'REFUND',
       referenceId: refund._id,
     });
+
+    // Non-blocking: the wallet has already been credited.
+    await ledgerHooks.onRefundPaid({ refund, userId, from: 'RIDER_WALLET' });
   }
 
   return refund;

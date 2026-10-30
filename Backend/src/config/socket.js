@@ -58,9 +58,22 @@ export const initSocket = (server) => {
   if (redisClient) {
     // Create a duplicate redis connection for subscribing (adapter requirement)
     const subClient = redisClient.duplicate();
-    
+
+    // Reported once, then quiet until it reconnects. ioredis retries on a
+    // timer, so logging every attempt produced an endless stream of identical
+    // errors that pushed everything else out of the log.
+    let reported = false;
     subClient.on('error', (err) => {
-      logger.error(`Redis subClient connection error: ${err}`);
+      if (reported) return;
+      reported = true;
+      logger.error(
+        `Socket.IO Redis subscriber unavailable (${err.code || err.message}). ` +
+        'Cross-process broadcasting is down. Further errors suppressed until it reconnects.'
+      );
+    });
+    subClient.on('ready', () => {
+      if (reported) logger.info('Socket.IO Redis subscriber reconnected');
+      reported = false;
     });
 
     io.adapter(createAdapter(redisClient, subClient));

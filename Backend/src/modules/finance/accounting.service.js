@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Booking from '../../models/Booking.js';
 import Expense, { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_MODES } from '../../models/Expense.js';
+import * as ledgerHooks from '../ledger/hooks.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 
 // Admins enter expenses against Indian calendar days, so day/month boundaries
@@ -209,7 +210,10 @@ const assertValidId = (id) => {
 
 export const createExpense = async (body, adminId) => {
   const payload = buildExpensePayload(body);
-  return Expense.create({ ...payload, createdBy: adminId || null });
+  const expense = await Expense.create({ ...payload, createdBy: adminId || null });
+  // Non-blocking: the expense is saved whether or not the ledger accepts it.
+  await ledgerHooks.onExpenseRecorded(expense);
+  return expense;
 };
 
 export const updateExpense = async (id, body, adminId) => {

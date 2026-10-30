@@ -24,6 +24,7 @@ import AdminAccounting from "./pages/AdminAccounting";
 import AdminAccountingBalance from "./pages/accounting/AdminAccountingBalance";
 import AdminAccountingProfitLoss from "./pages/accounting/AdminAccountingProfitLoss";
 import AdminAccountingRevenue from "./pages/accounting/AdminAccountingRevenue";
+import AdminLedger from "./pages/accounting/AdminLedger";
 import AdminSettlements from "./pages/AdminSettlements";
 import AdminTaxBilling from "./pages/AdminTaxBilling";
 import AdminSettings from "./pages/AdminSettings";
@@ -96,6 +97,7 @@ export default function AdminRoutes() {
         <Route path="accounting/balance" element={<AdminAccountingBalance />} />
         <Route path="accounting/profit-loss" element={<AdminAccountingProfitLoss />} />
         <Route path="accounting/revenue" element={<AdminAccountingRevenue />} />
+        <Route path="accounting/ledger" element={<AdminLedger />} />
         <Route path="settlements" element={<AdminSettlements />} />
         <Route path="tax-billing" element={<AdminTaxBilling />} />
         <Route path="settings" element={<AdminSettings />} />

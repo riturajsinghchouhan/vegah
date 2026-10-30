@@ -8,6 +8,7 @@ import env from '../../config/env.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { handleStatusTransition } from '../bookings/bookings.service.js';
 import { BOOKING_STATUS } from '../bookings/bookings.constants.js';
+import * as ledgerHooks from '../ledger/hooks.js';
 
 // Booking states that still accept a payment attempt.
 const PAYABLE_BOOKING_STATUSES = [
@@ -138,6 +139,9 @@ export const verifyPayment = async ({ bookingId, razorpayOrderId, razorpayPaymen
 
   const updatedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);
 
+  // Non-blocking: a ledger problem must not fail a verified payment.
+  await ledgerHooks.onPaymentSucceeded(payment, booking);
+
   return { payment, booking: updatedBooking };
 };
 
@@ -230,7 +234,7 @@ export const payWithWallet = async (bookingId, userId) => {
   await wallet.save();
 
   // Create Wallet Transaction
-  await WalletTransaction.create({
+  const walletTxn = await WalletTransaction.create({
     wallet: wallet._id,
     type: 'DEBIT',
     amount: booking.totalAmount,
@@ -245,6 +249,14 @@ export const payWithWallet = async (bookingId, userId) => {
 
   // Transition Booking to PENDING_VERIFICATION
   const updatedBooking = await handleStatusTransition(bookingId, BOOKING_STATUS.PENDING_VERIFICATION);
+
+  // Non-blocking: wallet credit already moved, the ledger just records it.
+  await ledgerHooks.onBookingPaidFromWallet({
+    booking,
+    amount: booking.totalAmount,
+    transactionId: walletTxn?._id,
+    date: payment.paidAt,
+  });
 
   return { payment, booking: updatedBooking };
 };
