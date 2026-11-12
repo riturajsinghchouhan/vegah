@@ -37,10 +37,11 @@ const StationDetailsPage = () => {
 
   useEffect(() => {
     let interval;
-    if (swapState === 'polling' && swapData?.swap_id) {
+    const swapId = swapData?.id || swapData?.swapId || swapData?.swap_id;
+    if (swapState === 'polling' && swapId) {
       interval = setInterval(async () => {
         try {
-          const res = await chargingService.getSwapStatus(swapData.swap_id);
+          const res = await chargingService.getSwapStatus(swapId);
           const data = res.data || res;
           setSwapData(data);
           if (data.status === 'completed') {

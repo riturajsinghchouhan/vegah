@@ -114,9 +114,11 @@ const getApiClient = () => {
 
 const getApiWriteClient = () => {
   const baseURL = env.ELECTICA_BASE_URL || 'https://bss.electica.in/api/partner';
-  const writeKey = env.ELECTICA_WRITE_KEY;
+  // Electica issues a dedicated write key only on request; partners without one
+  // authenticate writes with the same partner key they use for reads.
+  const writeKey = env.ELECTICA_WRITE_KEY || env.ELECTICA_API_KEY;
   if (!writeKey) {
-    throw new ApiError(500, 'Electica write key is not configured');
+    throw new ApiError(500, 'Electica API key is not configured');
   }
 
   return axios.create({
@@ -136,6 +138,9 @@ const handleUpstreamError = (error, fallbackMessage = 'Electica API error') => {
 
     switch (status) {
       case 401:
+        logger.error(
+          `Electica rejected the partner API key (401) on ${error.config?.method?.toUpperCase()} ${error.config?.url} - verify ELECTICA_API_KEY / ELECTICA_WRITE_KEY`
+        );
         throw new UnauthorizedError('Electica API authentication failed');
       case 403:
         throw new ForbiddenError('Electica station is not accessible');
@@ -346,8 +351,8 @@ export const startSwap = async (stationId, entitlementRef) => {
     const client = getApiWriteClient();
     const response = await client.post('/swaps', 
       {
-        station_id: stationId,
-        entitlement_ref: entitlementRef
+        stationId,
+        entitlementRef
       },
       {
         headers: {
