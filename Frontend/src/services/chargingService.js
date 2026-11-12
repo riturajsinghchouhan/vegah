@@ -10,7 +10,12 @@ export const chargingService = {
     // 1. Fetch real MongoDB charging stations
     try {
       const dbRes = await api.get('/charging-stations');
-      const rawDbStations = dbRes.data?.data?.stations || dbRes.data?.stations || [];
+      // The controller sends the array as `data` itself; the paginated
+      // `{ stations }` shape is only kept as a fallback.
+      const dbPayload = dbRes.data?.data;
+      const rawDbStations = Array.isArray(dbPayload)
+        ? dbPayload
+        : (dbPayload?.stations || dbRes.data?.stations || []);
 
       rawDbStations.forEach((s) => {
         if (s.electicaStationId) electicaOverrides.set(String(s.electicaStationId), s);
