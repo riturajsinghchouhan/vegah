@@ -9,6 +9,7 @@ import Pagination from '@/shared/components/ui/Pagination';
 import { adminService } from '../services/adminService';
 import RiderLocationMapModal from '../components/RiderLocationMapModal';
 import EditBookingModal from '../components/EditBookingModal';
+import ExtensionRequestsPanel from '../components/ExtensionRequestsPanel';
 import { initSocket } from '@/services/socketService';
 import { requestNotificationPermission, onForegroundMessage } from '@/config/firebase';
 
@@ -543,6 +544,7 @@ export default function AdminBookings() {
           onRejectReturn={handleRejectReturn}
           actionLoading={actionLoading}
           onEdit={setEditingBooking}
+          onDataChanged={() => fetchAllBookings({ silent: true })}
         />
       ) : activeTab === 'cancelled' ? (
         <AllBookingsTable
@@ -894,7 +896,7 @@ const fmtDateTime = (value) => {
 };
 
 // --- LIVE RENTALS TABLE ---
-function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRejectReturn, actionLoading, onEdit }) {
+function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRejectReturn, actionLoading, onEdit, onDataChanged }) {
   const [selectedRental, setSelectedRental] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   // bookingId -> { lat, lng, accuracy, updatedAt } reported back over the socket
@@ -1083,6 +1085,8 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
           Extensions ({rawLive.filter(b => b.status === 'ACTIVE' || b.status === 'OVERDUE' || b.statusHistory?.some(h => h.note?.includes('Extend') || h.status === 'EXTENDED')).length})
         </button>
       </div>
+
+      {ops === 'extensions' && <ExtensionRequestsPanel onDecided={onDataChanged} />}
 
       <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex items-center px-4">
         <Search className="text-gray-400 mr-3" size={20} />

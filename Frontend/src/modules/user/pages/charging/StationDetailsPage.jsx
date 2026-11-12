@@ -7,7 +7,8 @@ import { chargingService } from "../../../../services/chargingService";
 import { bookingService } from "../../../../services/bookingService";
 import { distanceInMeters, formatDistance } from "../../../../utils/geo";
 
-const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
+// An expired rental cannot swap, so OVERDUE is deliberately not in this list.
+const IN_TRIP_STATUSES = "ACTIVE,PENDING_RETURN";
 
 // A rider has to physically be at the station to swap a battery. The backend
 // enforces this too; the gate here just stops a pointless round trip.
@@ -18,6 +19,7 @@ const StationDetailsPage = () => {
   const [station, setStation] = useState(null);
   const [pods, setPods] = useState(null);
   const [activeBookingId, setActiveBookingId] = useState(null);
+  const [rentalDeadline, setRentalDeadline] = useState(null);
 
   const [swapState, setSwapState] = useState(null); // null, 'starting', 'polling', 'completed', 'failed'
   const [swapData, setSwapData] = useState(null);
@@ -25,6 +27,13 @@ const StationDetailsPage = () => {
   const [imgError, setImgError] = useState(false);
   const [position, setPosition] = useState(null);
   const [positionError, setPositionError] = useState(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Keeps the rental-expiry gate honest while the rider sits on this screen.
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
+  }, []);
 
   useEffect(() => {
     chargingService.getStationById(stationId).then(setStation);
@@ -38,6 +47,7 @@ const StationDetailsPage = () => {
       .then((bookings) => {
         const current = Array.isArray(bookings) && bookings.length ? bookings[0] : null;
         setActiveBookingId(current?._id || current?.id || null);
+        setRentalDeadline(current?.tripEndsAt || current?.endDate || null);
       })
       .catch((err) => console.error("Failed to load active booking:", err));
   }, []);
@@ -101,6 +111,11 @@ const StationDetailsPage = () => {
       setErrorMessage("Battery swap is only available while you have an active rental.");
       return;
     }
+    if (rentalDeadline && new Date(rentalDeadline).getTime() <= Date.now()) {
+      setSwapState('failed');
+      setErrorMessage("Your rental time has run out. Extend your rental to swap a battery.");
+      return;
+    }
     try {
       setSwapState('starting');
       setErrorMessage("");
@@ -134,9 +149,12 @@ const StationDetailsPage = () => {
     distanceToStation - Math.min(position.accuracy || 0, SWAP_RADIUS_METERS) <= SWAP_RADIUS_METERS;
   // Without station coordinates there is nothing to measure against, so the
   // gate stays open and the backend makes the final call.
-  const canSwap = !stationHasCoords || isAtStation;
+  const rentalExpired = rentalDeadline ? new Date(rentalDeadline).getTime() <= now : false;
+  const canSwap = (!stationHasCoords || isAtStation) && !rentalExpired;
 
-  const proximityMessage = !stationHasCoords
+  const proximityMessage = rentalExpired
+    ? "Your rental time has run out. Extend your rental to swap a battery."
+    : !stationHasCoords
     ? null
     : positionError
       ? positionError

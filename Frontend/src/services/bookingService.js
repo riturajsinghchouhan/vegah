@@ -1,4 +1,5 @@
 import api from "./api";
+import { saveBlob } from "../utils/download";
 
 export const bookingService = {
   async listBookings(params = {}) {
@@ -123,9 +124,19 @@ export const bookingService = {
     return response.data.data;
   },
 
-  async extendWithCash(bookingId, planId) {
+  async requestCashExtension(bookingId, planId) {
     const response = await api.post(`/bookings/${bookingId}/extension-cash`, { planId });
     return response.data.data;
+  },
+
+  async getPendingExtensionRequest(bookingId) {
+    const response = await api.get(`/bookings/${bookingId}/extension-request`);
+    return response.data.data;
+  },
+
+  async downloadInvoice(bookingId, invoiceName) {
+    const response = await api.get(`/bookings/${bookingId}/invoice`, { responseType: 'blob' });
+    saveBlob(response.data, `${invoiceName || `invoice-${bookingId}`}.pdf`);
   },
 
   // Rider's app answering an admin's LOCATION_REQUESTED socket event with a

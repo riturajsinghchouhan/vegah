@@ -7,6 +7,7 @@ import Vehicle from '../../models/Vehicle.js';
 import Coupon from '../../models/Coupon.js';
 import Payment from '../../models/Payment.js';
 import Refund from '../../models/Refund.js';
+import ExtensionRequest from '../../models/ExtensionRequest.js';
 import { bookingQueue, enqueue, queueOp } from '../../config/bullmq.js';
 import { validateStateTransition } from './bookings.state-machine.js';
 import {
@@ -1301,14 +1302,52 @@ export const verifyExtensionPayment = async (bookingId, userId, { razorpayOrderI
 };
 
 /**
- * Cash (COD) plan extension: the time is added straight away and the plan
- * price is recorded as a PENDING cash payment for the hub team to collect.
+ * Cash (COD) plan extension: nothing is extended yet. The rider's request is
+ * recorded and an admin has to approve it before any time is added, so a rider
+ * cannot grant themselves a rental they have not paid for.
  */
-export const extendWithCash = async (bookingId, userId, planId) => {
+export const requestCashExtension = async (bookingId, userId, planId) => {
   const booking = await loadExtendableBooking(bookingId, userId);
   const plan = findExtensionPlan(booking.vehicle, planId);
 
-  await Payment.create({
+  const existing = await ExtensionRequest.findOne({ booking: booking._id, status: 'PENDING' });
+  if (existing) {
+    throw new ConflictError('An extension request for this booking is already awaiting approval');
+  }
+
+  const request = await ExtensionRequest.create({
+    booking: booking._id,
+    user: userId,
+    planId: plan.id,
+    planName: plan.name,
+    durationDays: plan.durationDays,
+    amount: plan.price,
+  });
+
+  const populated = await Booking.findById(booking._id).populate('user', 'fullName phone email');
+  await notifyAdminsOfExtensionRequest(populated, plan);
+
+  return { request, booking: populated };
+};
+
+/**
+ * Admin approves a cash extension: only now is the time added and the cash
+ * recorded as a PENDING payment for the hub team to collect.
+ */
+export const approveCashExtension = async (requestId, adminId) => {
+  const request = await ExtensionRequest.findById(requestId);
+  if (!request) throw new NotFoundError('Extension request not found');
+  if (request.status !== 'PENDING') {
+    throw new ConflictError(`This request has already been ${request.status.toLowerCase()}`);
+  }
+
+  const booking = await loadExtendableBooking(
+    request.booking.toString(),
+    request.user.toString()
+  );
+  const plan = findExtensionPlan(booking.vehicle, request.planId);
+
+  const payment = await Payment.create({
     booking: booking._id,
     amount: plan.price,
     method: 'CASH',
@@ -1317,13 +1356,145 @@ export const extendWithCash = async (bookingId, userId, planId) => {
     extensionPlan: plan.id,
   });
 
-  const result = await applyExtension(booking, userId, {
+  const result = await applyExtension(booking, request.user.toString(), {
     extraMs: plan.durationDays * DAY_MS,
     extensionCost: plan.price,
-    note: `Extended with ${plan.name} (${plan.durationDays} days) - cash on delivery`,
+    note: `Extended with ${plan.name} (${plan.durationDays} days) - cash on delivery, approved by admin`,
   });
-  await notifyAdminsOfExtension(result.booking, plan, 'CASH');
-  return result;
+
+  request.status = 'APPROVED';
+  request.decidedBy = adminId;
+  request.decidedAt = new Date();
+  request.payment = payment._id;
+  await request.save();
+
+  try {
+    await notifyUser({
+      userId: request.user.toString(),
+      title: 'Rental extension approved',
+      body: `Your ${plan.name} extension is active. Pay Rs ${plan.price} in cash at the hub.`,
+      referenceId: booking._id,
+      event: 'EXTENSION_APPROVED',
+      data: { bookingId: booking.bookingId, planId: plan.id },
+    });
+  } catch (err) {
+    logger.error(`Failed to notify rider of extension approval: ${err.message}`);
+  }
+
+  return { request, ...result };
+};
+
+export const rejectCashExtension = async (requestId, adminId, reason) => {
+  const request = await ExtensionRequest.findById(requestId);
+  if (!request) throw new NotFoundError('Extension request not found');
+  if (request.status !== 'PENDING') {
+    throw new ConflictError(`This request has already been ${request.status.toLowerCase()}`);
+  }
+
+  request.status = 'REJECTED';
+  request.decidedBy = adminId;
+  request.decidedAt = new Date();
+  request.rejectionReason = reason || null;
+  await request.save();
+
+  try {
+    await notifyUser({
+      userId: request.user.toString(),
+      title: 'Rental extension declined',
+      body: reason
+        ? `Your ${request.planName} extension was declined: ${reason}`
+        : `Your ${request.planName} extension request was declined.`,
+      referenceId: request.booking,
+      event: 'EXTENSION_REJECTED',
+      data: { planId: request.planId },
+    });
+  } catch (err) {
+    logger.error(`Failed to notify rider of extension rejection: ${err.message}`);
+  }
+
+  return request;
+};
+
+export const listExtensionRequests = async ({ status } = {}) => {
+  const filter = status ? { status } : {};
+  return ExtensionRequest.find(filter)
+    .populate('booking', 'bookingId status tripEndsAt endDate totalAmount')
+    .populate('user', 'fullName phone email')
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .lean();
+};
+
+/**
+ * The rider's own invoice for a booking. Built from the booking rather than a
+ * stored row because invoices are derived, not persisted (see models/Invoice.js).
+ */
+export const getBookingInvoice = async (bookingId, userId) => {
+  const booking = await Booking.findById(bookingId)
+    .populate('user', 'fullName phone email')
+    .populate('vehicle', 'name brand model plateNumber');
+  if (!booking) throw new NotFoundError('Booking not found');
+  if (booking.user._id.toString() !== userId) {
+    throw new ForbiddenError('Not allowed to view this invoice');
+  }
+
+  const pricingSettings = await settingsService.getSettings('pricing');
+  const gstRateNum = Number(pricingSettings.gstRate ?? 18);
+  const totalAmount = booking.totalAmount || 0;
+  const taxAmount = booking.taxAmount > 0
+    ? booking.taxAmount
+    : +(totalAmount - totalAmount / (1 + gstRateNum / 100)).toFixed(2);
+  const baseAmount = booking.rentalBase > 0
+    ? booking.rentalBase
+    : +(totalAmount - taxAmount).toFixed(2);
+
+  return {
+    invoiceId: `INV-${booking.bookingId || booking._id.toString().slice(-6).toUpperCase()}`,
+    bookingId: booking.bookingId,
+    date: booking.actualReturnAt || booking.createdAt,
+    customerName: booking.user?.fullName || 'Customer',
+    customerPhone: booking.user?.phone || '',
+    customerEmail: booking.user?.email || '',
+    vehicleName: booking.vehicle
+      ? `${booking.vehicle.brand || ''} ${booking.vehicle.model || booking.vehicle.name || ''}`.trim()
+      : 'EV Rental',
+    plateNumber: booking.assignedPlateNumber || booking.vehicle?.plateNumber || '',
+    baseAmount,
+    taxAmount,
+    serviceFee: booking.serviceFee || 0,
+    platformFee: booking.platformFee || 0,
+    totalAmount,
+    gstRate: `${gstRateNum}%`,
+    status: booking.status === 'COMPLETED' ? 'Paid' : 'Confirmed',
+    paymentMethod: booking.paymentMethod || 'CASH',
+  };
+};
+
+export const getPendingExtensionRequest = async (bookingId, userId) =>
+  ExtensionRequest.findOne({ booking: bookingId, user: userId, status: 'PENDING' }).lean();
+
+// Tells the admins a rider is waiting on a cash extension decision.
+const notifyAdminsOfExtensionRequest = async (booking, plan) => {
+  try {
+    await notifyAdmins({
+      event: 'EXTENSION_REQUESTED',
+      title: 'Extension request - approval needed',
+      body: `${booking.user?.fullName || 'A customer'} asked to extend booking ${booking.bookingId} `
+        + `with the ${plan.name} (+${plan.durationDays} days, Rs ${plan.price}) paying cash. Approve to add the time.`,
+      payload: {
+        bookingId: booking.bookingId,
+        id: String(booking._id),
+        customerName: booking.user?.fullName || '',
+        planId: plan.id,
+        planName: plan.name,
+        durationDays: plan.durationDays,
+        amount: plan.price,
+        paymentMode: 'CASH',
+      },
+    });
+  } catch (err) {
+    logger.error(`Failed to notify admins of extension request: ${err.message}`);
+  }
 };
 
 // Tells the admins a rider extended, and whether they paid online or chose cash.

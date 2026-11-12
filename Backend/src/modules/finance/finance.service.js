@@ -244,6 +244,17 @@ export const getTaxBilling = async (query = {}) => {
   };
 };
 
+/**
+ * Most invoices are derived on the fly rather than stored, so a single invoice
+ * is looked up by rebuilding the same list the billing screen shows.
+ */
+export const getInvoiceById = async (id) => {
+  const { invoices } = await getTaxBilling();
+  const invoice = invoices.find((inv) => String(inv.id) === String(id));
+  if (!invoice) throw new NotFoundError('Invoice not found');
+  return invoice;
+};
+
 // --- Invoice create / delete / bin ---
 
 const toAmount = (value, field) => {

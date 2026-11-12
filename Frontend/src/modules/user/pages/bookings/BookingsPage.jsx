@@ -1,4 +1,4 @@
-import { Calendar, MapPin, ArrowRight, Navigation, CheckCircle2, Clock, XCircle, AlertTriangle, PackageCheck, KeyRound } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Navigation, CheckCircle2, Clock, XCircle, AlertTriangle, PackageCheck, KeyRound, Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EmptyState from "../../../../components/common/EmptyState";
@@ -12,6 +12,22 @@ const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [userBookings, setUserBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [invoiceBookingId, setInvoiceBookingId] = useState(null);
+  const [invoiceError, setInvoiceError] = useState("");
+
+  const handleDownloadInvoice = async (booking) => {
+    const targetId = booking._id || booking.id;
+    if (!targetId || invoiceBookingId) return;
+    try {
+      setInvoiceBookingId(targetId);
+      setInvoiceError("");
+      await bookingService.downloadInvoice(targetId, `invoice-${booking.id || targetId}`);
+    } catch (err) {
+      setInvoiceError(err?.response?.data?.message || "Could not download the invoice.");
+    } finally {
+      setInvoiceBookingId(null);
+    }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -143,6 +159,11 @@ const BookingsPage = () => {
 
       {/* Bookings List */}
       <div className="p-4">
+        {invoiceError && (
+          <p className="mb-3 px-4 py-2 text-xs font-semibold text-red-400 bg-red-500/15 border border-red-200 rounded-xl">
+            {invoiceError}
+          </p>
+        )}
         {loading ? (
           <div className="py-12 text-center text-app-subtle font-semibold">Loading your bookings...</div>
         ) : filteredBookings.length ? (
@@ -237,6 +258,16 @@ const BookingsPage = () => {
                         <Clock size={14} className="animate-spin" style={{ animationDuration: '3s' }} />
                         Awaiting hub verification
                       </span>
+                    )}
+                    {booking.status === "COMPLETED" && (
+                      <button
+                        onClick={() => handleDownloadInvoice(booking)}
+                        disabled={invoiceBookingId === (booking._id || booking.id)}
+                        className="px-4 py-2 flex items-center gap-1.5 text-[12px] font-bold text-app-text bg-app-card border border-app-border rounded-xl hover:bg-app-hover transition-colors disabled:opacity-50"
+                      >
+                        <Download size={14} />
+                        {invoiceBookingId === (booking._id || booking.id) ? "Preparing..." : "Invoice"}
+                      </button>
                     )}
                   </div>
                 </div>

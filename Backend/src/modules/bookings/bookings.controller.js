@@ -1,6 +1,7 @@
 import * as bookingsService from './bookings.service.js';
 import { sendSuccess } from '../../utils/response.js';
 import { ForbiddenError } from '../../utils/errors.js';
+import { streamInvoicePdf } from '../../services/invoicePdf.service.js';
 
 export const createBooking = async (req, res, next) => {
   try {
@@ -128,10 +129,63 @@ export const verifyExtensionPayment = async (req, res, next) => {
   }
 };
 
-export const extendWithCash = async (req, res, next) => {
+export const requestCashExtension = async (req, res, next) => {
   try {
-    const result = await bookingsService.extendWithCash(req.params.id, req.user.id, req.body.planId);
-    sendSuccess(res, 200, 'Rental extended - pay cash at the hub', result);
+    const result = await bookingsService.requestCashExtension(
+      req.params.id,
+      req.user.id,
+      req.body.planId
+    );
+    sendSuccess(res, 201, 'Extension requested - waiting for admin approval', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadBookingInvoice = async (req, res, next) => {
+  try {
+    const invoice = await bookingsService.getBookingInvoice(req.params.id, req.user.id);
+    streamInvoicePdf(invoice, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPendingExtensionRequest = async (req, res, next) => {
+  try {
+    const request = await bookingsService.getPendingExtensionRequest(req.params.id, req.user.id);
+    sendSuccess(res, 200, 'Pending extension request fetched', request);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listExtensionRequests = async (req, res, next) => {
+  try {
+    const requests = await bookingsService.listExtensionRequests({ status: req.query.status });
+    sendSuccess(res, 200, 'Extension requests fetched', requests);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const approveCashExtension = async (req, res, next) => {
+  try {
+    const result = await bookingsService.approveCashExtension(req.params.requestId, req.user.id);
+    sendSuccess(res, 200, 'Extension approved and rental extended', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const rejectCashExtension = async (req, res, next) => {
+  try {
+    const request = await bookingsService.rejectCashExtension(
+      req.params.requestId,
+      req.user.id,
+      req.body.reason
+    );
+    sendSuccess(res, 200, 'Extension request rejected', request);
   } catch (error) {
     next(error);
   }

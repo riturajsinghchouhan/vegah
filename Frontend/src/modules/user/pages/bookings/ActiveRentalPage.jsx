@@ -217,9 +217,12 @@ const ActiveRentalPage = () => {
       setPayingPlanId(plan.id);
       setPlanError("");
       setExtending(true);
-      await bookingService.extendWithCash(targetId, plan.id);
+      await bookingService.requestCashExtension(targetId, plan.id);
+      // Cash extensions only take effect once an admin approves, so the rental
+      // deadline is unchanged at this point.
       await afterExtended(
-        `Rental extended with the ${plan.name}. Please pay ${formatCurrency(plan.price)} in cash at the hub.`
+        `Extension requested. An admin has to approve the ${plan.name} `
+        + `(${formatCurrency(plan.price)} cash at the hub) before the time is added.`
       );
     } catch (err) {
       console.error("Cash extension failed:", err);

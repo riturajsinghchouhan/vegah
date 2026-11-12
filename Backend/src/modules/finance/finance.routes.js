@@ -10,6 +10,7 @@ router.get('/settlements', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), fina
 router.get('/tax-billing', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getTaxBilling);
 
 // Tax & Billing invoices: create, delete (to bin), bin, restore, delete forever
+router.get('/tax-billing/invoices/:id/download', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.downloadInvoice);
 router.post('/tax-billing/invoices', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.createInvoice);
 router.delete('/tax-billing/invoices/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.deleteInvoice);
 router.get('/tax-billing/bin', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.listDeletedInvoices);

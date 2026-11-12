@@ -1,4 +1,5 @@
 import adminApi from "../../../services/adminApi";
+import { saveBlob } from "../../../utils/download";
 
 export const adminService = {
   // --- Dashboard & Inventory ---
@@ -15,6 +16,27 @@ export const adminService = {
     return res.data.data;
   },
   
+  async downloadInvoice(invoiceId, fileName) {
+    const res = await adminApi.get(`/finance/tax-billing/invoices/${invoiceId}/download`, {
+      responseType: 'blob',
+    });
+    saveBlob(res.data, `${fileName || invoiceId}.pdf`);
+  },
+
+  // --- Cash extension approvals ---
+  async getExtensionRequests(params = {}) {
+    const res = await adminApi.get('/bookings/extension-requests/all', { params });
+    return res.data.data;
+  },
+  async approveExtensionRequest(requestId) {
+    const res = await adminApi.post(`/bookings/extension-requests/${requestId}/approve`);
+    return res.data.data;
+  },
+  async rejectExtensionRequest(requestId, reason) {
+    const res = await adminApi.post(`/bookings/extension-requests/${requestId}/reject`, { reason });
+    return res.data.data;
+  },
+
   // --- Zones ---
   async getZones(params = {}) {
     const res = await adminApi.get('/admin/zones', { params });

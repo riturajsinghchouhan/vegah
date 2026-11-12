@@ -148,8 +148,19 @@ export const startSwap = async (req, res, next) => {
     if (!booking || String(booking.user) !== String(req.user.id)) {
       throw new ApiError(404, 'Active booking not found for this user');
     }
-    if (!['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(booking.status)) {
+    if (!['ACTIVE', 'PENDING_RETURN'].includes(booking.status)) {
       throw new ApiError(400, 'Battery swap is only available during an active rental');
+    }
+
+    // An expired rental must not keep drawing batteries. The deadline is checked
+    // directly rather than trusting the status, because the job that flips a
+    // booking to OVERDUE can lag behind the clock.
+    const deadline = booking.tripEndsAt || booking.endDate;
+    if (deadline && new Date(deadline).getTime() <= Date.now()) {
+      throw new ApiError(
+        400,
+        'Your rental time has run out. Extend your rental to swap a battery.'
+      );
     }
 
     await assertRiderIsAtStation(stationId, {

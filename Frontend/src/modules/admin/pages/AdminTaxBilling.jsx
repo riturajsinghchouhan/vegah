@@ -30,6 +30,21 @@ export default function AdminTaxBilling() {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadError, setDownloadError] = useState("");
+
+  const handleDownloadInvoice = async (invoice) => {
+    if (!invoice || downloadingId) return;
+    try {
+      setDownloadingId(invoice.id);
+      setDownloadError("");
+      await adminService.downloadInvoice(invoice.id, invoice.invoiceId);
+    } catch (err) {
+      setDownloadError(err?.response?.data?.message || "Could not download the invoice.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -406,6 +421,15 @@ export default function AdminTaxBilling() {
                                 <Eye className="w-3.5 h-3.5" /> View
                               </button>
                               <button
+                                onClick={() => handleDownloadInvoice(inv)}
+                                disabled={downloadingId === inv.id}
+                                title="Download Invoice PDF"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {downloadingId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                PDF
+                              </button>
+                              <button
                                 onClick={() => handleDeleteInvoice(inv)}
                                 disabled={busyId === inv.id}
                                 title="Move to Bin"
@@ -638,6 +662,18 @@ export default function AdminTaxBilling() {
               </span>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => handleDownloadInvoice(selectedInvoice)}
+                  disabled={downloadingId === selectedInvoice.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm disabled:opacity-50"
+                >
+                  {downloadingId === selectedInvoice.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  Download PDF
+                </button>
+                <button
                   onClick={() => window.print()}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition shadow-sm"
                 >
@@ -651,6 +687,12 @@ export default function AdminTaxBilling() {
                 </button>
               </div>
             </div>
+
+            {downloadError && (
+              <p className="px-4 py-2 text-xs text-red-600 bg-red-50 border-b border-red-100">
+                {downloadError}
+              </p>
+            )}
 
             {/* Printable Invoice Container */}
             <div className="p-8 space-y-6" id="printable-invoice">

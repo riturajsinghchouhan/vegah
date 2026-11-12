@@ -74,11 +74,44 @@ router.post(
   bookingsController.verifyExtensionPayment
 );
 
-// Cash (COD) plan extension: extends now, cash is collected at the hub
+// Cash (COD) plan extension: raises a request; an admin has to approve it
+// before any time is added to the rental.
 router.post(
   '/:id/extension-cash',
   validate(bookingsValidation.extensionOrderSchema),
-  bookingsController.extendWithCash
+  bookingsController.requestCashExtension
+);
+
+router.get(
+  '/:id/extension-request',
+  validate(bookingsValidation.idParamSchema),
+  bookingsController.getPendingExtensionRequest
+);
+
+// Rider downloads the invoice for their own booking
+router.get(
+  '/:id/invoice',
+  validate(bookingsValidation.idParamSchema),
+  bookingsController.downloadBookingInvoice
+);
+
+// ADMIN decides on cash extension requests
+router.get(
+  '/extension-requests/all',
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  bookingsController.listExtensionRequests
+);
+
+router.post(
+  '/extension-requests/:requestId/approve',
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  bookingsController.approveCashExtension
+);
+
+router.post(
+  '/extension-requests/:requestId/reject',
+  authorize('ADMIN', 'SUPER_ADMIN'),
+  bookingsController.rejectCashExtension
 );
 
 // --- Rental handover lifecycle ---

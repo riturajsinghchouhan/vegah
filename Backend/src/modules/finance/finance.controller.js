@@ -1,6 +1,16 @@
 import * as financeService from './finance.service.js';
 import * as accountingService from './accounting.service.js';
 import { sendSuccess } from '../../utils/response.js';
+import { streamInvoicePdf } from '../../services/invoicePdf.service.js';
+
+export const downloadInvoice = async (req, res, next) => {
+  try {
+    const invoice = await financeService.getInvoiceById(req.params.id);
+    streamInvoicePdf(invoice, res);
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getFinanceSummary = async (req, res, next) => {
   try {
