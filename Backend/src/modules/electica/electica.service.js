@@ -134,18 +134,25 @@ const getApiWriteClient = () => {
 const handleUpstreamError = (error, fallbackMessage = 'Electica API error') => {
   if (error.response) {
     const status = error.response.status;
-    const message = error.response.data?.message || fallbackMessage;
+    // Electica reports failures as {"error": "..."}, not {"message": "..."},
+    // so reading only `message` discarded every upstream reason.
+    const message = error.response.data?.error || error.response.data?.message || fallbackMessage;
+
+    logger.error(
+      `Electica ${status} on ${error.config?.method?.toUpperCase()} ${error.config?.url}: ${JSON.stringify(error.response.data)}`
+    );
 
     switch (status) {
+      case 400:
+        throw new ApiError(400, `Electica rejected the request: ${message}`);
       case 401:
-        logger.error(
-          `Electica rejected the partner API key (401) on ${error.config?.method?.toUpperCase()} ${error.config?.url} - verify ELECTICA_API_KEY / ELECTICA_WRITE_KEY`
-        );
         throw new UnauthorizedError('Electica API authentication failed');
       case 403:
-        throw new ForbiddenError('Electica station is not accessible');
+        throw new ForbiddenError(`Electica station is not accessible: ${message}`);
       case 404:
         throw new NotFoundError('Electica resource not found');
+      case 409:
+        throw new ApiError(409, `Electica could not start the swap: ${message}`);
       case 429:
         throw new ApiError(429, 'Electica rate limit exceeded. Please try again later.');
       case 500:
