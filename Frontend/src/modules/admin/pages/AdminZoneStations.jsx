@@ -20,9 +20,6 @@ const emptyForm = {
   chargingType: 'Battery Swap',
   speedLabel: '',
   connector: '',
-  pricePerKwh: '',
-  availablePorts: '',
-  totalPorts: '',
   operatingHours: '24x7',
   openStatus: 'Open 24/7',
 };
@@ -36,9 +33,6 @@ const toForm = (station) => ({
   chargingType: station.chargingType || 'Battery Swap',
   speedLabel: station.speedLabel || '',
   connector: station.connector || '',
-  pricePerKwh: station.pricePerKwh ?? '',
-  availablePorts: station.availablePorts ?? '',
-  totalPorts: station.totalPorts ?? '',
   operatingHours: station.operatingHours || '',
   openStatus: station.openStatus || '',
 });
@@ -194,9 +188,6 @@ export default function AdminZoneStations() {
       chargingType: form.chargingType || undefined,
       speedLabel: form.speedLabel || undefined,
       connector: form.connector || undefined,
-      pricePerKwh: form.pricePerKwh === '' ? undefined : Number(form.pricePerKwh),
-      availablePorts: form.availablePorts === '' ? 0 : Number(form.availablePorts),
-      totalPorts: form.totalPorts === '' ? 0 : Number(form.totalPorts),
       operatingHours: form.operatingHours || undefined,
       openStatus: form.openStatus || undefined,
     };
@@ -315,14 +306,6 @@ export default function AdminZoneStations() {
                     <span className="font-medium text-gray-900">{station.chargingType || '—'}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Bays:</span>
-                    <span className="font-semibold text-gray-900">{station.availablePorts ?? 0} / {station.totalPorts ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Price / kWh:</span>
-                    <span className="font-semibold text-gray-900">{station.pricePerKwh != null ? `₹${station.pricePerKwh}` : '—'}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-500">Hours:</span>
                     <span className="font-medium text-gray-900">{station.operatingHours || station.openStatus || '—'}</span>
                   </div>
@@ -398,18 +381,6 @@ export default function AdminZoneStations() {
             </Field>
             <Field label="Connector">
               <input className={inputCls} value={form.connector} onChange={setField('connector')} placeholder="e.g. Battery / CCS2" />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Available Bays">
-              <input type="number" min="0" className={inputCls} value={form.availablePorts} onChange={setField('availablePorts')} />
-            </Field>
-            <Field label="Total Bays">
-              <input type="number" min="0" className={inputCls} value={form.totalPorts} onChange={setField('totalPorts')} />
-            </Field>
-            <Field label="Price / kWh (₹)">
-              <input type="number" min="0" step="0.1" className={inputCls} value={form.pricePerKwh} onChange={setField('pricePerKwh')} />
             </Field>
           </div>
 
