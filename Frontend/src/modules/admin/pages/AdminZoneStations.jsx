@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Loader } from '@googlemaps/js-api-loader';
+import { env } from '@/config/env';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
-import { BatteryCharging, Plus, Edit3, Trash2, Search, ArrowLeft, MapPin } from 'lucide-react';
+import { BatteryCharging, Plus, Edit3, Trash2, Search, ArrowLeft, MapPin, LocateFixed } from 'lucide-react';
 import { adminService } from '../services/adminService';
 
 const STATUS_OPTIONS = ['AVAILABLE', 'BUSY', 'UNAVAILABLE'];
@@ -55,6 +57,10 @@ export default function AdminZoneStations() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  const locationInputRef = useRef(null);
+  const locationAutocompleteRef = useRef(null);
+  const [mapsReady, setMapsReady] = useState(false);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -94,6 +100,61 @@ export default function AdminZoneStations() {
     return () => clearTimeout(timer);
   }, [fetchStations]);
 
+  // Same Places setup the zone form uses, so admins pick a location instead of
+  // typing raw coordinates.
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (window.google?.maps?.places) {
+        if (!cancelled) setMapsReady(true);
+        return;
+      }
+      const apiKey = env.mapsKey;
+      if (!apiKey) return;
+      try {
+        const loader = new Loader({ apiKey, version: 'weekly', libraries: ['places'] });
+        await loader.load();
+        if (!cancelled) setMapsReady(true);
+      } catch (error) {
+        console.error('Error loading Google Maps', error);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // The input only exists while the modal is mounted, so bind on open.
+  useEffect(() => {
+    if (!modalOpen || !mapsReady || !locationInputRef.current) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+      componentRestrictions: { country: 'in' },
+      fields: ['formatted_address', 'name', 'geometry'],
+    });
+
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (!place?.geometry?.location) return;
+      setForm((prev) => ({
+        ...prev,
+        address: place.formatted_address || place.name || '',
+        latitude: place.geometry.location.lat(),
+        longitude: place.geometry.location.lng(),
+      }));
+      setFormError('');
+    });
+
+    locationAutocompleteRef.current = autocomplete;
+
+    return () => {
+      listener?.remove?.();
+      window.google?.maps?.event?.clearInstanceListeners?.(autocomplete);
+      locationAutocompleteRef.current = null;
+    };
+  }, [modalOpen, mapsReady]);
+
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -116,11 +177,11 @@ export default function AdminZoneStations() {
     const lng = parseFloat(form.longitude);
 
     if (!form.name.trim() || !form.address.trim()) {
-      setFormError('Station name and address are required.');
+      setFormError('Station name and location are required.');
       return;
     }
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      setFormError('Latitude and longitude must be valid numbers.');
+      setFormError('Pick the location from the suggestions so its coordinates are captured.');
       return;
     }
 
@@ -308,18 +369,28 @@ export default function AdminZoneStations() {
             </Field>
           </div>
 
-          <Field label="Address *">
-            <input className={inputCls} value={form.address} onChange={setField('address')} placeholder="Full street address" />
+          <Field label="Location *">
+            <div className="relative">
+              <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                ref={locationInputRef}
+                className={`${inputCls} pl-9`}
+                value={form.address}
+                onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value, latitude: '', longitude: '' }))}
+                placeholder="Search a location..."
+                autoComplete="off"
+              />
+            </div>
+            {form.latitude !== '' && form.longitude !== '' ? (
+              <p className="text-xs text-emerald-600 flex items-center gap-1 pt-1">
+                <LocateFixed size={12} /> Pinned at {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400 pt-1">
+                {mapsReady ? 'Start typing and pick a suggestion to capture the exact point.' : 'Loading location suggestions...'}
+              </p>
+            )}
           </Field>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Latitude *">
-              <input className={inputCls} value={form.latitude} onChange={setField('latitude')} placeholder="e.g. 22.7196" />
-            </Field>
-            <Field label="Longitude *">
-              <input className={inputCls} value={form.longitude} onChange={setField('longitude')} placeholder="e.g. 75.8577" />
-            </Field>
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Station Type">
