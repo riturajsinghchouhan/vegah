@@ -127,8 +127,14 @@ export const chargingService = {
 
   // bookingId ties this swap to the rider's real active rental, so the admin
   // panel can count real per-user swap history instead of a placeholder.
-  async startSwap(stationId, bookingId) {
-    const res = await api.post(`/electica/swaps/start`, { stationId, bookingId });
+  async startSwap(stationId, bookingId, position) {
+    const res = await api.post(`/electica/swaps/start`, {
+      stationId,
+      bookingId,
+      lat: position?.lat,
+      lng: position?.lng,
+      accuracy: position?.accuracy,
+    });
     return res.data;
   },
 

@@ -83,6 +83,7 @@ const envSchema = Joi.object({
   ELECTICA_API_KEY: Joi.string().allow(''),
   ELECTICA_WRITE_KEY: Joi.string().allow(''),
   ELECTICA_STATION_ID: Joi.string().default('BLR001'),
+  SWAP_PROXIMITY_RADIUS_METERS: Joi.number().default(50),
 }).unknown(true);
 
 const { error, value: envVars } = envSchema.validate(process.env);

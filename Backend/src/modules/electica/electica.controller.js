@@ -1,6 +1,9 @@
 import * as electicaService from './electica.service.js';
 import { sendSuccess } from '../../utils/response.js';
 import { ApiError } from '../../utils/errors.js';
+import { distanceInMeters } from '../../utils/geo.js';
+import env from '../../config/env.js';
+import logger from '../../utils/logger.js';
 import Booking from '../../models/Booking.js';
 import BatterySwapLog from '../../models/BatterySwapLog.js';
 
@@ -100,9 +103,43 @@ export const getSwaps = async (req, res, next) => {
   }
 };
 
+/**
+ * A rider must physically be at the station to swap, so the coordinates the app
+ * reports are checked against the station's own position. GPS is noisy, so the
+ * reading's own accuracy radius is granted as slack - capped at the gate radius
+ * so a deliberately vague fix can't widen the gate without limit.
+ */
+const assertRiderIsAtStation = async (stationId, { lat, lng, accuracy }) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw new ApiError(400, 'Your location is required to start a battery swap');
+  }
+
+  const station = await electicaService.getStation(stationId);
+  const stationLat = Number(station?.lat ?? station?.latitude);
+  const stationLng = Number(station?.lng ?? station?.longitude);
+
+  if (!Number.isFinite(stationLat) || !Number.isFinite(stationLng)) {
+    logger.warn(
+      `Electica station ${stationId} has no usable coordinates - proximity check skipped`
+    );
+    return;
+  }
+
+  const radius = env.SWAP_PROXIMITY_RADIUS_METERS;
+  const distance = distanceInMeters(lat, lng, stationLat, stationLng);
+  const slack = Math.min(Number(accuracy) || 0, radius);
+
+  if (distance - slack > radius) {
+    throw new ApiError(
+      403,
+      `You need to be within ${radius}m of the station to start a swap. You are about ${Math.round(distance)}m away.`
+    );
+  }
+};
+
 export const startSwap = async (req, res, next) => {
   try {
-    const { stationId, bookingId } = req.body;
+    const { stationId, bookingId, lat, lng, accuracy } = req.body;
     if (!bookingId) {
       throw new ApiError(400, 'bookingId is required to start a swap');
     }
@@ -114,6 +151,12 @@ export const startSwap = async (req, res, next) => {
     if (!['ACTIVE', 'OVERDUE', 'PENDING_RETURN'].includes(booking.status)) {
       throw new ApiError(400, 'Battery swap is only available during an active rental');
     }
+
+    await assertRiderIsAtStation(stationId, {
+      lat: Number(lat),
+      lng: Number(lng),
+      accuracy,
+    });
 
     // The entitlement reference ties this swap to a real booking/user, not a
     // placeholder - it's what let this flow fabricate per-user swap history before.

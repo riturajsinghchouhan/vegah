@@ -5,8 +5,13 @@ import Button from "../../../../components/common/Button";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { chargingService } from "../../../../services/chargingService";
 import { bookingService } from "../../../../services/bookingService";
+import { distanceInMeters, formatDistance } from "../../../../utils/geo";
 
 const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
+
+// A rider has to physically be at the station to swap a battery. The backend
+// enforces this too; the gate here just stops a pointless round trip.
+const SWAP_RADIUS_METERS = 50;
 
 const StationDetailsPage = () => {
   const { stationId } = useParams();
@@ -18,6 +23,8 @@ const StationDetailsPage = () => {
   const [swapData, setSwapData] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [imgError, setImgError] = useState(false);
+  const [position, setPosition] = useState(null);
+  const [positionError, setPositionError] = useState(null);
 
   useEffect(() => {
     chargingService.getStationById(stationId).then(setStation);
@@ -34,6 +41,36 @@ const StationDetailsPage = () => {
       })
       .catch((err) => console.error("Failed to load active booking:", err));
   }, []);
+
+  // Live GPS so the button unlocks on its own as the rider walks up to the station.
+  useEffect(() => {
+    if (!station?.isElectica) return undefined;
+    if (!navigator.geolocation) {
+      setPositionError("This device cannot share its location.");
+      return undefined;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        setPositionError(null);
+        setPosition({
+          lat: coords.latitude,
+          lng: coords.longitude,
+          accuracy: coords.accuracy,
+        });
+      },
+      (err) => {
+        setPositionError(
+          err.code === err.PERMISSION_DENIED
+            ? "Turn on location access to start a battery swap."
+            : "Could not read your location. Move to an open area and try again."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [station?.isElectica]);
 
   useEffect(() => {
     let interval;
@@ -67,7 +104,7 @@ const StationDetailsPage = () => {
     try {
       setSwapState('starting');
       setErrorMessage("");
-      const res = await chargingService.startSwap(station.id, activeBookingId);
+      const res = await chargingService.startSwap(station.id, activeBookingId, position);
       setSwapData(res.data || res);
       setSwapState('polling');
     } catch (err) {
@@ -84,6 +121,30 @@ const StationDetailsPage = () => {
   if (!station) {
     return null;
   }
+
+  const stationHasCoords = Number.isFinite(station.lat) && Number.isFinite(station.lng);
+  const distanceToStation =
+    position && stationHasCoords
+      ? distanceInMeters(position.lat, position.lng, station.lat, station.lng)
+      : null;
+  // GPS is noisy, so the reading's own accuracy counts in the rider's favour -
+  // capped at the radius so a vague fix can't open the gate from anywhere.
+  const isAtStation =
+    distanceToStation !== null &&
+    distanceToStation - Math.min(position.accuracy || 0, SWAP_RADIUS_METERS) <= SWAP_RADIUS_METERS;
+  // Without station coordinates there is nothing to measure against, so the
+  // gate stays open and the backend makes the final call.
+  const canSwap = !stationHasCoords || isAtStation;
+
+  const proximityMessage = !stationHasCoords
+    ? null
+    : positionError
+      ? positionError
+      : !position
+        ? "Finding your location..."
+        : isAtStation
+          ? null
+          : `You are ${formatDistance(distanceToStation)} from the station. Come within ${SWAP_RADIUS_METERS} m to start a swap.`;
 
   const connectorTypes = station.connectorTypes ?? (station.connector ? [station.connector] : []);
   const chargers = station.chargers ?? [];
@@ -273,9 +334,18 @@ const StationDetailsPage = () => {
                 Get Directions on Map
               </Button>
               {station.isElectica ? (
-                <Button variant="secondary" onClick={handleStartSwap} disabled={swapState !== null}>
-                  {swapState === 'starting' ? 'Connecting to Station...' : 'Start Battery Swap'}
-                </Button>
+                <div className="grid gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={handleStartSwap}
+                    disabled={swapState !== null || !canSwap}
+                  >
+                    {swapState === 'starting' ? 'Connecting to Station...' : 'Start Battery Swap'}
+                  </Button>
+                  {proximityMessage && (
+                    <p className="text-xs text-app-subtle text-center">{proximityMessage}</p>
+                  )}
+                </div>
               ) : (
                 <Button variant="secondary" onClick={handleNavigate}>View Station Details</Button>
               )}
