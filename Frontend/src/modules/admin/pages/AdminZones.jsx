@@ -4,7 +4,7 @@ import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
-import { MapPin, Map, Plus, Eye, Edit3, Trash2, Power, Search, Bike } from 'lucide-react';
+import { MapPin, Map, Plus, Eye, Edit3, Trash2, Power, Search, Bike, BatteryCharging } from 'lucide-react';
 import { adminService } from '../services/adminService';
 
 export default function AdminZones() {
@@ -210,7 +210,13 @@ export default function AdminZones() {
               </div>
 
               {/* Card Footer (Action) */}
-              <div className="p-5 pt-0">
+              <div className="p-5 pt-0 space-y-2">
+                <button
+                  onClick={() => navigate(`/admin/zones/${zone.id}/stations`)}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium py-2.5 rounded-lg transition-colors"
+                >
+                  <BatteryCharging size={18} /> Swapping Stations
+                </button>
                 {zone.status === 'Active' ? (
                   <button 
                     onClick={() => handleToggleStatus(zone.id, zone.status)}
@@ -298,6 +304,9 @@ export default function AdminZones() {
              </div>
              
              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => navigate(`/admin/zones/${selectedZone.id}/stations`)}>
+                  <BatteryCharging size={16} className="mr-2" /> Swapping Stations
+                </Button>
                 <Button variant="outline" onClick={() => navigate(`/admin/zones/${selectedZone.id}`)}>
                   <Edit3 size={16} className="mr-2" /> Edit Zone
                 </Button>

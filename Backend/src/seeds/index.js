@@ -6,7 +6,6 @@ import { seedAdmin } from './admin.seed.js';
 import { seedZones } from './zones.seed.js';
 import { seedCategories } from './categories.seed.js';
 import { seedVehicles } from './vehicles.seed.js';
-import { seedChargingStations } from './chargingStations.seed.js';
 
 dotenv.config();
 
@@ -19,7 +18,6 @@ const runSeeds = async () => {
     await seedZones();
     await seedCategories();
     await seedVehicles();
-    await seedChargingStations();
 
     logger.info('All seeds executed successfully!');
     process.exit(0);

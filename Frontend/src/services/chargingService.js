@@ -29,6 +29,8 @@ export const chargingService = {
         paymentMethods: s.paymentMethods || [],
         image: s.imageUrl || '/assets/Charingstaionicon/image.png',
         isElectica: false,
+        zone: s.zone?._id || s.zone || null,
+        zoneName: s.zone?.name || null,
         lat: s.coordinates?.coordinates ? s.coordinates.coordinates[1] : null,
         lng: s.coordinates?.coordinates ? s.coordinates.coordinates[0] : null,
       }));

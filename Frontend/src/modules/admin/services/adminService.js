@@ -60,6 +60,25 @@ export const adminService = {
     return res.data.data;
   },
 
+  // --- Swapping stations (scoped to a zone) ---
+  async getZoneStations(zoneId, params = {}) {
+    const res = await adminApi.get('/charging-stations', { params: { ...params, zone: zoneId } });
+    const items = Array.isArray(res.data.data) ? res.data.data : (res.data.data?.stations || []);
+    return { items, data: items, meta: res.data.meta || { total: items.length, page: 1, limit: items.length, totalPages: 1 } };
+  },
+  async createZoneStation(zoneId, data) {
+    const res = await adminApi.post('/charging-stations', { ...data, zone: zoneId });
+    return res.data.data;
+  },
+  async updateZoneStation(stationId, data) {
+    const res = await adminApi.put(`/charging-stations/${stationId}`, data);
+    return res.data.data;
+  },
+  async deleteZoneStation(stationId) {
+    const res = await adminApi.delete(`/charging-stations/${stationId}`);
+    return res.data.data;
+  },
+
   // --- Categories ---
   async getCategories(params = {}) {
     const res = await adminApi.get('/admin/categories', { params });

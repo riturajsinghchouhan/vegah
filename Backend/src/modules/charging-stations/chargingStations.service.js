@@ -2,11 +2,19 @@ import ChargingStation from '../../models/ChargingStation.js';
 import { NotFoundError } from '../../utils/errors.js';
 
 export const listChargingStations = async (query = {}) => {
-  const { page = 1, limit = 50, status, chargingType, lat, lng, maxDistance = 10000 } = query;
+  const { page = 1, limit = 50, status, chargingType, lat, lng, maxDistance = 10000, search } = query;
+  const zone = query.zone || query.zoneId;
   const filter = {};
 
   if (status) filter.status = status.toUpperCase();
   if (chargingType) filter.chargingType = chargingType;
+  if (zone) filter.zone = zone;
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { address: { $regex: search, $options: 'i' } },
+    ];
+  }
 
   let queryBuilder;
 
@@ -27,7 +35,7 @@ export const listChargingStations = async (query = {}) => {
 
   const skip = (Number(page) - 1) * Number(limit);
   const [stations, total] = await Promise.all([
-    queryBuilder.skip(skip).limit(Number(limit)),
+    queryBuilder.skip(skip).limit(Number(limit)).populate('zone', 'name subtitle'),
     ChargingStation.countDocuments(filter),
   ]);
 
@@ -38,7 +46,7 @@ export const listChargingStations = async (query = {}) => {
 };
 
 export const getChargingStationById = async (id) => {
-  const station = await ChargingStation.findById(id);
+  const station = await ChargingStation.findById(id).populate('zone', 'name subtitle');
   if (!station) throw new NotFoundError('Charging station not found');
   return station;
 };

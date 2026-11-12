@@ -5,6 +5,7 @@ import AdminPlaceholderPage from "./pages/AdminPlaceholderPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminZones from "./pages/AdminZones";
 import AdminZoneForm from "./pages/AdminZoneForm";
+import AdminZoneStations from "./pages/AdminZoneStations";
 import AdminCategories from "./pages/AdminCategories";
 import AdminCategoryForm from "./pages/AdminCategoryForm";
 import AdminEVs from "./pages/AdminEVs";
@@ -52,6 +53,7 @@ export default function AdminRoutes() {
         <Route path="zones" element={<AdminZones />} />
         <Route path="zones/new" element={<AdminZoneForm />} />
         <Route path="zones/:id" element={<AdminZoneForm />} />
+        <Route path="zones/:id/stations" element={<AdminZoneStations />} />
 
         {/* Categories route */}
         <Route path="categories" element={<AdminCategories />} />

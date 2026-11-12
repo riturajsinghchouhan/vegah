@@ -5,6 +5,8 @@ const { Schema } = mongoose;
 const chargingStationSchema = new Schema({
   name: { type: String, required: true },
   address: { type: String, required: true },
+  // Stations are managed per rental zone from the admin zone screen.
+  zone: { type: Schema.Types.ObjectId, ref: 'Zone', default: null },
   coordinates: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], required: true }, // [lng, lat]
@@ -28,6 +30,7 @@ const chargingStationSchema = new Schema({
 
 chargingStationSchema.index({ 'coordinates': '2dsphere' });
 chargingStationSchema.index({ status: 1 });
+chargingStationSchema.index({ zone: 1 });
 
 const ChargingStation = mongoose.model('ChargingStation', chargingStationSchema);
 export default ChargingStation;
