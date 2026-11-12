@@ -170,10 +170,14 @@ const StationDetailsPage = () => {
   const paymentMethods = station.paymentMethods ?? [];
   const amenities = station.amenities ?? [];
 
+  // Only an admin-set location is ever shown, so a station without one has
+  // nothing to navigate to.
+  const hasLocation = Boolean(station.lat && station.lng) || (Boolean(station.address) && station.address !== 'Location not set');
+
   const handleNavigate = () => {
     if (station.lat && station.lng) {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`, '_blank');
-    } else if (station.address) {
+    } else if (hasLocation) {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(station.address)}`, '_blank');
     }
   };
@@ -347,9 +351,9 @@ const StationDetailsPage = () => {
             </div>
 
             <div className="mt-5 grid gap-3">
-              <Button onClick={handleNavigate}>
+              <Button onClick={handleNavigate} disabled={!hasLocation}>
                 <Navigation className="mr-2" size={16} />
-                Get Directions on Map
+                {hasLocation ? "Get Directions on Map" : "Location not set yet"}
               </Button>
               {station.isElectica ? (
                 <div className="grid gap-2">

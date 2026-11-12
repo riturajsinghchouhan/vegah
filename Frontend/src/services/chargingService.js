@@ -60,7 +60,9 @@ export const chargingService = {
           id: s.id,
           _id: s.id,
           name: s.name,
-          address: override?.address || s.location || 'Location details available on map',
+          // Riders only ever see the location an admin set; the partner API's own
+          // location is a generic city-centre value and is deliberately ignored.
+          address: override?.address || 'Location not set',
           status: s.status === 'online' ? 'Available' : 'Unavailable',
           openStatus: 'Open 24/7',
           chargingType: 'Battery Swap',
@@ -72,8 +74,9 @@ export const chargingService = {
           totalChargers: s.pods ?? 0,
           isElectica: true,
           image: '/assets/Charingstaionicon/image.png',
-          lat: Number.isFinite(overrideLat) ? overrideLat : (parseFloat(s.lat) || null),
-          lng: Number.isFinite(overrideLng) ? overrideLng : (parseFloat(s.lng) || null),
+          lat: Number.isFinite(overrideLat) ? overrideLat : null,
+          lng: Number.isFinite(overrideLng) ? overrideLng : null,
+          hasAdminLocation: Boolean(override?.address),
           zone: override?.zone?._id || override?.zone || null,
           zoneName: override?.zone?.name || null,
           speedLabel: 'Instant Battery Swap',
