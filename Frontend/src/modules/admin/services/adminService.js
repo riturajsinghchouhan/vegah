@@ -74,6 +74,10 @@ export const adminService = {
     const res = await adminApi.put(`/charging-stations/${stationId}`, data);
     return res.data.data;
   },
+  async getElecticaStations() {
+    const res = await adminApi.get('/electica/stations');
+    return Array.isArray(res.data?.data) ? res.data.data : [];
+  },
   async deleteZoneStation(stationId) {
     const res = await adminApi.delete(`/charging-stations/${stationId}`);
     return res.data.data;

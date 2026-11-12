@@ -22,6 +22,7 @@ const emptyForm = {
   connector: '',
   operatingHours: '24x7',
   openStatus: 'Open 24/7',
+  electicaStationId: '',
 };
 
 const toForm = (station) => ({
@@ -35,6 +36,7 @@ const toForm = (station) => ({
   connector: station.connector || '',
   operatingHours: station.operatingHours || '',
   openStatus: station.openStatus || '',
+  electicaStationId: station.electicaStationId || '',
 });
 
 export default function AdminZoneStations() {
@@ -54,6 +56,7 @@ export default function AdminZoneStations() {
   const locationInputRef = useRef(null);
   const locationAutocompleteRef = useRef(null);
   const [mapsReady, setMapsReady] = useState(false);
+  const [electicaStations, setElecticaStations] = useState([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -80,6 +83,12 @@ export default function AdminZoneStations() {
       setLoading(false);
     }
   }, [zoneId, page, pageSize, searchTerm]);
+
+  useEffect(() => {
+    adminService.getElecticaStations()
+      .then(setElecticaStations)
+      .catch((e) => console.error('Failed to load Electica stations', e));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -190,6 +199,7 @@ export default function AdminZoneStations() {
       connector: form.connector || undefined,
       operatingHours: form.operatingHours || undefined,
       openStatus: form.openStatus || undefined,
+      electicaStationId: form.electicaStationId || null,
     };
 
     try {
@@ -306,6 +316,10 @@ export default function AdminZoneStations() {
                     <span className="font-medium text-gray-900">{station.chargingType || '—'}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Electica Link:</span>
+                    <span className="font-medium text-gray-900">{station.electicaStationId || 'Not linked'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-500">Hours:</span>
                     <span className="font-medium text-gray-900">{station.operatingHours || station.openStatus || '—'}</span>
                   </div>
@@ -383,6 +397,18 @@ export default function AdminZoneStations() {
               <input className={inputCls} value={form.connector} onChange={setField('connector')} placeholder="e.g. Battery / CCS2" />
             </Field>
           </div>
+
+          <Field label="Link to Electica Station (optional)">
+            <select className={inputCls} value={form.electicaStationId} onChange={setField('electicaStationId')}>
+              <option value="">Not linked — standalone station</option>
+              {electicaStations.map((es) => (
+                <option key={es.id} value={es.id}>{es.name} ({es.id})</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 pt-1">
+              Linked stations keep their live Electica data (status, pods, price) but show the location set above to riders.
+            </p>
+          </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Operating Hours">

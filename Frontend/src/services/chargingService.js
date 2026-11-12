@@ -3,11 +3,20 @@ import api from './api';
 export const chargingService = {
   async listStations() {
     let combinedStations = [];
+    // Admin records that only exist to pin an Electica station to the real
+    // address the admin picked, keyed by the partner station id.
+    const electicaOverrides = new Map();
 
     // 1. Fetch real MongoDB charging stations
     try {
       const dbRes = await api.get('/charging-stations');
-      const dbStations = (dbRes.data?.data?.stations || dbRes.data?.stations || []).map(s => ({
+      const rawDbStations = dbRes.data?.data?.stations || dbRes.data?.stations || [];
+
+      rawDbStations.forEach((s) => {
+        if (s.electicaStationId) electicaOverrides.set(String(s.electicaStationId), s);
+      });
+
+      const dbStations = rawDbStations.filter(s => !s.electicaStationId).map(s => ({
         id: s._id || s.id,
         _id: s._id || s.id,
         name: s.name,
@@ -42,29 +51,37 @@ export const chargingService = {
     // 2. Fetch Electica partner stations
     try {
       const elRes = await api.get(`/electica/stations`);
-      const electicaStations = (elRes.data?.data || []).map(s => ({
-        id: s.id,
-        _id: s.id,
-        name: s.name,
-        address: s.location || 'Location details available on map',
-        status: s.status === 'online' ? 'Available' : 'Unavailable',
-        openStatus: 'Open 24/7',
-        chargingType: 'Battery Swap',
-        connector: 'Battery',
-        pricePerKwh: Number(s.pricePerKwh || s.price) || 18.0,
-        availablePorts: s.pods ?? 0,
-        totalPorts: s.pods ?? 0,
-        availableChargers: s.pods ?? 0,
-        totalChargers: s.pods ?? 0,
-        isElectica: true,
-        image: '/assets/Charingstaionicon/image.png',
-        lat: parseFloat(s.lat) || null,
-        lng: parseFloat(s.lng) || null,
-        speedLabel: 'Instant Battery Swap',
-        amenities: ['Restroom', '24/7 Access'],
-        supportedVehicles: ['Swoop EV', 'All Compatible Scooters'],
-        paymentMethods: ['Swoop Wallet', 'UPI'],
-      }));
+      const electicaStations = (elRes.data?.data || []).map(s => {
+        const override = electicaOverrides.get(String(s.id));
+        const overrideLat = override?.coordinates?.coordinates?.[1];
+        const overrideLng = override?.coordinates?.coordinates?.[0];
+
+        return {
+          id: s.id,
+          _id: s.id,
+          name: s.name,
+          address: override?.address || s.location || 'Location details available on map',
+          status: s.status === 'online' ? 'Available' : 'Unavailable',
+          openStatus: 'Open 24/7',
+          chargingType: 'Battery Swap',
+          connector: 'Battery',
+          pricePerKwh: Number(s.pricePerKwh || s.price) || 18.0,
+          availablePorts: s.pods ?? 0,
+          totalPorts: s.pods ?? 0,
+          availableChargers: s.pods ?? 0,
+          totalChargers: s.pods ?? 0,
+          isElectica: true,
+          image: '/assets/Charingstaionicon/image.png',
+          lat: Number.isFinite(overrideLat) ? overrideLat : (parseFloat(s.lat) || null),
+          lng: Number.isFinite(overrideLng) ? overrideLng : (parseFloat(s.lng) || null),
+          zone: override?.zone?._id || override?.zone || null,
+          zoneName: override?.zone?.name || null,
+          speedLabel: 'Instant Battery Swap',
+          amenities: ['Restroom', '24/7 Access'],
+          supportedVehicles: ['Swoop EV', 'All Compatible Scooters'],
+          paymentMethods: ['Swoop Wallet', 'UPI'],
+          };
+      });
       combinedStations.push(...electicaStations);
     } catch (e) {
       console.error('Failed to fetch electica stations', e);

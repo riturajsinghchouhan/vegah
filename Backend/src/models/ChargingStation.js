@@ -7,6 +7,9 @@ const chargingStationSchema = new Schema({
   address: { type: String, required: true },
   // Stations are managed per rental zone from the admin zone screen.
   zone: { type: Schema.Types.ObjectId, ref: 'Zone', default: null },
+  // Set when this record only exists to give an Electica partner station the
+  // real address/pin the admin picked; live data still comes from Electica.
+  electicaStationId: { type: String, default: null, trim: true },
   coordinates: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], required: true }, // [lng, lat]
@@ -31,6 +34,7 @@ const chargingStationSchema = new Schema({
 chargingStationSchema.index({ 'coordinates': '2dsphere' });
 chargingStationSchema.index({ status: 1 });
 chargingStationSchema.index({ zone: 1 });
+chargingStationSchema.index({ electicaStationId: 1 });
 
 const ChargingStation = mongoose.model('ChargingStation', chargingStationSchema);
 export default ChargingStation;
