@@ -21,33 +21,37 @@ export const chargingService = {
         if (s.electicaStationId) electicaOverrides.set(String(s.electicaStationId), s);
       });
 
-      const dbStations = rawDbStations.filter(s => !s.electicaStationId).map(s => ({
-        id: s._id || s.id,
-        _id: s._id || s.id,
-        name: s.name,
-        address: s.address,
-        status: s.status === 'AVAILABLE' ? 'Available' : s.status === 'BUSY' ? 'Busy' : 'Unavailable',
-        openStatus: s.openStatus || s.operatingHours || 'Open 24/7',
-        chargingType: s.chargingType || 'DC Fast',
-        speedLabel: s.speedLabel || 'Fast Charge',
-        connector: s.connector || 'CCS2',
-        connectorTypes: s.connectorTypes || [s.connector].filter(Boolean),
-        pricePerKwh: Number(s.pricePerKwh) || 18.0,
-        availablePorts: s.availablePorts ?? 0,
-        totalPorts: s.totalPorts ?? 0,
-        availableChargers: s.availablePorts ?? 0,
-        totalChargers: s.totalPorts ?? 0,
-        rating: s.rating ?? 0,
-        amenities: s.amenities || [],
-        supportedVehicles: s.supportedVehicles || [],
-        paymentMethods: s.paymentMethods || [],
-        image: s.imageUrl || '/assets/Charingstaionicon/image.png',
-        isElectica: false,
-        zone: s.zone?._id || s.zone || null,
-        zoneName: s.zone?.name || null,
-        lat: s.coordinates?.coordinates ? s.coordinates.coordinates[1] : null,
-        lng: s.coordinates?.coordinates ? s.coordinates.coordinates[0] : null,
-      }));
+      // Riders only see stations an admin set up inside a zone. Anything
+      // without a zone is leftover seed data, not an admin-managed station.
+      const dbStations = rawDbStations
+        .filter(s => !s.electicaStationId && s.zone)
+        .map(s => ({
+          id: s._id || s.id,
+          _id: s._id || s.id,
+          name: s.name,
+          address: s.address,
+          status: s.status === 'AVAILABLE' ? 'Available' : s.status === 'BUSY' ? 'Busy' : 'Unavailable',
+          openStatus: s.openStatus || s.operatingHours || 'Open 24/7',
+          chargingType: s.chargingType || 'DC Fast',
+          speedLabel: s.speedLabel || 'Fast Charge',
+          connector: s.connector || 'CCS2',
+          connectorTypes: s.connectorTypes || [s.connector].filter(Boolean),
+          pricePerKwh: Number(s.pricePerKwh) || 18.0,
+          availablePorts: s.availablePorts ?? 0,
+          totalPorts: s.totalPorts ?? 0,
+          availableChargers: s.availablePorts ?? 0,
+          totalChargers: s.totalPorts ?? 0,
+          rating: s.rating ?? 0,
+          amenities: s.amenities || [],
+          supportedVehicles: s.supportedVehicles || [],
+          paymentMethods: s.paymentMethods || [],
+          image: s.imageUrl || '/assets/Charingstaionicon/image.png',
+          isElectica: false,
+          zone: s.zone?._id || s.zone || null,
+          zoneName: s.zone?.name || null,
+          lat: s.coordinates?.coordinates ? s.coordinates.coordinates[1] : null,
+          lng: s.coordinates?.coordinates ? s.coordinates.coordinates[0] : null,
+        }));
       combinedStations.push(...dbStations);
     } catch (err) {
       console.error('Failed to fetch DB charging stations', err);
