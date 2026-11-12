@@ -6,7 +6,7 @@ import StatusBadge from '@/shared/components/admin/StatusBadge';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
-import { BatteryCharging, Plus, Edit3, Trash2, Search, ArrowLeft, MapPin, LocateFixed } from 'lucide-react';
+import { BatteryCharging, Plus, Edit3, Trash2, Search, ArrowLeft, MapPin, LocateFixed, AlertTriangle } from 'lucide-react';
 import { adminService } from '../services/adminService';
 
 const STATUS_OPTIONS = ['AVAILABLE', 'BUSY', 'UNAVAILABLE'];
@@ -53,6 +53,7 @@ export default function AdminZoneStations() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  const errorRef = useRef(null);
   const locationInputRef = useRef(null);
   const locationAutocompleteRef = useRef(null);
   const [mapsReady, setMapsReady] = useState(false);
@@ -165,6 +166,18 @@ export default function AdminZoneStations() {
     setModalOpen(true);
   };
 
+  // Riders are shown the admin-set location only, so an Electica station with
+  // no record here reads as "Location not set" in the app.
+  const linkedElecticaIds = new Set(stations.map(s => s.electicaStationId).filter(Boolean));
+  const unlocatedElectica = electicaStations.filter(es => !linkedElecticaIds.has(String(es.id)));
+
+  const openCreateForElectica = (es) => {
+    setEditing(null);
+    setForm({ ...emptyForm, name: es.name || '', electicaStationId: String(es.id) });
+    setFormError('');
+    setModalOpen(true);
+  };
+
   const openEdit = (station) => {
     setEditing(station);
     setForm(toForm(station));
@@ -215,7 +228,13 @@ export default function AdminZoneStations() {
       await fetchStations();
     } catch (error) {
       console.error('Failed to save station', error);
-      setFormError(error.response?.data?.message || 'Failed to save station');
+      setFormError(
+        error.response?.data?.message
+        || (error.request && !error.response
+          ? 'Could not reach the server — the station was NOT saved. Check that the backend is running and try again.'
+          : 'Failed to save station')
+      );
+      errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } finally {
       setSaving(false);
     }
@@ -264,6 +283,32 @@ export default function AdminZoneStations() {
           <Plus size={16} /> Add Station
         </Button>
       </div>
+
+      {/* Electica stations still missing an admin-set location */}
+      {!loading && unlocatedElectica.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-900">These Electica stations show "Location not set" to riders</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Riders only see the location set here. Add a station, pick the real spot, and it is linked automatically.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {unlocatedElectica.map((es) => (
+                  <button
+                    key={es.id}
+                    onClick={() => openCreateForElectica(es)}
+                    className="text-xs font-semibold bg-white border border-amber-300 text-amber-900 rounded-lg px-3 py-1.5 hover:bg-amber-100 transition-colors"
+                  >
+                    <MapPin size={12} className="inline mr-1" /> Set location for {es.name} ({es.id})
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex items-center px-4">
@@ -352,7 +397,7 @@ export default function AdminZoneStations() {
       >
         <form onSubmit={handleSave} className="space-y-4">
           {formError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{formError}</div>
+            <div ref={errorRef} className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{formError}</div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -376,6 +421,11 @@ export default function AdminZoneStations() {
                 onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value, latitude: '', longitude: '' }))}
                 placeholder="Search a location..."
                 autoComplete="off"
+                onKeyDown={(e) => {
+                  // Enter picks a Places suggestion; without this the form
+                  // submits first and the coordinates are never captured.
+                  if (e.key === 'Enter') e.preventDefault();
+                }}
               />
             </div>
             {form.latitude !== '' && form.longitude !== '' ? (
