@@ -88,6 +88,18 @@ const bookingSchema = new Schema({
   notes: { type: String, default: null },
   idempotencyKey: { type: String, unique: true, sparse: true },
   depositStatus: { type: String, enum: ['PENDING', 'COLLECTED', 'REFUNDED'], default: 'PENDING' },
+  // Every extension applied to this rental. `totalAmount` already includes these,
+  // so the invoice reads them back to show what the total is made of instead of
+  // presenting an extended rental as one unexplained larger number.
+  extensions: [{
+    _id: false,
+    at: { type: Date, default: Date.now },
+    label: { type: String, default: 'Rental extension' },
+    durationDays: { type: Number, default: 0 },
+    amount: { type: Number, default: 0 },
+    paymentMode: { type: String, enum: ['ONLINE', 'CASH', 'NONE'], default: 'NONE' },
+    payment: { type: Schema.Types.ObjectId, ref: 'Payment', default: null },
+  }],
   // Timestamped audit trail of every state change, for the admin booking timeline.
   statusHistory: [{
     _id: false,

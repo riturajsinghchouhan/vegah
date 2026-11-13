@@ -28,8 +28,10 @@ export const RENTAL_TYPES = {
 // 15 minutes in milliseconds
 export const RESERVATION_TTL_MS = 15 * 60 * 1000;
 
-// How long before the trip deadline the user is reminded to head back. 15 minutes.
-export const RENTAL_REMINDER_LEAD_MS = 15 * 60 * 1000;
+// How long before the trip deadline the user is reminded to head back. One day.
+// The plans are weekly and monthly and the rider is shown whole days left, so a
+// 15-minute warning on a 30-day rental arrived far too late to act on.
+export const RENTAL_REMINDER_LEAD_MS = 24 * 60 * 60 * 1000;
 
 // Grace period after the deadline before the booking is flagged OVERDUE. 5 minutes.
 export const OVERDUE_GRACE_MS = 5 * 60 * 1000;

@@ -35,6 +35,17 @@ const generateBookingId = () => {
   return `EVR-${Math.floor(10000 + Math.random() * 90000)}`;
 };
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * "HH:mm" in the server's timezone (TZ=Asia/Kolkata) - the shape `startTime` and
+ * `endTime` are stored and validated in.
+ */
+const clockLabel = (date) => new Date(date).toTimeString().slice(0, 5);
+
+/** Whole days, rounded up: 6d 23h of rental left still reads as "7 days left". */
+const daysFromMs = (ms) => Math.max(0, Math.ceil(ms / DAY_IN_MS));
+
 /**
  * Writes the derived stock fields onto a vehicle doc. `status` is only ever
  * BOOKED when every unit is taken -- MAINTENANCE/INACTIVE are set by admins and
@@ -730,6 +741,15 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       const durationMs = bookedDurationMs > 0 ? bookedDurationMs : 60 * 60 * 1000;
       booking.actualPickupAt = now;
       booking.tripEndsAt = new Date(now.getTime() + durationMs);
+      // The plan is sold from the day the rider actually takes the EV, whenever
+      // they happened to pay: a week collected on Friday runs Friday -> Friday.
+      // The booked window is re-anchored to the handover too, so the rider's
+      // booking list, the admin timeline and the invoice all read the same dates
+      // as the trip clock instead of the slot that was originally reserved.
+      booking.startDate = now;
+      booking.endDate = booking.tripEndsAt;
+      booking.startTime = clockLabel(now);
+      booking.endTime = clockLabel(booking.tripEndsAt);
       booking.depositStatus = 'COLLECTED';
       if (options.adminId) booking.pickupConfirmedBy = options.adminId;
       if (options.assignedPlateNumber) booking.assignedPlateNumber = options.assignedPlateNumber;
@@ -1103,6 +1123,14 @@ export const getLiveBookingStatus = async (id, userId) => {
       // Only a started trip can run late.
       isExpiringSoon: hasStarted && remainingMs > 0 && remainingMs <= RENTAL_REMINDER_LEAD_MS,
       isOverdue: hasStarted && now > endsAt,
+      // Rentals are sold by the week and the month, so the rider is shown whole
+      // days left rather than a ticking clock.
+      totalDays: daysFromMs(totalDurationMs),
+      remainingDays: daysFromMs(remainingMs),
+      // Days left round up, days overdue round down - see daysFromMs.
+      overdueDays: hasStarted && now > endsAt
+        ? Math.max(1, Math.floor((now - endsAt) / DAY_IN_MS))
+        : 0,
     },
     pricing: {
       total: booking.totalAmount,
@@ -1139,7 +1167,7 @@ const loadExtendableBooking = async (bookingId, userId) => {
  * Pushes the deadline out by `extraMs` and adds `extensionCost` to the booking.
  * Shared by the hourly extension and the paid plan extension.
  */
-const applyExtension = async (booking, userId, { extraMs, extensionCost, note }) => {
+const applyExtension = async (booking, userId, { extraMs, extensionCost, note, invoiceLine }) => {
   const bookingId = booking._id;
   const nowMs = Date.now();
 
@@ -1175,6 +1203,17 @@ const applyExtension = async (booking, userId, { extraMs, extensionCost, note })
     : extendFrom(booking.endDate);
   booking.endDate = newEndDate;
   booking.totalAmount = (booking.totalAmount || 0) + extensionCost;
+
+  // Recorded on the booking so the invoice - the rider's and the admin's, both
+  // derived from this same total - can itemise what the extension added.
+  booking.extensions.push({
+    at: new Date(nowMs),
+    label: invoiceLine?.label || note,
+    durationDays: invoiceLine?.durationDays || 0,
+    amount: extensionCost,
+    paymentMode: invoiceLine?.paymentMode || 'NONE',
+    payment: invoiceLine?.payment || null,
+  });
 
   booking.statusHistory.push({
     status: booking.status,
@@ -1234,14 +1273,13 @@ export const extendBooking = async (bookingId, userId, extraHours) => {
     extraMs: extraHours * 60 * 60 * 1000,
     extensionCost,
     note: `Extended by ${extraHours}h`,
+    invoiceLine: { label: `Extension - ${extraHours}h`, paymentMode: 'NONE' },
   });
 };
 
 // --- Paid plan extensions ---
 // The plans are the Weekly / Monthly prices the admin sets on each EV
 // (`pricePerDay` = weekly, `pricePerHour` = monthly; see utils/pricing.js).
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const buildExtensionPlans = (vehicle) => [
   { id: 'WEEKLY', name: 'Weekly plan', durationDays: 7, price: Number(vehicle?.pricePerDay) || 0 },
@@ -1335,9 +1373,15 @@ export const verifyExtensionPayment = async (bookingId, userId, { razorpayOrderI
   const plan = findExtensionPlan(booking.vehicle, payment.extensionPlan);
 
   const result = await applyExtension(booking, userId, {
-    extraMs: plan.durationDays * DAY_MS,
+    extraMs: plan.durationDays * DAY_IN_MS,
     extensionCost: payment.amount,
     note: `Extended with ${plan.name} (${plan.durationDays} days) - paid online`,
+    invoiceLine: {
+      label: `Extension - ${plan.name} (+${plan.durationDays} days)`,
+      durationDays: plan.durationDays,
+      paymentMode: 'ONLINE',
+      payment: payment._id,
+    },
   });
   await notifyAdminsOfExtension(result.booking, plan, 'ONLINE');
   return result;
@@ -1399,9 +1443,15 @@ export const approveCashExtension = async (requestId, adminId) => {
   });
 
   const result = await applyExtension(booking, request.user.toString(), {
-    extraMs: plan.durationDays * DAY_MS,
+    extraMs: plan.durationDays * DAY_IN_MS,
     extensionCost: plan.price,
     note: `Extended with ${plan.name} (${plan.durationDays} days) - cash on delivery, approved by admin`,
+    invoiceLine: {
+      label: `Extension - ${plan.name} (+${plan.durationDays} days, cash at hub)`,
+      durationDays: plan.durationDays,
+      paymentMode: 'CASH',
+      payment: payment._id,
+    },
   });
 
   request.status = 'APPROVED';
@@ -1409,6 +1459,10 @@ export const approveCashExtension = async (requestId, adminId) => {
   request.decidedAt = new Date();
   request.payment = payment._id;
   await request.save();
+
+  // Same announcement an online extension makes, so every admin screen - the
+  // bookings board and the billing list - refreshes off one event.
+  await notifyAdminsOfExtension(result.booking, plan, 'CASH');
 
   try {
     await notifyUser({
@@ -1468,6 +1522,60 @@ export const listExtensionRequests = async ({ status } = {}) => {
 };
 
 /**
+ * Splits a booking's live total into the rows an invoice shows. `rentalBase` and
+ * `taxAmount` are written once when the booking is created, so on an extended
+ * rental they no longer add up to `totalAmount` - the tax is re-derived from the
+ * live total whenever that is the case, and each extension gets its own line.
+ *
+ * Everything the app stores is GST-inclusive, so a line's ex-tax value is
+ * `amount / (1 + rate)`. The rental row absorbs the rounding, which keeps the
+ * rows summing to the total exactly.
+ */
+export const buildInvoiceBreakdown = (booking, gstRateNum) => {
+  const totalAmount = booking?.totalAmount || 0;
+  const divisor = 1 + (Number(gstRateNum) || 0) / 100;
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  const storedBase = Number(booking?.rentalBase) || 0;
+  const storedTax = Number(booking?.taxAmount) || 0;
+  const storedReconciles = storedBase > 0
+    && storedTax > 0
+    && Math.abs(storedBase + storedTax - totalAmount) < 1;
+
+  const taxAmount = storedReconciles ? storedTax : round2(totalAmount - totalAmount / divisor);
+  const baseAmount = round2(totalAmount - taxAmount);
+
+  const extensions = Array.isArray(booking?.extensions) ? booking.extensions : [];
+  const extensionLines = extensions
+    .filter((ext) => (ext?.amount || 0) > 0)
+    .map((ext) => ({
+      label: ext.label || 'Rental extension',
+      amount: round2((ext.amount || 0) / divisor),
+      unpaid: ext.paymentMode === 'CASH',
+    }));
+
+  const extensionsBase = round2(extensionLines.reduce((sum, line) => sum + line.amount, 0));
+  const lineItems = [
+    { label: 'Rental charges', amount: round2(baseAmount - extensionsBase) },
+    ...extensionLines,
+  ];
+
+  return { taxAmount, baseAmount, lineItems, extensionsTotal: round2(extensions.reduce((s, e) => s + (e?.amount || 0), 0)) };
+};
+
+/**
+ * The period an invoice is billing for. It runs from the handover (the booked
+ * start until the EV is actually collected) to the live deadline, so extending a
+ * rental moves the invoice's "to" date along with its total.
+ */
+export const buildInvoicePeriod = (booking) => {
+  const from = booking?.actualPickupAt || booking?.startDate || null;
+  const to = booking?.tripEndsAt || booking?.endDate || null;
+  const days = from && to ? daysFromMs(new Date(to) - new Date(from)) : 0;
+  return { rentalFrom: from, rentalTo: to, rentalDays: days };
+};
+
+/**
  * The rider's own invoice for a booking. Built from the booking rather than a
  * stored row because invoices are derived, not persisted (see models/Invoice.js).
  */
@@ -1483,17 +1591,14 @@ export const getBookingInvoice = async (bookingId, userId) => {
   const pricingSettings = await settingsService.getSettings('pricing');
   const gstRateNum = Number(pricingSettings.gstRate ?? 18);
   const totalAmount = booking.totalAmount || 0;
-  const taxAmount = booking.taxAmount > 0
-    ? booking.taxAmount
-    : +(totalAmount - totalAmount / (1 + gstRateNum / 100)).toFixed(2);
-  const baseAmount = booking.rentalBase > 0
-    ? booking.rentalBase
-    : +(totalAmount - taxAmount).toFixed(2);
+  const { taxAmount, baseAmount, lineItems } = buildInvoiceBreakdown(booking, gstRateNum);
+  const period = buildInvoicePeriod(booking);
 
   return {
     invoiceId: `INV-${booking.bookingId || booking._id.toString().slice(-6).toUpperCase()}`,
     bookingId: booking.bookingId,
     date: booking.actualReturnAt || booking.createdAt,
+    ...period,
     customerName: booking.user?.fullName || 'Customer',
     customerPhone: booking.user?.phone || '',
     customerEmail: booking.user?.email || '',
@@ -1503,6 +1608,7 @@ export const getBookingInvoice = async (bookingId, userId) => {
     plateNumber: booking.assignedPlateNumber || booking.vehicle?.plateNumber || '',
     baseAmount,
     taxAmount,
+    lineItems,
     serviceFee: booking.serviceFee || 0,
     platformFee: booking.platformFee || 0,
     totalAmount,

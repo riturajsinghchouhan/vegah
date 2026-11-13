@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, Eye, Download, Save, Loader2, X, Printer, FileText, Plus, Trash2, RotateCcw } from "lucide-react";
 import { adminService } from "../services/adminService";
+import { initSocket } from "@/services/socketService";
 
 const EMPTY_INVOICE_FORM = {
   customerName: "",
@@ -64,9 +65,11 @@ export default function AdminTaxBilling() {
     batteryPackageSingle: "50",
   });
 
-  const fetchData = async () => {
+  // `silent` refreshes come from socket events and must not blank the table out
+  // with a spinner while the admin is reading it.
+  const fetchData = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [taxRes, settingsRes] = await Promise.all([
         adminService.getTaxBilling(),
         adminService.getSettings({ category: "pricing" }),
@@ -78,7 +81,7 @@ export default function AdminTaxBilling() {
     } catch (err) {
       console.error("Error fetching tax/billing data:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -96,6 +99,20 @@ export default function AdminTaxBilling() {
   useEffect(() => {
     fetchData();
     fetchBin();
+  }, []);
+
+  // Extending a rental raises the booking's total, and these invoices are
+  // derived from that total - so the list has to re-read itself rather than sit
+  // on the figures it loaded before the extension.
+  useEffect(() => {
+    const socket = initSocket();
+    const refresh = () => fetchData({ silent: true });
+    socket.on("BOOKING_EXTENDED", refresh);
+    socket.on("BOOKING_STATUS_UPDATED", refresh);
+    return () => {
+      socket.off("BOOKING_EXTENDED", refresh);
+      socket.off("BOOKING_STATUS_UPDATED", refresh);
+    };
   }, []);
 
   const handleDeleteInvoice = async (inv) => {
@@ -731,6 +748,13 @@ export default function AdminTaxBilling() {
                   <p className="text-gray-400 uppercase font-semibold">Rental Details</p>
                   <p className="font-medium text-gray-900 mt-1">Booking: {selectedInvoice.bookingId || "N/A"}</p>
                   <p className="text-gray-600">Vehicle: {selectedInvoice.vehicleName || "Electric Vehicle"}</p>
+                  {selectedInvoice.rentalFrom && selectedInvoice.rentalTo && (
+                    <p className="text-gray-600">
+                      Period: {new Date(selectedInvoice.rentalFrom).toLocaleDateString("en-IN")} to{" "}
+                      {new Date(selectedInvoice.rentalTo).toLocaleDateString("en-IN")}
+                      {selectedInvoice.rentalDays ? ` (${selectedInvoice.rentalDays} days)` : ""}
+                    </p>
+                  )}
                   <p className="text-gray-600">Payment: {selectedInvoice.paymentMethod || "ONLINE"}</p>
                 </div>
               </div>
@@ -745,10 +769,24 @@ export default function AdminTaxBilling() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    <tr>
-                      <td className="py-2 px-3 text-gray-800">{selectedInvoice.description || "Vehicle Base Rental"}</td>
-                      <td className="py-2 px-3 text-right font-mono text-gray-800">₹{selectedInvoice.baseAmount}</td>
-                    </tr>
+                    {/* An extended rental bills as the original plan plus a row per
+                        extension; invoices without a breakdown keep the single row. */}
+                    {(selectedInvoice.lineItems?.length
+                      ? selectedInvoice.lineItems
+                      : [{ label: selectedInvoice.description || "Vehicle Base Rental", amount: selectedInvoice.baseAmount }]
+                    ).map((item, idx) => (
+                      <tr key={`${item.label}-${idx}`}>
+                        <td className="py-2 px-3 text-gray-800">
+                          {item.label}
+                          {item.unpaid && (
+                            <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                              CASH DUE
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono text-gray-800">₹{item.amount}</td>
+                      </tr>
+                    ))}
                     {selectedInvoice.serviceFee > 0 && (
                       <tr>
                         <td className="py-2 px-3 text-gray-800">{selectedInvoice.source === "MANUAL" ? "Service Fee" : `Service Fee (${settings.serviceCharge || 5}%)`}</td>

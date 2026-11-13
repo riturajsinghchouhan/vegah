@@ -19,7 +19,7 @@ import MetricCard from "../../../../components/common/MetricCard";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { bookingService } from "../../../../services/bookingService";
 import { initSocket } from "../../../../services/socketService";
-import { formatCurrency } from "../../../../utils/formatters";
+import { formatCurrency, describeRentalDays } from "../../../../utils/formatters";
 import { loadRazorpayScript } from "../../../../utils/razorpay";
 
 const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
@@ -27,17 +27,6 @@ const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
 // Keep the local countdown honest against the server clock.
 const RESYNC_INTERVAL_MS = 60 * 1000;
 
-const pad = (n) => String(Math.max(0, n)).padStart(2, "0");
-
-const splitDuration = (ms) => {
-  const safe = Math.max(0, ms);
-  return {
-    hours: pad(Math.floor(safe / (1000 * 60 * 60))),
-    minutes: pad(Math.floor((safe % (1000 * 60 * 60)) / (1000 * 60))),
-    seconds: pad(Math.floor((safe % (1000 * 60)) / 1000)),
-    totalSeconds: Math.floor(safe / 1000),
-  };
-};
 
 const playChime = () => {
   try {
@@ -71,7 +60,9 @@ const ActiveRentalPage = () => {
   // admin-confirmed pickup time plus the booked duration, not the booked start.
   const [deadline, setDeadline] = useState(null);
   const [hasStarted, setHasStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(splitDuration(0));
+  // Weekly and monthly plans are counted in days, so this holds "5 days" style
+  // state instead of a clock, and only has to be recomputed once a minute.
+  const [daysLeft, setDaysLeft] = useState(() => describeRentalDays(null));
 
   const applyLive = useCallback((liveData) => {
     if (!liveData) return;
@@ -159,15 +150,15 @@ const ActiveRentalPage = () => {
     };
   }, [activeBooking?._id, activeBooking?.id, loadActiveBooking, navigate]);
 
-  // Local 1s tick between server re-syncs.
+  // Day counter, refreshed between server re-syncs.
   useEffect(() => {
     if (!deadline) return undefined;
 
-    const tick = () => setTimeLeft(splitDuration(deadline.getTime() - Date.now()));
+    const tick = () => setDaysLeft(describeRentalDays(deadline, { hasStarted }));
     tick();
-    const interval = setInterval(tick, 1000);
+    const interval = setInterval(tick, 60 * 1000);
     return () => clearInterval(interval);
-  }, [deadline]);
+  }, [deadline, hasStarted]);
 
   const openExtendPlans = async () => {
     const targetId = activeBooking?._id || activeBooking?.id;
@@ -427,7 +418,7 @@ const ActiveRentalPage = () => {
             </p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-app-text">{vehicleName}</h2>
             <p className="mt-2 text-sm text-app-subtle">
-              {plateNumber} • Return by {formattedReturnTime}
+              {plateNumber} • Return by {formattedReturnDate}
             </p>
             {pickedUpAt && (
               <p className="mt-1 text-xs text-app-subtle">Trip started at {pickedUpAt}</p>
@@ -436,11 +427,9 @@ const ActiveRentalPage = () => {
 
           <div className={`min-w-[180px] rounded-[1.5rem] px-5 py-4 text-[#1A2230] shadow-md ${isOverdue ? "bg-red-600" : "bg-[#D1FF42]"}`}>
             <p className="text-xs font-semibold uppercase tracking-wider text-orange-100">
-              {isOverdue ? "Overdue by" : "Rental timer"}
+              {isOverdue ? "Overdue by" : daysLeft.caption}
             </p>
-            <p className="mt-2 font-mono text-3xl font-bold tracking-widest">
-              {timeLeft.hours}:{timeLeft.minutes}:{timeLeft.seconds}
-            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight">{daysLeft.label}</p>
             {!hasStarted && (
               <p className="mt-1 text-[10px] font-semibold text-amber-200">Starts at handover</p>
             )}

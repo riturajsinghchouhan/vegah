@@ -4,6 +4,7 @@ import Booking from '../../models/Booking.js';
 import Refund from '../../models/Refund.js';
 import Invoice, { INVOICE_STATUSES, INVOICE_PAYMENT_MODES } from '../../models/Invoice.js';
 import * as settingsService from '../settings/settings.service.js';
+import { buildInvoiceBreakdown, buildInvoicePeriod } from '../bookings/bookings.service.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 
 export const getFinanceSummary = async (query = {}) => {
@@ -99,11 +100,17 @@ const buildSystemInvoices = async (pricingSettings) => {
   const gstRateNum = Number(pricingSettings.gstRate ?? 18);
   const gstDivisor = 1 + (gstRateNum / 100);
 
-  // 1. Fetch successful payments
-  const payments = await Payment.find({ status: { $in: ['SUCCESS', 'COMPLETED'] } })
+  // 1. Fetch successful payments. An EXTENSION payment is deliberately not an
+  // invoice of its own: extending a rental raises the booking's totalAmount, so
+  // the booking's existing invoice is the one that has to grow. Billing it twice
+  // - once as the booking, once as the extension - would double-count the money.
+  const payments = await Payment.find({
+    status: { $in: ['SUCCESS', 'COMPLETED'] },
+    purpose: { $ne: 'EXTENSION' },
+  })
     .populate({
       path: 'booking',
-      select: 'bookingId user vehicle rentalBase serviceFee platformFee taxAmount totalAmount paymentMethod status createdAt',
+      select: 'bookingId user vehicle rentalBase serviceFee platformFee taxAmount totalAmount paymentMethod status createdAt extensions lateFee startDate endDate actualPickupAt tripEndsAt',
       populate: [
         { path: 'user', select: 'fullName name email phone' },
         { path: 'vehicle', select: 'name brand model plateNumber' }
@@ -112,6 +119,16 @@ const buildSystemInvoices = async (pricingSettings) => {
     .sort({ createdAt: -1 });
 
   const paymentBookingIds = payments.map(p => p.booking?._id?.toString()).filter(Boolean);
+
+  // What has actually been settled per booking, extension payments included, so
+  // an invoice whose total grew by a cash extension still owed at the hub is
+  // reported as Unpaid rather than Paid.
+  const settledByBooking = new Map();
+  const settledRows = await Payment.aggregate([
+    { $match: { status: { $in: ['SUCCESS', 'COMPLETED'] } } },
+    { $group: { _id: '$booking', paid: { $sum: '$amount' } } },
+  ]);
+  settledRows.forEach((row) => settledByBooking.set(String(row._id), row.paid || 0));
 
   // 2. Every other booking that reached a billable state (e.g. CASH or WALLET
   // rentals that never create a Payment row). A rental still out or past due is
@@ -128,13 +145,17 @@ const buildSystemInvoices = async (pricingSettings) => {
 
   const invoicesFromPayments = payments.map(p => {
     const booking = p.booking;
-    const totalAmount = p.amount || booking?.totalAmount || 0;
-    const taxAmount = booking?.taxAmount != null && booking.taxAmount > 0
-      ? booking.taxAmount
-      : +(totalAmount - (totalAmount / gstDivisor)).toFixed(2);
-    const baseAmount = booking?.rentalBase != null && booking.rentalBase > 0
-      ? booking.rentalBase
-      : +(totalAmount - taxAmount).toFixed(2);
+    // The booking's live total, not the amount of this one payment: that is what
+    // an extension raises, and the invoice has to follow it.
+    const totalAmount = booking?.totalAmount || p.amount || 0;
+    const { taxAmount, baseAmount, lineItems } = booking
+      ? buildInvoiceBreakdown(booking, gstRateNum)
+      : {
+        taxAmount: +(totalAmount - (totalAmount / gstDivisor)).toFixed(2),
+        baseAmount: +(totalAmount / gstDivisor).toFixed(2),
+        lineItems: [{ label: 'Rental charges', amount: +(totalAmount / gstDivisor).toFixed(2) }],
+      };
+    const settled = settledByBooking.get(String(booking?._id)) ?? p.amount ?? 0;
 
     const invoiceNumber = booking?.bookingId
       ? `INV-${booking.bookingId}`
@@ -151,13 +172,16 @@ const buildSystemInvoices = async (pricingSettings) => {
       vehicleName: booking?.vehicle ? `${booking.vehicle.brand || ''} ${booking.vehicle.model || booking.vehicle.name || ''}`.trim() : 'EV Rental',
       plateNumber: booking?.vehicle?.plateNumber || '',
       date: p.paidAt || p.createdAt,
+      ...buildInvoicePeriod(booking),
       totalAmount,
       baseAmount,
       taxAmount,
+      lineItems,
       serviceFee: booking?.serviceFee || 0,
       platformFee: booking?.platformFee || Number(pricingSettings.platformFee ?? 20),
       gstRate: `${gstRateNum}%`,
-      status: 'Paid',
+      // Rs 1 of slack so rounding on a derived total cannot flip a paid invoice.
+      status: settled + 1 >= totalAmount ? 'Paid' : 'Unpaid',
       paymentMethod: p.method || booking?.paymentMethod || 'ONLINE',
       source: 'SYSTEM',
     };
@@ -165,12 +189,7 @@ const buildSystemInvoices = async (pricingSettings) => {
 
   const invoicesFromBookings = additionalBookings.map(b => {
     const totalAmount = b.totalAmount || 0;
-    const taxAmount = b.taxAmount != null && b.taxAmount > 0
-      ? b.taxAmount
-      : +(totalAmount - (totalAmount / gstDivisor)).toFixed(2);
-    const baseAmount = b.rentalBase != null && b.rentalBase > 0
-      ? b.rentalBase
-      : +(totalAmount - taxAmount).toFixed(2);
+    const { taxAmount, baseAmount, lineItems } = buildInvoiceBreakdown(b, gstRateNum);
 
     return {
       id: b._id,
@@ -183,9 +202,11 @@ const buildSystemInvoices = async (pricingSettings) => {
       vehicleName: b.vehicle ? `${b.vehicle.brand || ''} ${b.vehicle.model || b.vehicle.name || ''}`.trim() : 'EV Rental',
       plateNumber: b.vehicle?.plateNumber || '',
       date: b.createdAt,
+      ...buildInvoicePeriod(b),
       totalAmount,
       baseAmount,
       taxAmount,
+      lineItems,
       serviceFee: b.serviceFee || 0,
       platformFee: b.platformFee || Number(pricingSettings.platformFee ?? 20),
       gstRate: `${gstRateNum}%`,

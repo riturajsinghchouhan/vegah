@@ -78,7 +78,18 @@ const BookingsPage = () => {
         status: st,
         tabCategory,
         amount: b.totalAmount ?? b.amount ?? 0,
-        dateRange: b.startDate ? `${new Date(b.startDate).toLocaleDateString()} at ${b.startTime || '10:00'}` : 'Today',
+        // The rental runs from the day the EV was actually collected, so once the
+        // hub has handed it over that is the date the rider is shown - not the
+        // slot they booked, which may be days earlier.
+        dateRange: (() => {
+          const from = b.actualPickupAt || b.startDate;
+          if (!from) return 'Today';
+          const d = new Date(from);
+          const time = b.actualPickupAt
+            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : (b.startTime || '10:00');
+          return `${d.toLocaleDateString()} at ${time}`;
+        })(),
         location: b.pickupLocation || 'Main Hub',
         plateNumber: b.assignedPlateNumber || null,
         // Cash on delivery bookings are unpaid until handover, so they sit with

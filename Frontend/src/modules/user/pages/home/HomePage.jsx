@@ -23,19 +23,10 @@ import { useUserLocation } from "../../../../hooks/useLocation";
 import { bookingService } from "../../../../services/bookingService";
 import { userService } from "../../../../services/userService";
 import { vehicleService } from "../../../../services/vehicleService";
+import { describeRentalDays } from "../../../../utils/formatters";
 
 const IN_TRIP_STATUSES = "ACTIVE,OVERDUE,PENDING_RETURN";
 
-const pad = (n) => String(Math.max(0, n)).padStart(2, "0");
-
-const splitDuration = (ms) => {
-  const safe = Math.max(0, ms);
-  return {
-    hours: pad(Math.floor(safe / (1000 * 60 * 60))),
-    minutes: pad(Math.floor((safe % (1000 * 60 * 60)) / (1000 * 60))),
-    seconds: pad(Math.floor((safe % (1000 * 60)) / 1000)),
-  };
-};
 
 // Category fallback icons
 const CATEGORY_IMAGES = {
@@ -71,7 +62,8 @@ const HomePage = () => {
   const [activeBooking, setActiveBooking] = useState(null);
   const [activeLive, setActiveLive] = useState(null);
   const [activeDeadline, setActiveDeadline] = useState(null);
-  const [activeTimeLeft, setActiveTimeLeft] = useState(null);
+  // Rentals run in weeks and months, so the card counts days, not seconds.
+  const [activeDaysLeft, setActiveDaysLeft] = useState(null);
 
   const loadActiveBooking = useCallback(async () => {
     try {
@@ -97,11 +89,13 @@ const HomePage = () => {
 
   useEffect(() => {
     if (!activeDeadline) return undefined;
-    const tick = () => setActiveTimeLeft(splitDuration(activeDeadline.getTime() - Date.now()));
+    const tick = () => setActiveDaysLeft(
+      describeRentalDays(activeDeadline, { hasStarted: Boolean(activeLive?.timer?.hasStarted) })
+    );
     tick();
-    const interval = setInterval(tick, 1000);
+    const interval = setInterval(tick, 60 * 1000);
     return () => clearInterval(interval);
-  }, [activeDeadline]);
+  }, [activeDeadline, activeLive?.timer?.hasStarted]);
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -272,14 +266,12 @@ const HomePage = () => {
                   {activeLive?.assignedPlateNumber || activeBooking?.assignedPlateNumber || "—"}
                 </p>
               </div>
-              {activeTimeLeft && (
+              {activeDaysLeft && (
                 <div className="shrink-0 rounded-2xl bg-app-muted px-3 py-2 text-right">
                   <p className="text-[9px] font-semibold uppercase tracking-wider text-app-subtle">
-                    {activeLive?.timer?.isOverdue ? "Overdue by" : "Time left"}
+                    {activeLive?.timer?.isOverdue ? "Overdue by" : activeDaysLeft.caption}
                   </p>
-                  <p className="font-mono text-base font-bold text-app-text">
-                    {activeTimeLeft.hours}:{activeTimeLeft.minutes}:{activeTimeLeft.seconds}
-                  </p>
+                  <p className="text-base font-bold text-app-text">{activeDaysLeft.label}</p>
                 </div>
               )}
             </div>

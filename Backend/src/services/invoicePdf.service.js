@@ -35,6 +35,13 @@ export const streamInvoicePdf = (invoice, res) => {
   doc.moveDown(1);
   if (invoice.bookingId) doc.fillColor('#555').text(`Booking: ${invoice.bookingId}`);
   if (invoice.vehicleName) doc.text(`Vehicle: ${invoice.vehicleName}${invoice.plateNumber ? ` (${invoice.plateNumber})` : ''}`);
+  // Moves with the rental: an extension pushes the "to" date out.
+  if (invoice.rentalFrom && invoice.rentalTo) {
+    doc.text(
+      `Rental period: ${fmtDate(invoice.rentalFrom)} to ${fmtDate(invoice.rentalTo)}`
+      + (invoice.rentalDays ? ` (${invoice.rentalDays} ${invoice.rentalDays === 1 ? 'day' : 'days'})` : '')
+    );
+  }
   doc.text(`Payment: ${invoice.paymentMethod || '-'}`);
   doc.text(`Status: ${invoice.status || '-'}`);
 
@@ -52,7 +59,12 @@ export const streamInvoicePdf = (invoice, res) => {
   doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#ddd').stroke();
   doc.moveDown(0.8);
 
-  row('Rental charges', inr(invoice.baseAmount));
+  // An extended rental bills as several lines (the original plan plus every
+  // extension); anything without a breakdown still prints as one rental row.
+  const lineItems = Array.isArray(invoice.lineItems) && invoice.lineItems.length
+    ? invoice.lineItems
+    : [{ label: 'Rental charges', amount: invoice.baseAmount }];
+  lineItems.forEach((item) => row(item.label || 'Rental charges', inr(item.amount)));
   if (invoice.serviceFee) row('Service fee', inr(invoice.serviceFee));
   if (invoice.platformFee) row('Platform fee', inr(invoice.platformFee));
   row(`GST ${invoice.gstRate || ''}`.trim(), inr(invoice.taxAmount));
