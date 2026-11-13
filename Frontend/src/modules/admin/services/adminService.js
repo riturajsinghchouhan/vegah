@@ -460,6 +460,30 @@ export const adminService = {
     link.remove();
     URL.revokeObjectURL(url);
   },
+  async downloadBalanceSheetPdf(params = {}) {
+    const res = await adminApi.get('/admin/ledger/balance-sheet/pdf', { params, responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `balance-sheet-${new Date().toISOString().slice(0, 10)}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+  async downloadBalanceSheetExcel(params = {}) {
+    const res = await adminApi.get('/admin/ledger/balance-sheet/excel', { params, responseType: 'blob' });
+    const url = URL.createObjectURL(
+      new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `balance-sheet-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
 
   // --- Settings ---
   async getSettings(params = {}) {

@@ -1,10 +1,26 @@
 import * as reports from './reports.service.js';
 import * as ledger from './ledger.service.js';
+import { streamBalanceSheetPdf, buildBalanceSheetExcel } from './balanceSheetExport.service.js';
 import { sendSuccess } from '../../utils/response.js';
 
 export const getBalanceSheet = async (req, res, next) => {
   try {
     sendSuccess(res, 200, 'Balance sheet fetched successfully', await reports.getBalanceSheet(req.query));
+  } catch (error) { next(error); }
+};
+
+export const getBalanceSheetPdf = async (req, res, next) => {
+  try {
+    await streamBalanceSheetPdf(req.query, res);
+  } catch (error) { next(error); }
+};
+
+export const getBalanceSheetExcel = async (req, res, next) => {
+  try {
+    const { filename, buffer } = await buildBalanceSheetExcel(req.query);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.status(200).send(buffer);
   } catch (error) { next(error); }
 };
 

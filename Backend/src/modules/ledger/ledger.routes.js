@@ -12,6 +12,8 @@ const approver = [authenticate, authorize('SUPER_ADMIN')];
 
 // --- Reports (read-only) ---
 router.get('/balance-sheet', ...guard, ledgerController.getBalanceSheet);
+router.get('/balance-sheet/pdf', ...guard, ledgerController.getBalanceSheetPdf);
+router.get('/balance-sheet/excel', ...guard, ledgerController.getBalanceSheetExcel);
 router.get('/profit-loss', ...guard, ledgerController.getProfitAndLoss);
 router.get('/receipts-payments', ...guard, ledgerController.getReceiptsAndPayments);
 router.get('/trial-balance', ...guard, ledgerController.getTrialBalance);

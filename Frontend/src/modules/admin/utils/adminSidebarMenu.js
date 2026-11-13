@@ -216,6 +216,11 @@ export const adminSidebarMenu = [
           },
           {
             type: "link",
+            label: "Balance Sheet",
+            path: "/admin/accounting/balance-sheet",
+          },
+          {
+            type: "link",
             label: "Profit & Loss",
             path: "/admin/accounting/profit-loss",
           },
