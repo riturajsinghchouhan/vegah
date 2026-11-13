@@ -1,5 +1,5 @@
 import { Clock3, Navigation, Star, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Button from "../../../../components/common/Button";
 import PageHeader from "../../../../components/layout/PageHeader";
@@ -7,8 +7,10 @@ import { chargingService } from "../../../../services/chargingService";
 import { bookingService } from "../../../../services/bookingService";
 import { distanceInMeters, formatDistance } from "../../../../utils/geo";
 
-// An expired rental cannot swap, so OVERDUE is deliberately not in this list.
-const IN_TRIP_STATUSES = "ACTIVE,PENDING_RETURN";
+// OVERDUE is included on purpose: the rider still holds the EV, so the rental
+// does exist. It is the deadline check below - not a missing booking - that has
+// to tell them to extend, otherwise an overdue rider is told they never rented.
+const IN_TRIP_STATUSES = "ACTIVE,PENDING_RETURN,OVERDUE";
 
 // A rider has to physically be at the station to swap a battery. The backend
 // enforces this too; the gate here just stops a pointless round trip.
@@ -20,6 +22,10 @@ const StationDetailsPage = () => {
   const [pods, setPods] = useState(null);
   const [activeBookingId, setActiveBookingId] = useState(null);
   const [rentalDeadline, setRentalDeadline] = useState(null);
+  // 'loading' until the rental lookup answers. A failed lookup must not read as
+  // "you have no rental" - that is what sent riders with a running rental into
+  // the "only available while you have an active rental" dead end.
+  const [bookingLookup, setBookingLookup] = useState("loading"); // loading | ready | error
 
   const [swapState, setSwapState] = useState(null); // null, 'starting', 'polling', 'completed', 'failed'
   const [swapData, setSwapData] = useState(null);
@@ -42,15 +48,25 @@ const StationDetailsPage = () => {
 
   // A battery swap only makes sense tied to the rider's own running rental -
   // this is what lets the admin panel count real per-user swap history.
-  useEffect(() => {
-    bookingService.listBookings({ status: IN_TRIP_STATUSES, limit: 1 })
-      .then((bookings) => {
-        const current = Array.isArray(bookings) && bookings.length ? bookings[0] : null;
-        setActiveBookingId(current?._id || current?.id || null);
-        setRentalDeadline(current?.tripEndsAt || current?.endDate || null);
-      })
-      .catch((err) => console.error("Failed to load active booking:", err));
+  const loadActiveBooking = useCallback(async () => {
+    try {
+      const bookings = await bookingService.listBookings({ status: IN_TRIP_STATUSES, limit: 1 });
+      const current = Array.isArray(bookings) && bookings.length ? bookings[0] : null;
+      const id = current?._id || current?.id || null;
+      setActiveBookingId(id);
+      setRentalDeadline(current?.tripEndsAt || current?.endDate || null);
+      setBookingLookup("ready");
+      return { ok: true, id, deadline: current?.tripEndsAt || current?.endDate || null };
+    } catch (err) {
+      console.error("Failed to load active booking:", err);
+      setBookingLookup("error");
+      return { ok: false, id: null, deadline: null };
+    }
   }, []);
+
+  useEffect(() => {
+    loadActiveBooking();
+  }, [loadActiveBooking]);
 
   // Live GPS so the button unlocks on its own as the rider walks up to the station.
   useEffect(() => {
@@ -115,12 +131,29 @@ const StationDetailsPage = () => {
   }, [swapState, swapData]);
 
   const handleStartSwap = async () => {
-    if (!activeBookingId) {
+    let bookingId = activeBookingId;
+    let deadline = rentalDeadline;
+
+    // The lookup may still be in flight, or may have failed on a flaky
+    // connection. Either way the rider's rental is unknown, not absent - so ask
+    // again instead of accusing them of having no rental.
+    if (!bookingId) {
+      const result = await loadActiveBooking();
+      if (!result.ok) {
+        setSwapState('failed');
+        setErrorMessage("We could not check your rental just now. Check your connection and try again.");
+        return;
+      }
+      bookingId = result.id;
+      deadline = result.deadline;
+    }
+
+    if (!bookingId) {
       setSwapState('failed');
       setErrorMessage("Battery swap is only available while you have an active rental.");
       return;
     }
-    if (rentalDeadline && new Date(rentalDeadline).getTime() <= Date.now()) {
+    if (deadline && new Date(deadline).getTime() <= Date.now()) {
       setSwapState('failed');
       setErrorMessage("Your rental time has run out. Extend your rental to swap a battery.");
       return;
@@ -128,7 +161,7 @@ const StationDetailsPage = () => {
     try {
       setSwapState('starting');
       setErrorMessage("");
-      const res = await chargingService.startSwap(station.id, activeBookingId, position);
+      const res = await chargingService.startSwap(station.id, bookingId, position);
       setSwapData(res.data || res);
       setSwapState('polling');
     } catch (err) {
@@ -159,10 +192,17 @@ const StationDetailsPage = () => {
   // Without station coordinates there is nothing to measure against, so the
   // gate stays open and the backend makes the final call.
   const rentalExpired = rentalDeadline ? new Date(rentalDeadline).getTime() <= now : false;
-  const canSwap = (!stationHasCoords || isAtStation) && !rentalExpired;
+  const checkingRental = bookingLookup === "loading";
+  const canSwap = (!stationHasCoords || isAtStation) && !rentalExpired && !checkingRental;
 
-  const proximityMessage = rentalExpired
+  const proximityMessage = checkingRental
+    ? "Checking your rental..."
+    : rentalExpired
     ? "Your rental time has run out. Extend your rental to swap a battery."
+    : bookingLookup === "error"
+    ? "We could not check your rental. Tap Start Battery Swap to retry."
+    : !activeBookingId
+    ? "Battery swap is only available while you have an active rental."
     : !stationHasCoords
     ? null
     : positionError
