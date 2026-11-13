@@ -155,6 +155,46 @@ const assertRiderIsAtStation = async (stationId, { lat, lng, accuracy }) => {
   }
 };
 
+/**
+ * Electica refuses a swap with a bare "No battery is currently sitting in a pod
+ * at <station>", which reads to a rider as if the app is broken. The station's
+ * own pod report says why - a pod may be charging and minutes away from ready -
+ * so the refusal is re-told with that live state instead of the raw upstream
+ * sentence. Reading the pods must never turn a refusal into a crash, so any
+ * failure there falls back to the original error.
+ */
+const startSwapWithReadableStock = async (stationId, entitlementRef) => {
+  try {
+    return await electicaService.startSwap(stationId, entitlementRef);
+  } catch (error) {
+    if (error?.statusCode !== 409 || !/no battery/i.test(error.message || '')) {
+      throw error;
+    }
+
+    let detail = '';
+    try {
+      const pods = podsToArray(await electicaService.getPods(stationId));
+      const charging = pods
+        .filter((pod) => String(pod.state).toLowerCase() === 'charging')
+        .sort((a, b) => (Number(b.soc) || 0) - (Number(a.soc) || 0));
+
+      if (charging.length) {
+        const best = charging[0];
+        const soc = Number(best.soc);
+        detail = Number.isFinite(soc)
+          ? ` Pod ${best.podNumber} is charging and is at ${Math.round(soc)}% - please wait a few minutes and try again.`
+          : ` Pod ${best.podNumber} is still charging - please wait a few minutes and try again.`;
+      } else {
+        detail = ' Every pod at this station is empty right now.';
+      }
+    } catch (podError) {
+      logger.warn(`Could not read pods for ${stationId} while explaining a swap refusal: ${podError.message}`);
+    }
+
+    throw new ApiError(409, `No charged battery is ready at this station right now.${detail}`);
+  }
+};
+
 export const startSwap = async (req, res, next) => {
   try {
     const { stationId, bookingId, lat, lng, accuracy } = req.body;
@@ -190,7 +230,7 @@ export const startSwap = async (req, res, next) => {
     // The entitlement reference ties this swap to a real booking/user, not a
     // placeholder - it's what let this flow fabricate per-user swap history before.
     const entitlementRef = `BOOKING-${booking.bookingId || booking._id}`;
-    const swap = await electicaService.startSwap(stationId, entitlementRef);
+    const swap = await startSwapWithReadableStock(stationId, entitlementRef);
 
     await BatterySwapLog.create({
       user: req.user.id,
