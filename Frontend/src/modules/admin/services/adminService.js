@@ -1,6 +1,18 @@
 import adminApi from "../../../services/adminApi";
 import { saveBlob } from "../../../utils/download";
 
+// Error bodies come back as Blobs on blob-typed requests; this pulls the API's
+// own message out of one so the admin sees why a download failed.
+const readBlobError = async (blob, fallback) => {
+  if (!(blob instanceof Blob)) return blob?.message || fallback;
+  try {
+    const text = await blob.text();
+    return JSON.parse(text)?.message || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export const adminService = {
   // --- Dashboard & Inventory ---
   async getDashboardStats() {
@@ -16,10 +28,24 @@ export const adminService = {
     return res.data.data;
   },
   
+  // A blob response turns a failed download into an unreadable Blob instead of
+  // the usual JSON error, so the body is read back before anything is saved -
+  // otherwise a 404 or a session timeout lands on disk as a broken .pdf.
   async downloadInvoice(invoiceId, fileName) {
-    const res = await adminApi.get(`/finance/tax-billing/invoices/${invoiceId}/download`, {
-      responseType: 'blob',
-    });
+    let res;
+    try {
+      res = await adminApi.get(`/admin/finance/tax-billing/invoices/${invoiceId}/download`, {
+        responseType: 'blob',
+      });
+    } catch (err) {
+      throw new Error(await readBlobError(err?.response?.data, 'Could not download the invoice.'));
+    }
+
+    const type = res.data?.type || '';
+    if (!type.includes('pdf')) {
+      throw new Error(await readBlobError(res.data, 'The server did not return a valid invoice PDF.'));
+    }
+
     saveBlob(res.data, `${fileName || invoiceId}.pdf`);
   },
 

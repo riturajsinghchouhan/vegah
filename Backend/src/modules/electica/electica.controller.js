@@ -6,6 +6,7 @@ import env from '../../config/env.js';
 import logger from '../../utils/logger.js';
 import Booking from '../../models/Booking.js';
 import BatterySwapLog from '../../models/BatterySwapLog.js';
+import ChargingStation from '../../models/ChargingStation.js';
 
 export const getStations = async (req, res, next) => {
   try {
@@ -108,19 +109,32 @@ export const getSwaps = async (req, res, next) => {
  * reports are checked against the station's own position. GPS is noisy, so the
  * reading's own accuracy radius is granted as slack - capped at the gate radius
  * so a deliberately vague fix can't widen the gate without limit.
+ *
+ * The position compared against is the one an admin pinned on the charging
+ * station record, which is what riders are shown and navigated to. The partner
+ * API reports a generic city-centre coordinate for every station, so measuring
+ * against it put riders hundreds of kilometres "away" while they stood at the
+ * pod. Without an admin pin there is no trustworthy target, so the gate opens
+ * rather than blocking a rider over a coordinate nobody set.
  */
 const assertRiderIsAtStation = async (stationId, { lat, lng, accuracy }) => {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     throw new ApiError(400, 'Your location is required to start a battery swap');
   }
 
-  const station = await electicaService.getStation(stationId);
-  const stationLat = Number(station?.lat ?? station?.latitude);
-  const stationLng = Number(station?.lng ?? station?.longitude);
+  const adminStation = await ChargingStation.findOne({
+    electicaStationId: String(stationId),
+  })
+    .select('coordinates')
+    .lean();
+
+  const [adminLng, adminLat] = adminStation?.coordinates?.coordinates || [];
+  const stationLat = Number(adminLat);
+  const stationLng = Number(adminLng);
 
   if (!Number.isFinite(stationLat) || !Number.isFinite(stationLng)) {
     logger.warn(
-      `Electica station ${stationId} has no usable coordinates - proximity check skipped`
+      `Station ${stationId} has no admin-set coordinates - proximity check skipped`
     );
     return;
   }

@@ -40,7 +40,7 @@ export default function AdminTaxBilling() {
       setDownloadError("");
       await adminService.downloadInvoice(invoice.id, invoice.invoiceId);
     } catch (err) {
-      setDownloadError(err?.response?.data?.message || "Could not download the invoice.");
+      setDownloadError(err?.response?.data?.message || err?.message || "Could not download the invoice.");
     } finally {
       setDownloadingId(null);
     }
@@ -357,6 +357,11 @@ export default function AdminTaxBilling() {
               </div>
             ) : (
               <div className="overflow-x-auto flex-1">
+                {downloadError && !selectedInvoice && (
+                  <p className="mx-4 mb-2 px-3 py-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg">
+                    {downloadError}
+                  </p>
+                )}
                 <table className="w-full text-left border-collapse min-w-[750px]">
                   <thead>
                     <tr className="bg-gray-800 text-xs text-white uppercase tracking-wider">

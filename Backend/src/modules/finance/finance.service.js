@@ -82,6 +82,17 @@ export const getSettlements = async (query = {}) => {
   };
 };
 
+// A booking is invoiced once it has actually become a rental. Anything still
+// waiting to start - or cancelled, expired or failed before it did - has nothing
+// to bill for.
+const BILLABLE_BOOKING_STATUSES = [
+  'CONFIRMED',
+  'ACTIVE',
+  'PENDING_RETURN',
+  'OVERDUE',
+  'COMPLETED',
+];
+
 // Invoices derived from payments and bookings. They have no row of their own;
 // see models/Invoice.js for how deleted ones are tracked.
 const buildSystemInvoices = async (pricingSettings) => {
@@ -98,21 +109,22 @@ const buildSystemInvoices = async (pricingSettings) => {
         { path: 'vehicle', select: 'name brand model plateNumber' }
       ]
     })
-    .sort({ createdAt: -1 })
-    .limit(100);
+    .sort({ createdAt: -1 });
 
   const paymentBookingIds = payments.map(p => p.booking?._id?.toString()).filter(Boolean);
 
-  // 2. Fetch completed/confirmed bookings (e.g. CASH or WALLET) that may not be in payments collection
+  // 2. Every other booking that reached a billable state (e.g. CASH or WALLET
+  // rentals that never create a Payment row). A rental still out or past due is
+  // billable too - the ride happened, so the invoice has to exist. Bookings that
+  // never became a rental (reserved, cancelled, failed payment) are not billed.
   const additionalBookings = await Booking.find({
     _id: { $nin: paymentBookingIds },
-    status: { $in: ['CONFIRMED', 'ACTIVE', 'COMPLETED'] },
+    status: { $in: BILLABLE_BOOKING_STATUSES },
     totalAmount: { $gt: 0 }
   })
     .populate('user', 'fullName name email phone')
     .populate('vehicle', 'name brand model plateNumber')
-    .sort({ createdAt: -1 })
-    .limit(50);
+    .sort({ createdAt: -1 });
 
   const invoicesFromPayments = payments.map(p => {
     const booking = p.booking;
@@ -177,7 +189,7 @@ const buildSystemInvoices = async (pricingSettings) => {
       serviceFee: b.serviceFee || 0,
       platformFee: b.platformFee || Number(pricingSettings.platformFee ?? 20),
       gstRate: `${gstRateNum}%`,
-      status: b.status === 'COMPLETED' ? 'Paid' : 'Confirmed',
+      status: b.status === 'COMPLETED' ? 'Paid' : b.status === 'OVERDUE' ? 'Unpaid' : 'Confirmed',
       paymentMethod: b.paymentMethod || 'CASH',
       source: 'SYSTEM',
     };
