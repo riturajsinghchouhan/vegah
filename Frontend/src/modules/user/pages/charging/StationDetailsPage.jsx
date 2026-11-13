@@ -91,11 +91,20 @@ const StationDetailsPage = () => {
           const res = await chargingService.getSwapStatus(swapId);
           const data = res.data || res;
           setSwapData(data);
+          // A swap the rider never completes expires at the station (about ten
+          // minutes), so expiry and cancellation have to end the poll too -
+          // otherwise the modal spins on a swap that is already closed.
           if (data.status === 'completed') {
             setSwapState('completed');
-          } else if (data.status === 'failed') {
+          } else if (['failed', 'expired', 'cancelled', 'canceled'].includes(data.status)) {
             setSwapState('failed');
-            setErrorMessage(data.failure_reason || "Swap failed");
+            setErrorMessage(
+              data.failReason
+                || data.failure_reason
+                || (data.status === 'expired'
+                  ? "The station closed this swap because the pod door was not used in time. Please start again."
+                  : "Swap failed")
+            );
           }
         } catch (err) {
           console.error("Polling error", err);
