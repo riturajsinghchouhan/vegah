@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/shared/components/admin/PageHeader';
 import StatusBadge from '@/shared/components/admin/StatusBadge';
-import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging, Pencil, CalendarPlus } from 'lucide-react';
+import { Eye, Phone, Search, Filter, CheckCircle, Zap, X, Calendar, Layers, KeyRound, PackageCheck, Undo2, AlertTriangle, MapPin, BatteryCharging, Pencil, CalendarPlus, Banknote } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import Modal from '@/shared/components/ui/Modal';
 import Pagination from '@/shared/components/ui/Pagination';
@@ -15,6 +15,12 @@ import { requestNotificationPermission, onForegroundMessage } from '@/config/fir
 
 const BOOKINGS_POLL_INTERVAL_MS = 15000;
 const NEEDS_APPROVAL_STATUSES = ['RESERVED', 'PENDING_VERIFICATION', 'PAYMENT_INITIATED'];
+
+// A cash-on-delivery booking: the rider picked "Pay with Cash", so nothing has
+// been collected yet and the booking cannot move until an admin approves it.
+const isCodBooking = (booking) => (booking?.paymentMethod || '').toUpperCase() === 'CASH';
+const isCodAwaitingApproval = (booking) =>
+  isCodBooking(booking) && NEEDS_APPROVAL_STATUSES.includes(booking?.status);
 
 // The list response no longer carries the multi-MB base64 KYC images (it was
 // 15MB for 8 rows and timed out). Open the modal straight away from the row we
@@ -55,7 +61,7 @@ export default function AdminBookings() {
   const depositStatus = searchParams.get('depositStatus');
   const statusParam = searchParams.get('status');
   
-  const activeTab = ['live', 'late', 'returns', 'extensions'].includes(ops) ? 'live' : ops === 'pickups' ? 'pickups' : ops === 'cancelled' ? 'cancelled' : 'all';
+  const activeTab = ['live', 'late', 'returns', 'extensions'].includes(ops) ? 'live' : ops === 'pickups' ? 'pickups' : ops === 'cancelled' ? 'cancelled' : ops === 'cod' ? 'cod' : 'all';
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -324,6 +330,8 @@ export default function AdminBookings() {
   const awaitingReturnCount = bookings.filter(b => b.status === 'PENDING_RETURN').length;
   const awaitingHandoverCount = bookings.filter(b => b.status === 'CONFIRMED').length;
   const cancelledCount = bookings.filter(b => ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED'].includes(b.status)).length;
+  const codRequests = bookings.filter(isCodAwaitingApproval);
+  const codCount = codRequests.length;
 
   return (
     <div className="space-y-6 pb-8 max-w-[1600px] mx-auto">
@@ -347,9 +355,18 @@ export default function AdminBookings() {
               <Zap className="h-6 w-6 text-yellow-300 fill-yellow-300 animate-pulse" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-wide text-yellow-300">⚡ NEW BOOKING WAITING FOR APPROVAL!</p>
+              <p className="font-bold text-sm tracking-wide text-yellow-300">
+                {isCodBooking(newBookingAlert)
+                  ? '💵 NEW COD BOOKING — WAITING FOR YOUR APPROVAL!'
+                  : '⚡ NEW BOOKING WAITING FOR APPROVAL!'}
+              </p>
               <p className="text-xs text-emerald-100 mt-1">
                 Booking ID: <span className="font-mono font-bold bg-emerald-700 px-1.5 py-0.5 rounded">{newBookingAlert.bookingId || newBookingAlert._id}</span> | Vehicle: <span className="font-semibold">{newBookingAlert.vehicle?.name || 'EV Scooter'}</span> | User: <span className="font-semibold">{newBookingAlert.user?.fullName || 'Customer'}</span>
+                {isCodBooking(newBookingAlert) && (
+                  <span className="ml-2 inline-flex items-center gap-1 rounded bg-amber-400 px-1.5 py-0.5 font-bold text-amber-950">
+                    CASH ₹{newBookingAlert.totalAmount || newBookingAlert.amount || 0} TO COLLECT AT HUB
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -511,6 +528,23 @@ export default function AdminBookings() {
         </button>
 
         <button
+          onClick={() => handleTabChange('cod')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'cod'
+              ? 'bg-amber-600 text-white shadow-md'
+              : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+          }`}
+        >
+          <Banknote size={16} />
+          COD Requests ({codCount})
+          {codCount > 0 && activeTab !== 'cod' && (
+            <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-black text-white animate-pulse">
+              needs approval
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => handleTabChange('cancelled')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
             activeTab === 'cancelled'
@@ -546,6 +580,34 @@ export default function AdminBookings() {
           onEdit={setEditingBooking}
           onDataChanged={() => fetchAllBookings({ silent: true })}
         />
+      ) : activeTab === 'cod' ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-bold flex items-center gap-2">
+              <Banknote size={16} className="text-amber-700" />
+              Cash on Delivery (COD) approval requests
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              These riders chose to pay cash at the hub. Nothing has been collected yet and the
+              customer is seeing "Waiting for admin approval" until you decide. Approving the
+              booking lets them come and collect the EV — the cash is collected at handover.
+            </p>
+          </div>
+          {codCount === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-white p-12 text-center text-gray-500 font-medium">
+              No COD bookings are waiting for approval right now.
+            </div>
+          ) : (
+            <AllBookingsTable
+              allBookings={codRequests}
+              onApprove={handleApproveBooking}
+              onReject={handleRejectBooking}
+              onConfirmPickup={handleConfirmPickup}
+              actionLoading={actionLoading}
+              onEdit={setEditingBooking}
+            />
+          )}
+        </div>
       ) : activeTab === 'cancelled' ? (
         <AllBookingsTable
           allBookings={bookings.filter(b => ['CANCELLED', 'CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN', 'CANCELLED_BY_SYSTEM', 'REJECTED', 'RESERVATION_EXPIRED'].includes(b.status))}
@@ -644,6 +706,7 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
       deposit: `₹${b.securityDeposit || b.pricing?.securityDeposit || 0}`,
       status: b.depositStatus || b.paymentStatus || 'Pending' 
     },
+    isCod: isCodBooking(b),
     status: b.status || 'RESERVED'
   }));
 
@@ -715,6 +778,11 @@ function AllBookingsTable({ allBookings, onApprove, onReject, onConfirmPickup, a
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">Total: <span className="font-bold">{item.financials.amount}</span></div>
                     <div className="text-xs text-gray-500">Deposit: {item.financials.deposit}</div>
+                    {item.isCod && (
+                      <div className="mt-1 inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-extrabold text-amber-800">
+                        <Banknote size={12} /> COD — collect at hub
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">

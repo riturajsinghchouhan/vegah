@@ -1,4 +1,4 @@
-import { CheckCircle2, Navigation, Clock, Sparkles, X, MapPin } from "lucide-react";
+import { CheckCircle2, Navigation, Clock, Sparkles, X, MapPin, Banknote } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../../components/common/Button";
@@ -89,6 +89,9 @@ const BookingSuccessPage = () => {
   const bookingStatus = (latestBooking?.status || "RESERVED").toUpperCase();
   const isApproved = bookingStatus === "CONFIRMED";
   const isRejected = bookingStatus === "CANCELLED" || bookingStatus === "REJECTED" || bookingStatus === "CANCELLED_BY_ADMIN";
+  // Cash on delivery: nothing has been paid yet, so the booking only moves once
+  // an admin approves it. Say that plainly instead of the generic pending copy.
+  const isCod = (latestBooking?.paymentMethod || latestBooking?.paymentMode || "").toUpperCase() === "CASH";
   const targetId = latestBooking?._id || latestBooking?.id || latestBooking?.bookingId;
 
   return (
@@ -120,7 +123,7 @@ const BookingSuccessPage = () => {
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-app-text mb-3">
-            {isApproved ? "Ready for Pickup!" : isRejected ? "Booking Rejected" : "Waiting for Approval..."}
+            {isApproved ? "Ready for Pickup!" : isRejected ? "Booking Rejected" : isCod ? "Waiting for Admin Approval..." : "Waiting for Approval..."}
           </h2>
 
           <p className="text-sm leading-relaxed text-app-subtle max-w-md mx-auto mb-10">
@@ -128,8 +131,21 @@ const BookingSuccessPage = () => {
               ? "Your booking is approved. Navigate to the pickup hub and show your booking ID — the hub team will hand over the EV and start your trip."
               : isRejected 
               ? "Unfortunately, your booking request was rejected by the admin. Please try booking a different vehicle or contact support."
+              : isCod
+              ? "You chose Cash on Delivery, so nothing has been charged yet. Your COD request has been sent to the admin — please wait for admin approval for your booking. You'll pay the cash at the hub when you collect the EV."
               : "Your booking is created and sent to the admin. Please wait while it's being reviewed."}
           </p>
+
+          {isCod && !isRejected && (
+            <div className="-mt-6 mb-10 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4 text-left flex items-start gap-3">
+              <Banknote size={18} className="mt-0.5 shrink-0 text-amber-400" />
+              <p className="text-xs leading-relaxed text-amber-300">
+                {isApproved
+                  ? `Cash on delivery: carry ${formatCurrency(bookingAmount)} to the hub — the team collects it at handover.`
+                  : `Cash on delivery: ${formatCurrency(bookingAmount)} is due at the hub. The admin has to approve this booking before you can pick the EV up.`}
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 text-left">
             <div className="bg-app-muted p-4 rounded-2xl border border-app-border/50">
