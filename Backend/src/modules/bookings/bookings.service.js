@@ -16,7 +16,8 @@ import {
   RESERVATION_TTL_MS,
   RENTAL_REMINDER_LEAD_MS,
   OVERDUE_GRACE_MS,
-  LATE_FEE_MULTIPLIER,
+  DEFAULT_LATE_FEE_PER_DAY,
+  DEFAULT_LATE_FEE_GRACE_DAYS,
   IN_TRIP_STATUSES,
   ACTIVE_BOOKING_STATUSES,
 } from './bookings.constants.js';
@@ -503,25 +504,34 @@ export const rearmTripJobs = async () => {
 };
 
 /**
- * Overtime charge for a late return, billed per started hour at a premium on
- * the vehicle's hourly rate. Returns 0 when it came back on time.
+ * Overtime charge for a late return, billed per DAY at the rate the admin sets
+ * in Settings -> Pricing. Nothing here is derived from the vehicle's price any
+ * more: `lateFeePerDay` is the money, `lateFeeGraceDays` is how many late days
+ * are forgiven first.
  *
- * The rate is pro-rated from the plan price via deriveHourlyRate: `pricePerHour`
- * is really the MONTHLY price, so reading it directly billed a late customer
- * 1.5 months for every hour they overran.
+ *   late days      = every started day past the deadline (part of a day = 1 day)
+ *   chargeable     = late days - grace days
+ *   fee            = chargeable x lateFeePerDay
+ *
+ * So with a rate of 500 and a grace of 1: returned within a day of the deadline
+ * costs nothing, two days late costs 500, three days late costs 1000.
  */
-const calculateLateFee = (booking, returnedAt) => {
+const calculateLateFee = async (booking, returnedAt) => {
   const deadline = booking.tripEndsAt || booking.endDate;
   if (!deadline) return 0;
 
   const overtimeMs = returnedAt.getTime() - new Date(deadline).getTime();
-  if (overtimeMs <= OVERDUE_GRACE_MS) return 0;
+  if (overtimeMs <= 0) return 0;
 
-  const hourlyRate = deriveHourlyRate(booking.vehicle, booking.rentalType);
-  if (!hourlyRate) return 0;
+  const saved = await settingsService.getSettingValues(['lateFeePerDay', 'lateFeeGraceDays']);
+  const perDay = Number(saved.lateFeePerDay ?? DEFAULT_LATE_FEE_PER_DAY) || 0;
+  if (perDay <= 0) return 0; // no rate set by the admin -> nothing to charge
 
-  const overtimeHours = Math.ceil(overtimeMs / (1000 * 60 * 60));
-  return Math.round(overtimeHours * hourlyRate * LATE_FEE_MULTIPLIER);
+  const graceDays = Math.max(0, Number(saved.lateFeeGraceDays ?? DEFAULT_LATE_FEE_GRACE_DAYS) || 0);
+  const lateDays = Math.ceil(overtimeMs / DAY_IN_MS);
+  const chargeableDays = Math.max(0, lateDays - graceDays);
+
+  return Math.round(chargeableDays * perDay);
 };
 
 /**
@@ -768,7 +778,7 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       booking.actualReturnAt = now;
       // Overtime banked by an extension (see applyExtension) survives a return
       // that is on time against the new deadline.
-      booking.lateFee = Math.max(booking.lateFee || 0, calculateLateFee(booking, now));
+      booking.lateFee = Math.max(booking.lateFee || 0, await calculateLateFee(booking, now));
       booking.depositStatus = options.depositStatus || 'REFUNDED';
       if (options.adminId) booking.returnConfirmedBy = options.adminId;
       if (booking.depositStatus === 'REFUNDED') {
@@ -1029,6 +1039,13 @@ export const listBookings = async (query) => {
     }
   }
 
+  // How late a running rental is, and what the late fee would come to if it came
+  // back right now. Computed here because the fee depends on the admin's
+  // `lateFeePerDay` / `lateFeeGraceDays` settings, and the stored `lateFee` stays
+  // 0 until the return is actually confirmed - so the list had no way to show
+  // what an overdue booking is costing.
+  await attachOverdueProjection(bookings);
+
   return {
     bookings,
     meta: {
@@ -1038,6 +1055,43 @@ export const listBookings = async (query) => {
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+/**
+ * Adds `overdueDays` and `projectedLateFee` to every row that is past its
+ * deadline. One settings read for the whole page, and the same day-wise rule
+ * the return itself will apply (see calculateLateFee).
+ */
+const attachOverdueProjection = async (bookings) => {
+  const now = Date.now();
+  const late = bookings.filter((b) => {
+    const deadline = b.tripEndsAt || b.endDate;
+    return deadline
+      && !b.actualReturnAt
+      && IN_TRIP_STATUSES.includes(b.status)
+      && new Date(deadline).getTime() < now;
+  });
+
+  for (const booking of bookings) {
+    booking.overdueDays = 0;
+    booking.projectedLateFee = 0;
+  }
+  if (!late.length) return;
+
+  const saved = await settingsService.getSettingValues(['lateFeePerDay', 'lateFeeGraceDays']);
+  const perDay = Number(saved.lateFeePerDay ?? DEFAULT_LATE_FEE_PER_DAY) || 0;
+  const graceDays = Math.max(0, Number(saved.lateFeeGraceDays ?? DEFAULT_LATE_FEE_GRACE_DAYS) || 0);
+
+  for (const booking of late) {
+    const overMs = now - new Date(booking.tripEndsAt || booking.endDate).getTime();
+    const lateDays = Math.ceil(overMs / DAY_IN_MS);
+    booking.overdueDays = lateDays;
+    booking.lateFeeGraceDays = graceDays;
+    booking.lateFeePerDay = perDay;
+    booking.projectedLateFee = perDay > 0
+      ? Math.round(Math.max(0, lateDays - graceDays) * perDay)
+      : 0;
+  }
 };
 
 export const getBookingById = async (id) => {
@@ -1186,7 +1240,7 @@ const applyExtension = async (booking, userId, { extraMs, extensionCost, note, i
   if (booking.tripEndsAt) {
     // Overtime already run up is banked before the deadline moves, so restarting
     // the clock does not quietly write off what the rider owes for being late.
-    const accruedLateFee = calculateLateFee(booking, new Date(nowMs));
+    const accruedLateFee = await calculateLateFee(booking, new Date(nowMs));
     if (accruedLateFee > (booking.lateFee || 0)) booking.lateFee = accruedLateFee;
 
     newTripEndsAt = extendFrom(booking.tripEndsAt);

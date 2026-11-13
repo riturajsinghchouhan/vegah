@@ -1092,6 +1092,11 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
     },
     isAwaitingReturn: b.status === 'PENDING_RETURN',
     isOverdue: b.status === 'OVERDUE',
+    // Both computed server-side off the admin's late-fee settings; the stored
+    // lateFee stays 0 until the return is confirmed.
+    overdueDays: b.overdueDays || 0,
+    projectedLateFee: b.projectedLateFee || 0,
+    lateFeePerDay: b.lateFeePerDay || 0,
     rentalStatus: (b.status || 'ACTIVE').replace(/_/g, ' '),
     // Real counts from BatterySwapLog (attached server-side in listBookings) -
     // not Electica's feed, which carries no user identity to count against.
@@ -1189,6 +1194,23 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
                   <div className="mt-1">
                     <StatusBadge status={rental.rentalStatus} />
                   </div>
+                  {rental.overdueDays > 0 && (
+                    <div className="mt-1.5 text-xs leading-relaxed">
+                      <div className="font-bold text-red-600">
+                        Overdue by {rental.overdueDays} {rental.overdueDays === 1 ? 'day' : 'days'}
+                      </div>
+                      {rental.projectedLateFee > 0 ? (
+                        <div className="text-gray-600">
+                          Late fee: <span className="font-bold text-red-600">₹{rental.projectedLateFee}</span>
+                          <span className="text-gray-400"> if returned today</span>
+                        </div>
+                      ) : (
+                        <div className="text-gray-400">
+                          {rental.lateFeePerDay > 0 ? 'Within grace period' : 'No late fee rate set'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <div className="font-semibold text-gray-900">{rental.user.name}</div>
@@ -1345,8 +1367,19 @@ function LiveRentalsTable({ allBookings, ops, onSelectOps, onConfirmReturn, onRe
               {selectedRental.isAwaitingReturn && (
                 <div className="mb-2 text-purple-700 font-semibold">Drop reported at: {selectedRental.returnRequestedAt}</div>
               )}
+              {selectedRental.overdueDays > 0 && (
+                <div className="text-red-600 font-semibold">
+                  Overdue by {selectedRental.overdueDays} {selectedRental.overdueDays === 1 ? 'day' : 'days'}
+                  {selectedRental.projectedLateFee > 0
+                    ? ` · late fee ₹${selectedRental.projectedLateFee} if returned today`
+                    : selectedRental.lateFeePerDay > 0
+                      ? ' · still within the grace period'
+                      : ' · no late fee rate set in Settings'}
+                </div>
+              )}
+              {/* Charged and stored only once the return is confirmed. */}
               {selectedRental.financials.lateFee > 0 && (
-                <div className="text-red-600 font-semibold">Late fee accrued: ₹{selectedRental.financials.lateFee}</div>
+                <div className="text-red-600 font-semibold">Late fee charged: ₹{selectedRental.financials.lateFee}</div>
               )}
             </div>
             <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">

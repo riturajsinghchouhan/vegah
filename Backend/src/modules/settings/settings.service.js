@@ -15,6 +15,20 @@ export const getSettings = async (category) => {
   return settingsMap;
 };
 
+/**
+ * Just the keys asked for, whichever category they were saved under. The admin
+ * settings screen saves most of its fields without a category, so a read that
+ * filtered by one would miss them.
+ */
+export const getSettingValues = async (keys = []) => {
+  if (!keys.length) return {};
+  const rows = await Setting.find({ key: { $in: keys } }).lean();
+  return rows.reduce((acc, row) => {
+    acc[row.key] = row.value;
+    return acc;
+  }, {});
+};
+
 export const updateSettings = async (settingsData, adminId, category) => {
   const updatedSettings = {};
 

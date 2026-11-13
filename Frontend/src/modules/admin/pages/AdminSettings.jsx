@@ -18,7 +18,9 @@ export default function AdminSettings() {
     advanceBookingDays: "15",
     freeCancellationHours: "24",
     securityDeposit: "1000",
-    lateFeePerHour: "150",
+    // Late returns are billed per day at this rate, after the grace days below.
+    lateFeePerDay: "0",
+    lateFeeGraceDays: "0",
     weekendSurgePercent: "10",
     emailNotifications: true,
     smsAlerts: true,
@@ -285,13 +287,33 @@ export default function AdminSettings() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Late Return Fee (per hour)</label>
-                          <input 
-                            type="number" 
-                            value={settings.lateFeePerHour}
-                            onChange={(e) => setSettings({ ...settings, lateFeePerHour: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Late Return Fee (per day) (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={settings.lateFeePerDay}
+                            onChange={(e) => setSettings({ ...settings, lateFeePerDay: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                           />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Charged for every started day the vehicle is late. 0 means no late fee at all.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Late Fee Grace (days)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={settings.lateFeeGraceDays}
+                            onChange={(e) => setSettings({ ...settings, lateFeeGraceDays: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Late days forgiven before charging. With 1 day grace and ₹
+                            {Number(settings.lateFeePerDay) || 0}/day: 1 day late = ₹0, 2 days late = ₹
+                            {Number(settings.lateFeePerDay) || 0}, 3 days late = ₹
+                            {(Number(settings.lateFeePerDay) || 0) * 2}.
+                          </p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Weekend Surge (%)</label>

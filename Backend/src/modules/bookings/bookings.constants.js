@@ -36,8 +36,12 @@ export const RENTAL_REMINDER_LEAD_MS = 24 * 60 * 60 * 1000;
 // Grace period after the deadline before the booking is flagged OVERDUE. 5 minutes.
 export const OVERDUE_GRACE_MS = 5 * 60 * 1000;
 
-// Late returns are billed at this multiple of the vehicle's hourly rate, per started hour.
-export const LATE_FEE_MULTIPLIER = 1.5;
+// Late returns are billed per day at a rate the admin sets in Settings -> Pricing
+// (`lateFeePerDay`), with a grace of `lateFeeGraceDays` days on top. These are
+// only the fallbacks for when nothing has been saved yet: a rate of 0 means no
+// late fee is charged at all, so the admin has to set one for it to apply.
+export const DEFAULT_LATE_FEE_PER_DAY = 0;
+export const DEFAULT_LATE_FEE_GRACE_DAYS = 0;
 
 /**
  * Booking states that occupy a unit of a vehicle's stock. Shared by the booking
