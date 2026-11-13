@@ -123,7 +123,7 @@ const BookingSuccessPage = () => {
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-app-text mb-3">
-            {isApproved ? "Ready for Pickup!" : isRejected ? "Booking Rejected" : isCod ? "Waiting for Admin Approval..." : "Waiting for Approval..."}
+            {isApproved ? "Ready for Pickup!" : isRejected ? "Booking Rejected" : isCod ? "Booking In Process" : "Waiting for Approval..."}
           </h2>
 
           <p className="text-sm leading-relaxed text-app-subtle max-w-md mx-auto mb-10">
@@ -132,7 +132,7 @@ const BookingSuccessPage = () => {
               : isRejected 
               ? "Unfortunately, your booking request was rejected by the admin. Please try booking a different vehicle or contact support."
               : isCod
-              ? "You chose Cash on Delivery, so nothing has been charged yet. Your COD request has been sent to the admin — please wait for admin approval for your booking. You'll pay the cash at the hub when you collect the EV."
+              ? "Your booking is in process — please wait for admin approval. You chose Cash on Delivery, so nothing has been charged yet; you'll pay the cash at the hub when you collect the EV."
               : "Your booking is created and sent to the admin. Please wait while it's being reviewed."}
           </p>
 

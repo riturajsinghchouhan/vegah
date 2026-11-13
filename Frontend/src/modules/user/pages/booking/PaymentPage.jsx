@@ -89,7 +89,7 @@ const PaymentPage = () => {
         // Without this the booking sits in RESERVED and the server's 15-minute
         // reservation TTL silently expires it after the user sees "success".
         await bookingService.payWithCash(createdBooking.id);
-        toast.success("COD request sent. Waiting for admin approval for your booking.");
+        toast.success("Booking is in process — waiting for admin approval.");
         setLatestBooking(fullBookingInfo);
         resetBooking();
         navigate("/user/booking/success");

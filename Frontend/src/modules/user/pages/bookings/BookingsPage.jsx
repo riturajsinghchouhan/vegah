@@ -228,7 +228,7 @@ const BookingsPage = () => {
                   <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-400/40 bg-amber-500/10 p-3">
                     <Clock size={14} className="mt-0.5 shrink-0 animate-spin text-amber-400" style={{ animationDuration: '3s' }} />
                     <div>
-                      <p className="text-[11px] font-bold text-amber-300">Waiting for admin approval</p>
+                      <p className="text-[11px] font-bold text-amber-300">Booking in process — waiting for admin approval</p>
                       <p className="text-[11px] text-amber-200/80 leading-snug mt-0.5">
                         Cash on delivery — {formatCurrency(booking.amount).replace('.00', '')} is due at the hub.
                         You can collect the EV once the admin approves this booking.

@@ -3,21 +3,41 @@ import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, Setti
 import { Button } from '@/shared/components/ui/Button';
 import { adminService } from '../services/adminService';
 
+const VIEW_MODES = ['Day', 'Week', 'Month'];
+
+// The server reads this as a local calendar date. toISOString() would shift it
+// to the previous day for any clock time before the UTC offset (05:30 in IST).
+const toLocalIsoDate = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+// One step of the arrows moves by whatever the current view shows.
+const shiftDate = (date, viewMode, direction) => {
+  const next = new Date(date);
+  if (viewMode === 'Day') next.setDate(next.getDate() + direction);
+  else if (viewMode === 'Month') next.setMonth(next.getMonth() + direction);
+  else next.setDate(next.getDate() + direction * 7);
+  return next;
+};
+
 export default function AdminFleetTimeline() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timelineData, setTimelineData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('Week'); // 'Day', 'Week', 'Month'
 
+  // The view is part of the query, not just a highlighted button: switching it
+  // has to re-fetch, or the grid keeps showing the previous range.
   useEffect(() => {
     fetchTimeline();
-  }, [currentDate]);
+  }, [currentDate, viewMode]);
 
   const fetchTimeline = async () => {
     try {
       setLoading(true);
-      const isoDate = currentDate.toISOString().split('T')[0];
-      const res = await adminService.getFleetTimeline({ date: isoDate });
+      const res = await adminService.getFleetTimeline({
+        date: toLocalIsoDate(currentDate),
+        view: viewMode.toLowerCase(),
+      });
       setTimelineData(res);
     } catch (error) {
       console.error("Failed to fetch fleet timeline", error);
@@ -26,19 +46,15 @@ export default function AdminFleetTimeline() {
     }
   };
 
-  const handlePrevWeek = () => {
-    const prev = new Date(currentDate);
-    prev.setDate(prev.getDate() - 7);
-    setCurrentDate(prev);
-  };
+  const handlePrev = () => setCurrentDate((current) => shiftDate(current, viewMode, -1));
+  const handleNext = () => setCurrentDate((current) => shiftDate(current, viewMode, 1));
+  const handleToday = () => setCurrentDate(new Date());
 
-  const handleNextWeek = () => {
-    const next = new Date(currentDate);
-    next.setDate(next.getDate() + 7);
-    setCurrentDate(next);
-  };
+  const stepLabel = viewMode === 'Day' ? 'Day' : viewMode === 'Month' ? 'Month' : 'Week';
 
-  const daysOfWeek = timelineData?.daysOfWeek || [
+  // Columns are whatever the server built for this view: 12 two-hour slots for
+  // a day, 7 days for a week, the calendar days for a month.
+  const columns = timelineData?.columns || timelineData?.daysOfWeek || [
     { day: 'Mon', date: '—' },
     { day: 'Tue', date: '—' },
     { day: 'Wed', date: '—' },
@@ -47,6 +63,7 @@ export default function AdminFleetTimeline() {
     { day: 'Sat', date: '—' },
     { day: 'Sun', date: '—' },
   ];
+  const columnCount = columns.length || 1;
 
   const scooties = timelineData?.scooties || [];
   const metrics = timelineData?.metrics || {
@@ -70,29 +87,34 @@ export default function AdminFleetTimeline() {
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-1">
             <button 
-              onClick={handlePrevWeek}
+              onClick={handlePrev}
               className="p-1.5 hover:bg-white rounded-md text-gray-600 transition-colors"
-              title="Previous Week"
+              title={`Previous ${stepLabel}`}
             >
               <ChevronLeft size={18} />
             </button>
-            <span className="px-4 text-sm font-semibold text-gray-800">
+            <button
+              onClick={handleToday}
+              className="px-4 text-sm font-semibold text-gray-800 hover:text-indigo-600 transition-colors"
+              title="Jump to today"
+            >
               {timelineData?.rangeLabel || 'Loading...'}
-            </span>
+            </button>
             <button 
-              onClick={handleNextWeek}
+              onClick={handleNext}
               className="p-1.5 hover:bg-white rounded-md text-gray-600 transition-colors"
-              title="Next Week"
+              title={`Next ${stepLabel}`}
             >
               <ChevronRight size={18} />
             </button>
           </div>
           
           <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-1">
-            {['Day', 'Week', 'Month'].map(mode => (
+            {VIEW_MODES.map(mode => (
               <button 
                 key={mode}
                 onClick={() => setViewMode(mode)}
+                title={`Show one ${mode.toLowerCase()} at a time`}
                 className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   viewMode === mode 
                     ? 'bg-blue-600 text-white shadow-sm' 
@@ -152,10 +174,10 @@ export default function AdminFleetTimeline() {
           <div className="flex border-b border-gray-200/80 bg-gray-50/50">
             <div className="w-56 shrink-0 border-r border-gray-200/80 p-5 font-bold text-gray-800 uppercase tracking-wider text-xs flex items-center">Vehicle</div>
             <div className="flex-1 flex">
-              {daysOfWeek.map((d, i) => (
-                <div key={i} className="flex-1 text-center py-3 border-r border-gray-200/80 last:border-r-0 bg-white/50">
-                  <div className="text-sm font-bold text-gray-900">{d.day}</div>
-                  <div className="text-xs font-medium text-gray-500">{d.date}</div>
+              {columns.map((d, i) => (
+                <div key={i} className="flex-1 min-w-0 text-center py-3 border-r border-gray-200/80 last:border-r-0 bg-white/50">
+                  <div className="text-xs sm:text-sm font-bold text-gray-900 truncate px-1">{d.day}</div>
+                  {d.date && <div className="text-[10px] sm:text-xs font-medium text-gray-500 truncate px-1">{d.date}</div>}
                 </div>
               ))}
             </div>
@@ -186,16 +208,16 @@ export default function AdminFleetTimeline() {
                 <div className="flex-1 relative flex min-h-[64px]">
                   
                   {/* Background Grid Lines & Empty Cells */}
-                  {daysOfWeek.map((_, i) => (
-                    <div key={i} className="flex-1 border-r border-gray-200 last:border-r-0 p-2">
+                  {columns.map((_, i) => (
+                    <div key={i} className="flex-1 min-w-0 border-r border-gray-200 last:border-r-0 p-2">
                       <div className="w-full h-full bg-green-50/40 rounded-md min-h-[48px]"></div>
                     </div>
                   ))}
 
                   {/* Positioned Event Bars */}
                   {scooty.events.map((evt, idx) => {
-                    const widthPercentage = ((evt.endDay - evt.startDay + 1) / 7) * 100;
-                    const leftPercentage = (evt.startDay / 7) * 100;
+                    const widthPercentage = ((evt.endDay - evt.startDay + 1) / columnCount) * 100;
+                    const leftPercentage = (evt.startDay / columnCount) * 100;
 
                     if (evt.type === 'booked') {
                       return (

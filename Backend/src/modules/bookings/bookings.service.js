@@ -128,11 +128,31 @@ export const reserveVehicle = async (userId, data) => {
       ];
       const AWAITING_PAYMENT = [BOOKING_STATUS.RESERVED, BOOKING_STATUS.PAYMENT_INITIATED];
 
+      // PENDING_VERIFICATION is where a cash booking waits for the admin, and no
+      // money has changed hands yet -- the CASH payment row is still PENDING. It
+      // is the same unpaid attempt, so re-submitting it has to hand the booking
+      // back like the other unpaid states. It used to fall through to the
+      // conflict below, so a rider who tapped "Pay with Cash" and then tried the
+      // same slot again just got an error instead of their pending booking, and
+      // never reached the "waiting for admin approval" screen.
+      //
+      // A booking that has actually been paid for (online or wallet) still
+      // reaches this status, and that one IS a genuine conflict -- hence the
+      // settled-payment check rather than a blanket allow.
+      let isUnpaidRetry = AWAITING_PAYMENT.includes(existingBooking.status);
+      if (!isUnpaidRetry && existingBooking.status === BOOKING_STATUS.PENDING_VERIFICATION) {
+        const settledPayment = await Payment.findOne({
+          booking: existingBooking._id,
+          status: 'SUCCESS',
+        }).session(session);
+        isUnpaidRetry = !settledPayment;
+      }
+
       if (FINISHED.includes(existingBooking.status)) {
         // Park the old key aside so this slot can be booked again.
         existingBooking.idempotencyKey = `${idempotencyKey}_old_${Date.now()}`;
         await existingBooking.save({ session });
-      } else if (AWAITING_PAYMENT.includes(existingBooking.status)) {
+      } else if (isUnpaidRetry) {
         await session.abortTransaction();
         // Shaped like the normal response so the client can treat both the same.
         return Booking.findById(existingBooking._id)
