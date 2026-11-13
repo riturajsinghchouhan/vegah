@@ -746,7 +746,9 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
 
     if (newStatus === BOOKING_STATUS.COMPLETED) {
       booking.actualReturnAt = now;
-      booking.lateFee = calculateLateFee(booking, now);
+      // Overtime banked by an extension (see applyExtension) survives a return
+      // that is on time against the new deadline.
+      booking.lateFee = Math.max(booking.lateFee || 0, calculateLateFee(booking, now));
       booking.depositStatus = options.depositStatus || 'REFUNDED';
       if (options.adminId) booking.returnConfirmedBy = options.adminId;
       if (booking.depositStatus === 'REFUNDED') {
@@ -1139,20 +1141,40 @@ const loadExtendableBooking = async (bookingId, userId) => {
  */
 const applyExtension = async (booking, userId, { extraMs, extensionCost, note }) => {
   const bookingId = booking._id;
+  const nowMs = Date.now();
 
-  const newEndDate = new Date(new Date(booking.endDate).getTime() + extraMs);
-  booking.endDate = newEndDate;
-  booking.totalAmount = (booking.totalAmount || 0) + extensionCost;
+  // An extension has to buy real time. Adding the plan to a deadline that has
+  // already passed - which is the normal case for an OVERDUE rental, and for a
+  // cash extension the admin approves hours or days after it was raised - could
+  // land the new deadline in the past as well: the rider paid, the approval
+  // succeeded and nothing on their screen moved. A deadline that is already
+  // behind us therefore restarts from now.
+  const extendFrom = (date) => new Date(Math.max(new Date(date).getTime(), nowMs) + extraMs);
 
   // A started trip runs on tripEndsAt, so that is the deadline the extension
   // has to move for the timer and the reminder to follow.
   let newTripEndsAt = null;
+  let shiftMs = extraMs;
   if (booking.tripEndsAt) {
-    newTripEndsAt = new Date(new Date(booking.tripEndsAt).getTime() + extraMs);
+    // Overtime already run up is banked before the deadline moves, so restarting
+    // the clock does not quietly write off what the rider owes for being late.
+    const accruedLateFee = calculateLateFee(booking, new Date(nowMs));
+    if (accruedLateFee > (booking.lateFee || 0)) booking.lateFee = accruedLateFee;
+
+    newTripEndsAt = extendFrom(booking.tripEndsAt);
+    shiftMs = newTripEndsAt.getTime() - new Date(booking.tripEndsAt).getTime();
     booking.tripEndsAt = newTripEndsAt;
     // The new deadline is in the future again, so the user deserves a fresh reminder.
     booking.reminderSentAt = null;
   }
+
+  // The booked window moves in step with the live deadline. Before handover
+  // there is no trip clock, so endDate IS the deadline the rider sees.
+  const newEndDate = newTripEndsAt
+    ? new Date(new Date(booking.endDate).getTime() + shiftMs)
+    : extendFrom(booking.endDate);
+  booking.endDate = newEndDate;
+  booking.totalAmount = (booking.totalAmount || 0) + extensionCost;
 
   booking.statusHistory.push({
     status: booking.status,

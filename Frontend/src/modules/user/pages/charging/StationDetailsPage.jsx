@@ -12,7 +12,7 @@ const IN_TRIP_STATUSES = "ACTIVE,PENDING_RETURN";
 
 // A rider has to physically be at the station to swap a battery. The backend
 // enforces this too; the gate here just stops a pointless round trip.
-const SWAP_RADIUS_METERS = 50;
+const SWAP_RADIUS_METERS = 100;
 
 const StationDetailsPage = () => {
   const { stationId } = useParams();
