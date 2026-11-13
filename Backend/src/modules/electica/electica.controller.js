@@ -35,12 +35,16 @@ export const getStation = async (req, res, next) => {
  * podNumber-carrying array.
  */
 const podsToArray = (pods) => {
+  // Electica numbers pods from 1 and names the field `pod`; keep podNumber last
+  // so a raw string value from upstream can't shadow the parsed number.
   if (Array.isArray(pods)) {
-    return pods.map((pod, idx) => ({ podNumber: Number(pod?.podNumber ?? pod?.number ?? idx + 1), ...pod }));
+    return pods
+      .map((pod, idx) => ({ ...pod, podNumber: Number(pod?.podNumber ?? pod?.pod ?? pod?.number ?? idx + 1) }))
+      .sort((a, b) => a.podNumber - b.podNumber);
   }
   if (!pods || typeof pods !== 'object') return [];
   return Object.entries(pods)
-    .map(([key, pod]) => ({ podNumber: Number(pod?.podNumber ?? pod?.number ?? key), ...pod }))
+    .map(([key, pod]) => ({ ...pod, podNumber: Number(pod?.podNumber ?? pod?.pod ?? pod?.number ?? key) }))
     .sort((a, b) => a.podNumber - b.podNumber);
 };
 

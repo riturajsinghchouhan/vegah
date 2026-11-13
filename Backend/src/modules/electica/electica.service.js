@@ -439,12 +439,12 @@ export const getInventoryMonitoringData = async (stationId) => {
 
   // 2. Normalize Pods strictly from what the Electica API actually returned
   const podEntries = Array.isArray(rawPods)
-    ? rawPods.map((p, idx) => [p.podNumber ?? p.number ?? idx + 1, p])
+    ? rawPods.map((p, idx) => [p.podNumber ?? p.pod ?? p.number ?? idx + 1, p])
     : Object.entries(rawPods);
 
   const podsList = podEntries
     .map(([key, podData]) => {
-      const podNumber = Number(podData?.podNumber ?? podData?.number ?? key);
+      const podNumber = Number(podData?.podNumber ?? podData?.pod ?? podData?.number ?? key);
       if (!Number.isFinite(podNumber)) return null;
 
       const bmsId = podData.bmsId || podData.batteryId || null;

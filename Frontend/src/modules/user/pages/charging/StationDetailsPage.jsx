@@ -164,6 +164,23 @@ const StationDetailsPage = () => {
           ? null
           : `You are ${formatDistance(distanceToStation)} from the station. Come within ${SWAP_RADIUS_METERS} m to start a swap.`;
 
+  // The station hardware numbers its pods from 1, and /electica/pods already
+  // returns them sorted by that number - so the rider sees the same pod number
+  // that is painted on the slot, never an array index.
+  const podList = (Array.isArray(pods)
+    ? pods.map((pod) => ({ ...pod, podNumber: Number(pod?.podNumber ?? pod?.pod) }))
+    : Object.entries(pods ?? {}).map(([key, pod]) => ({
+        ...pod,
+        podNumber: Number(pod?.podNumber ?? pod?.pod ?? key),
+      }))
+  )
+    .filter((pod) => Number.isFinite(pod.podNumber))
+    .sort((a, b) => a.podNumber - b.podNumber);
+
+  // Only name a pod number the station actually reported - a guessed "Pod 1"
+  // sends the rider to the wrong slot.
+  const swapPod = Number(swapData?.pod ?? swapData?.podNumber) || null;
+
   const connectorTypes = station.connectorTypes ?? (station.connector ? [station.connector] : []);
   const chargers = station.chargers ?? [];
   const supportedVehicles = station.supportedVehicles ?? [];
@@ -267,8 +284,9 @@ const StationDetailsPage = () => {
           <section className="surface-card p-5">
             <h3 className="text-lg font-semibold text-app-text">Live Battery Status</h3>
             <div className="mt-4 space-y-3">
-              {pods && Object.keys(pods).length > 0 ? (
-                Object.entries(pods).map(([podNumber, podData]) => {
+              {podList.length > 0 ? (
+                podList.map((podData) => {
+                  const podNumber = podData.podNumber;
                   const rawState = (podData.state || podData.status || 'unknown').toLowerCase();
                   const bmsId = podData.bmsId || podData.battery_id || null;
                   const isAvailable = rawState === 'available' || rawState === 'fully_charged' || rawState === 'ready';
@@ -391,8 +409,12 @@ const StationDetailsPage = () => {
             {swapState === 'polling' && swapData && (
               <div className="space-y-3">
                 <div className="p-4 bg-indigo-500/15 text-indigo-400 rounded-2xl text-sm font-bold border border-indigo-100">
-                  {swapData.step === 'insert' && `📥 Put your discharged battery in Pod ${swapData.pod || 1}`}
-                  {swapData.step === 'pickup' && `📤 Take your fully charged battery from Pod ${swapData.pod || 2}`}
+                  {swapData.step === 'insert' && (swapPod
+                    ? `📥 Put your discharged battery in Pod ${swapPod}`
+                    : '📥 Put your discharged battery in the pod the station unlocks')}
+                  {swapData.step === 'pickup' && (swapPod
+                    ? `📤 Take your fully charged battery from Pod ${swapPod}`
+                    : '📤 Take your fully charged battery from the pod the station unlocks')}
                   {!swapData.step && `Swap Status: ${swapData.status}`}
                 </div>
                 <p className="text-xs text-app-subtle text-center">Do not close window until swap completes.</p>
