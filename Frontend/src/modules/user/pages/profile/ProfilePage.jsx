@@ -1,5 +1,5 @@
 import { LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AccountSettings from "../../../../components/profile/AccountSettings";
 import BookingSummary from "../../../../components/profile/BookingSummary";
@@ -111,6 +111,9 @@ const ProfilePage = () => {
     fetchBookings();
   }, []);
 
+  // The header's gear scrolls down to the account settings list.
+  const settingsRef = useRef(null);
+
   const handleLogout = async () => {
     setIsLogoutOpen(false);
     await logout();
@@ -157,9 +160,14 @@ const ProfilePage = () => {
 
   return (
     <div className="bg-app min-h-screen pb-28 font-sans">
-      <ProfileHeader />
-      
-      <ProfileHero user={mappedUser} />
+      <ProfileHeader
+        onNotificationsClick={() => setIsNotificationsModalOpen(true)}
+        onSettingsClick={() =>
+          settingsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      />
+
+      <ProfileHero user={mappedUser} onClick={() => setIsPersonalModalOpen(true)} />
       
       <WalletSummary user={mappedUser} />
       
@@ -167,7 +175,10 @@ const ProfilePage = () => {
       
       <QuickActions actions={quickActions} />
       
-      <AccountSettings settings={accountSettings} onItemClick={handleAccountSettingClick} />
+      {/* Scroll target for the header's gear. */}
+      <div ref={settingsRef}>
+        <AccountSettings settings={accountSettings} onItemClick={handleAccountSettingClick} />
+      </div>
 
       <Preferences preferences={preferences} />
       

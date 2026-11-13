@@ -1,9 +1,24 @@
 import { Camera, ChevronRight, Crown, MapPin } from "lucide-react";
 
-const ProfileHero = ({ user }) => {
+// The row carries a chevron and a pointer cursor, so it has to actually open
+// something - the page passes the personal-details editor. The camera badge sits
+// inside it and deliberately has no handler of its own: a tap on it bubbles up
+// to the same editor instead of being a second dead control.
+const ProfileHero = ({ user, onClick }) => {
   return (
     <div className="px-5 mb-8">
-      <div className="flex items-center gap-4 cursor-pointer group">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick?.();
+          }
+        }}
+        className="flex items-center gap-4 cursor-pointer group"
+      >
         {/* Avatar */}
         <div className="relative shrink-0">
           <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] bg-app-muted">

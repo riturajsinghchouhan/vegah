@@ -1,5 +1,6 @@
 import User from '../../models/User.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
+import { HELD_BOOKING_STATUSES } from '../bookings/bookings.constants.js';
 
 export const listUsers = async (query) => {
   const { page = 1, limit = 20, isVerified, isBlocked, search } = query;
@@ -38,8 +39,12 @@ export const listUsers = async (query) => {
           _id: '$user',
           totalBookings: { $sum: 1 },
           totalSpent: { $sum: '$totalAmount' },
-          activeBookings: { 
-            $sum: { $cond: [{ $in: ['$status', ['CONFIRMED', 'ACTIVE']] }, 1, 0] } 
+          // Same definition the customer detail screen uses: a rental still out
+          // past its deadline (or dropped and awaiting verification) is held
+          // just as much as one running on time, so the list cannot call it
+          // "No Active" while the detail page shows the rental.
+          activeBookings: {
+            $sum: { $cond: [{ $in: ['$status', HELD_BOOKING_STATUSES] }, 1, 0] }
           }
       }}
     ])
@@ -79,7 +84,7 @@ export const getUserById = async (id) => {
   const { default: Booking } = await import('../../models/Booking.js');
   await import('../../models/Vehicle.js'); // registers the model for populate
 
-  const activeStatuses = ['CONFIRMED', 'ACTIVE', 'PENDING_RETURN', 'OVERDUE'];
+  const activeStatuses = HELD_BOOKING_STATUSES;
 
   // KYC files collected at checkout live on the booking, not the user, so the
   // most recent upload of each kind is pulled from there.

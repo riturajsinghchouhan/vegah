@@ -44,6 +44,19 @@ export const LATE_FEE_MULTIPLIER = 1.5;
  * write path and the vehicle listing/detail read path so the app can never
  * advertise a vehicle it would then refuse to book.
  */
+/**
+ * A rental the customer is actually holding right now: approved and waiting for
+ * pickup, out on the road, out past its deadline, or dropped and waiting for the
+ * hub to verify it. This is what "active rental" means on the admin's customer
+ * screens - an extended rental is simply still one of these.
+ */
+export const HELD_BOOKING_STATUSES = [
+  BOOKING_STATUS.CONFIRMED,
+  BOOKING_STATUS.ACTIVE,
+  BOOKING_STATUS.OVERDUE,
+  BOOKING_STATUS.PENDING_RETURN,
+];
+
 export const ACTIVE_BOOKING_STATUSES = [
   BOOKING_STATUS.RESERVED,
   BOOKING_STATUS.PENDING_VERIFICATION,
