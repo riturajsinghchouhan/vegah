@@ -234,6 +234,16 @@ export const adminSidebarMenu = [
             label: "Ledger",
             path: "/admin/accounting/ledger",
           },
+          {
+            type: "link",
+            label: "GST Documents",
+            path: "/admin/accounting/gst",
+          },
+          {
+            type: "link",
+            label: "Zoho Books",
+            path: "/admin/accounting/zoho",
+          },
         ],
       },
       {

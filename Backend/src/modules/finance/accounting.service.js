@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import Booking from '../../models/Booking.js';
 import Expense, { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_MODES } from '../../models/Expense.js';
 import * as ledgerHooks from '../ledger/hooks.js';
+import * as zohoHooks from '../../integrations/zoho/zoho.hooks.js';
+import { isValidGstin, splitInclusive } from '../../utils/gst.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 
 // Admins enter expenses against Indian calendar days, so day/month boundaries
@@ -81,7 +83,21 @@ export const getAccountingSummary = async (query = {}) => {
     ]),
     Expense.aggregate([
       { $match: expenseMatch },
-      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+          // Only tax backed by a registered vendor's GSTIN can be claimed, so
+          // the claimable figure is deliberately narrower than the tax paid.
+          inputTaxClaimable: {
+            $sum: { $cond: ['$isItcEligible', { $ifNull: ['$inputTax', 0] }, 0] },
+          },
+          inputTaxUnclaimable: {
+            $sum: { $cond: ['$isItcEligible', 0, { $ifNull: ['$inputTax', 0] }] },
+          },
+        },
+      },
     ]),
     Expense.aggregate([
       { $match: expenseMatch },
@@ -124,6 +140,8 @@ export const getAccountingSummary = async (query = {}) => {
       totalExpense,
       expenseCount: expenseRow?.count || 0,
       netEarning: earning - totalExpense,
+      inputTaxClaimable: Math.round((expenseRow?.inputTaxClaimable || 0) * 100) / 100,
+      inputTaxUnclaimable: Math.round((expenseRow?.inputTaxUnclaimable || 0) * 100) / 100,
     },
     expenseByCategory: byCategory.map((row) => ({
       category: row._id,
@@ -200,8 +218,49 @@ const buildExpensePayload = (body = {}, { partial = false } = {}) => {
   }
 
   if (body.notes !== undefined) payload.notes = String(body.notes ?? '').trim();
+  if (body.sac !== undefined) payload.sac = String(body.sac ?? '').trim();
+  if (body.referenceNumber !== undefined) payload.referenceNumber = String(body.referenceNumber ?? '').trim();
+  if (body.vendorName !== undefined) payload.vendorName = String(body.vendorName ?? '').trim();
+  if (body.placeOfSupply !== undefined) {
+    payload.placeOfSupply = String(body.placeOfSupply ?? '').trim().toUpperCase();
+  }
+
+  if (body.vendorGstin !== undefined) {
+    const gstin = String(body.vendorGstin ?? '').trim().toUpperCase();
+    if (gstin && !isValidGstin(gstin)) throw new BadRequestError('Vendor GSTIN is not valid');
+    payload.vendorGstin = gstin || null;
+  }
+
+  if (body.taxRate !== undefined) {
+    const rate = Number(body.taxRate);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+      throw new BadRequestError('Tax rate must be between 0 and 100');
+    }
+    payload.taxRate = rate;
+  }
 
   return payload;
+};
+
+/**
+ * Derives the GST split and whether the credit can actually be claimed.
+ *
+ * Run on every write rather than only when the tax fields change, because the
+ * split depends on `amount` too -- editing the amount alone would otherwise
+ * leave a stale input tax behind, and that figure is claimed against the
+ * government.
+ */
+const withTaxSplit = (expense) => {
+  const rate = Number(expense.taxRate) || 0;
+  const { net, tax } = splitInclusive(expense.amount, rate);
+  return {
+    ...expense,
+    taxableValue: net,
+    inputTax: tax,
+    // No GSTIN means no valid tax invoice from the vendor, so there is nothing
+    // to credit however much tax was actually paid.
+    isItcEligible: tax > 0 && isValidGstin(expense.vendorGstin),
+  };
 };
 
 const assertValidId = (id) => {
@@ -209,22 +268,30 @@ const assertValidId = (id) => {
 };
 
 export const createExpense = async (body, adminId) => {
-  const payload = buildExpensePayload(body);
+  const payload = withTaxSplit(buildExpensePayload(body));
   const expense = await Expense.create({ ...payload, createdBy: adminId || null });
   // Non-blocking: the expense is saved whether or not the ledger accepts it.
   await ledgerHooks.onExpenseRecorded(expense);
+  await zohoHooks.onExpenseRecorded(expense);
   return expense;
 };
 
 export const updateExpense = async (id, body, adminId) => {
   assertValidId(id);
-  const payload = buildExpensePayload(body, { partial: true });
+  const current = await Expense.findById(id);
+  if (!current) throw new NotFoundError('Expense not found');
+
+  const patch = buildExpensePayload(body, { partial: true });
+  // The split is recomputed against the merged record, so changing the amount
+  // alone still corrects the input tax claimed on it.
+  const merged = withTaxSplit({ ...current.toObject(), ...patch });
+
   const expense = await Expense.findByIdAndUpdate(
     id,
-    { ...payload, updatedBy: adminId || null },
+    { ...patch, taxableValue: merged.taxableValue, inputTax: merged.inputTax, isItcEligible: merged.isItcEligible, updatedBy: adminId || null },
     { new: true, runValidators: true }
   );
-  if (!expense) throw new NotFoundError('Expense not found');
+  await zohoHooks.onExpenseUpdated(expense);
   return expense;
 };
 

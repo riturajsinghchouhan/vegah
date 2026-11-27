@@ -28,6 +28,20 @@ const userSchema = new Schema({
     licenseBackImage: { type: String, default: null },
     isVerified: { type: Boolean, default: false }
   },
+
+  // What a GST invoice needs that a rider profile otherwise has no reason to
+  // carry. `stateCode` decides whether a booking attracts CGST+SGST or IGST, so
+  // it is the one field here that changes the tax on the invoice; when it is
+  // blank the business's own state is assumed and the rider is billed as an
+  // unregistered consumer.
+  billing: {
+    gstin: { type: String, trim: true, uppercase: true, default: null },
+    companyName: { type: String, trim: true, maxlength: 150, default: null },
+    stateCode: { type: String, trim: true, uppercase: true, default: null },
+    address: { type: String, trim: true, maxlength: 200, default: null },
+    city: { type: String, trim: true, maxlength: 80, default: null },
+    pincode: { type: String, trim: true, maxlength: 10, default: null },
+  },
 }, { timestamps: true });
 
 userSchema.index({ createdAt: -1 });

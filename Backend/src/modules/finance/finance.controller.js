@@ -1,7 +1,61 @@
 import * as financeService from './finance.service.js';
 import * as accountingService from './accounting.service.js';
+import * as taxInvoiceService from './taxInvoice.service.js';
 import { sendSuccess } from '../../utils/response.js';
 import { streamInvoicePdf } from '../../services/invoicePdf.service.js';
+
+// --- GST documents ---
+
+export const listTaxDocuments = async (req, res, next) => {
+  try {
+    const data = await taxInvoiceService.listDocuments(req.query);
+    sendSuccess(res, 200, 'GST documents fetched', data.documents, data.meta);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTaxDocument = async (req, res, next) => {
+  try {
+    sendSuccess(res, 200, 'GST document fetched', await taxInvoiceService.getDocument(req.params.id));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const issueTaxInvoice = async (req, res, next) => {
+  try {
+    const invoice = await taxInvoiceService.issueForBooking(req.params.bookingId, {
+      issuedBy: req.user?._id,
+    });
+    sendSuccess(res, 201, 'Tax invoice issued', invoice);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const issueCreditNote = async (req, res, next) => {
+  try {
+    const creditNote = await taxInvoiceService.issueCreditNote({
+      invoiceId: req.params.id,
+      reason: req.body?.reason,
+      amount: req.body?.amount ?? null,
+      issuedBy: req.user?._id,
+    });
+    sendSuccess(res, 201, 'Credit note issued', creditNote);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getGstSummary = async (req, res, next) => {
+  try {
+    const data = await taxInvoiceService.getGstSummary(req.query);
+    sendSuccess(res, 200, 'GST summary fetched', data);
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const downloadInvoice = async (req, res, next) => {
   try {

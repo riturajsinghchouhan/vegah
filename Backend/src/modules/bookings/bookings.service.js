@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import Booking from '../../models/Booking.js';
 import BatterySwapLog from '../../models/BatterySwapLog.js';
 import Vehicle from '../../models/Vehicle.js';
-import Coupon from '../../models/Coupon.js';
 import Payment from '../../models/Payment.js';
 import Refund from '../../models/Refund.js';
 import ExtensionRequest from '../../models/ExtensionRequest.js';
@@ -23,6 +22,7 @@ import {
 } from './bookings.constants.js';
 import { calculateRentalCost, calculateTotalAmount, deriveHourlyRate } from '../../utils/pricing.js';
 import * as settingsService from '../settings/settings.service.js';
+import * as couponsService from '../coupons/coupons.service.js';
 import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '../../utils/errors.js';
 import env from '../../config/env.js';
 import razorpay from '../../config/razorpay.js';
@@ -30,6 +30,7 @@ import { getIO } from '../../config/socket.js';
 import { sendAdminBookingNotification, notifyUser, notifyAdmins } from '../../services/notification.service.js';
 import { sendNotificationToOwner } from '../../services/firebase.service.js';
 import * as ledgerHooks from '../ledger/hooks.js';
+import * as zohoHooks from '../../integrations/zoho/zoho.hooks.js';
 import logger from '../../utils/logger.js';
 
 const generateBookingId = () => {
@@ -216,18 +217,7 @@ export const reserveVehicle = async (userId, data) => {
 
     const vehicle = vehicleDoc;
 
-    // 3. Validate Coupon if provided
-    let discountAmount = 0;
-    let couponObj = null;
-    if (data.couponCode) {
-      couponObj = await Coupon.findOne({ code: data.couponCode.toUpperCase(), status: 'ACTIVE' });
-      if (!couponObj || couponObj.expiryDate < new Date() || couponObj.startDate > new Date()) {
-        throw new BadRequestError('Invalid or expired coupon');
-      }
-      discountAmount = couponObj.type === 'FLAT' ? couponObj.value : 50; 
-    }
-
-    // 4. Calculate Pricing Server-Side
+    // 3. Calculate Pricing Server-Side
     const rentalBase = calculateRentalCost(
       vehicle.pricePerHour, 
       vehicle.pricePerDay, 
@@ -249,6 +239,29 @@ export const reserveVehicle = async (userId, data) => {
       ? Number(pricingSettings[batteryPackagePriceKey] ?? batteryPackage.price)
       : batteryPackage.price;
 
+    // 4. Validate the coupon, now that we know what it applies to.
+    //
+    // This defers to coupons.service so a booking enforces exactly the same
+    // rules as the /coupons/validate endpoint the checkout screen calls: min
+    // spend, the max-discount cap, and the per-user and total usage limits.
+    // The inline version this replaces only checked the date window and gave
+    // every PERCENTAGE coupon a hardcoded Rs 50 off.
+    //
+    // The discount applies to what is actually being rented -- rental plus
+    // battery package -- not to the security deposit, platform fees or tax.
+    let discountAmount = 0;
+    let couponObj = null;
+    if (data.couponCode) {
+      const validated = await couponsService.validateCoupon(
+        data.couponCode,
+        rentalBase + batteryPackagePrice,
+        userId,
+        { session }
+      );
+      couponObj = validated.coupon;
+      discountAmount = validated.discountAmount;
+    }
+
     const pricing = calculateTotalAmount({
       rentalBase,
       batteryPackagePrice,
@@ -259,7 +272,7 @@ export const reserveVehicle = async (userId, data) => {
       platformFee,
     });
 
-    // 4. Create Reservation
+    // 5. Create Reservation
     const reservationExpiresAt = new Date(Date.now() + RESERVATION_TTL_MS);
 
     const bookingArray = await Booking.create([{
@@ -290,6 +303,19 @@ export const reserveVehicle = async (userId, data) => {
     }], { session });
 
     const booking = bookingArray[0];
+
+    // Inside the transaction on purpose: the booking and its coupon usage
+    // either both land or neither does. Without this the coupon was recorded
+    // against the booking but never counted, so usage limits never bit.
+    if (couponObj) {
+      await couponsService.recordCouponUsage({
+        couponId: couponObj._id,
+        userId,
+        bookingId: booking._id,
+        discountApplied: discountAmount,
+        session,
+      });
+    }
 
     await session.commitTransaction();
     
@@ -330,7 +356,7 @@ export const reserveVehicle = async (userId, data) => {
       console.error('Push notification error:', err.message);
     }
 
-    // 5. Enqueue Expiry Job (Fire and forget, out of transaction)
+    // 6. Enqueue Expiry Job (Fire and forget, out of transaction)
     //
     // The reservation is already committed, so a queue problem must not fail or
     // stall the response: if the job cannot be enqueued we fall through to the
@@ -788,6 +814,19 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
 
     if (newStatus.includes('CANCELLED') || newStatus === BOOKING_STATUS.RESERVATION_EXPIRED) {
       booking.cancelledAt = now;
+
+      // Hand the coupon use back. A reservation that expired unpaid, or a
+      // cancelled booking, otherwise permanently burns one of the coupon's
+      // uses -- including the user's own per-user allowance. Idempotent: it
+      // is a no-op if the usage row is already gone.
+      const heldCouponId = booking.coupon?._id || booking.coupon;
+      if (heldCouponId) {
+        await couponsService.releaseCouponUsage({
+          couponId: heldCouponId,
+          bookingId: booking._id,
+          session,
+        });
+      }
     }
 
     booking.statusHistory.push({
@@ -815,6 +854,15 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
     // cost us the accounting entry. Uses the unpopulated `booking` so
     // sub-ledger ids stay ObjectIds. Never throws.
     await ledgerHooks.onBookingStatusChange(booking, oldStatus, newStatus);
+
+    // The GST documents follow the ledger. A completed booking is invoiced; a
+    // cancelled one that was already invoiced is credited. Both are idempotent
+    // and neither throws, so this cannot cost us the status change.
+    if (newStatus === 'COMPLETED') {
+      await zohoHooks.onBookingCompleted(booking);
+    } else if (newStatus.includes('CANCELLED')) {
+      await zohoHooks.onBookingCancelled(booking, booking.cancellationReason);
+    }
 
     // Populate updated booking for notifications
     // The admin console merges socket updates with `{ ...row, ...payload }`, so an

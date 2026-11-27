@@ -14,6 +14,14 @@ export const bookingService = {
     }));
   },
   
+  // Checked against the user's own token so per-user usage limits are
+  // evaluated for the right person. Returns the discount the server would
+  // actually grant; it re-validates on POST /bookings anyway.
+  async validateCoupon(code, amount) {
+    const response = await api.post('/coupons/validate', { code, amount });
+    return response.data.data;
+  },
+
   async createBooking(payload) {
     // Transform payload to backend expected format if needed
     // payload from useBooking: { vehicle, vehicleId, startDate, startTime, endDate, endTime, pickupLocation, batteryPackage, rentalType }

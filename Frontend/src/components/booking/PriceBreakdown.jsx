@@ -6,6 +6,9 @@ const rows = (pricing) => [
   { label: `Service fee (${pricing.serviceChargeRate ?? 5}%)`, value: pricing.serviceFee },
   ...(pricing.platformFee ? [{ label: "Platform fee", value: pricing.platformFee }] : []),
   ...(pricing.batteryPackageFee ? [{ label: "Battery package", value: pricing.batteryPackageFee }] : []),
+  ...(pricing.discountAmount
+    ? [{ label: "Coupon discount", value: -pricing.discountAmount, highlight: true }]
+    : []),
   { label: `Taxes & GST (${pricing.gstRate ?? 18}%)`, value: pricing.taxes },
 ];
 
@@ -16,7 +19,9 @@ const PriceBreakdown = ({ pricing }) => (
       {rows(pricing).map((row) => (
         <div key={row.label} className="flex items-center justify-between text-sm text-app-subtle">
           <span>{row.label}</span>
-          <span className="font-medium text-app-text">{formatCurrency(row.value)}</span>
+          <span className={`font-medium ${row.highlight ? "text-green-600" : "text-app-text"}`}>
+            {row.highlight ? `- ${formatCurrency(Math.abs(row.value))}` : formatCurrency(row.value)}
+          </span>
         </div>
       ))}
       <div className="border-t border-dashed border-app-border pt-3">

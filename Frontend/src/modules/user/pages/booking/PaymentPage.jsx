@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { CreditCard, Landmark, Wallet } from "lucide-react";
+import { CreditCard, Landmark, Loader2, Wallet, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../../components/common/Button";
 import PriceBreakdown from "../../../../components/booking/PriceBreakdown";
@@ -21,7 +21,7 @@ const paymentMethods = [
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const { booking, pricing, setLatestBooking, resetBooking } = useBooking();
+  const { booking, pricing, setLatestBooking, resetBooking, applyCoupon, removeCoupon } = useBooking();
 
   const [paymentMode, setPaymentMode] = useState("ONLINE");
   const [processing, setProcessing] = useState(false);
@@ -29,6 +29,9 @@ const PaymentPage = () => {
   const [termsContent, setTermsContent] = useState("");
   const sdkReady = useRef(null);
   const [wallet, setWallet] = useState({ balance: 0, loading: true });
+  const [couponInput, setCouponInput] = useState("");
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState("");
 
   useEffect(() => {
     adminService.getSettings().then(data => {
@@ -57,6 +60,36 @@ const PaymentPage = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const appliedCoupon = booking.couponCode;
+
+  // The amount the coupon is judged against has to be the same sum the server
+  // uses in bookings.service.js -- rental plus battery package -- otherwise a
+  // min-spend or percentage coupon validates here and is then recalculated to
+  // a different number (or rejected) when the booking is actually created.
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+
+    setCouponError("");
+    setCouponChecking(true);
+    try {
+      const result = await bookingService.validateCoupon(code, pricing.couponBase);
+      applyCoupon(code, result.discountAmount);
+      setCouponInput("");
+      toast.success(`Coupon ${code} applied — ${formatCurrency(result.discountAmount)} off`);
+    } catch (err) {
+      setCouponError(err.response?.data?.message || "This coupon could not be applied");
+    } finally {
+      setCouponChecking(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    setCouponError("");
+    setCouponInput("");
+  };
+
   const walletShort = Math.max(0, pricing.total - wallet.balance);
   const walletUsable = !wallet.loading && walletShort === 0;
 
@@ -72,6 +105,7 @@ const PaymentPage = () => {
       setProcessing(true);
       const createdBooking = await bookingService.createBooking({
         ...booking,
+        couponCode: appliedCoupon || undefined,
         pricing,
         amount: pricing.total,
         paymentMethod: paymentMode,
@@ -193,10 +227,53 @@ const PaymentPage = () => {
       <section className="surface-card p-4">
         <p className="text-xs text-app-subtle">Total Amount</p>
         <h2 className="mt-1 text-[30px] font-semibold text-app-text">{formatCurrency(pricing.total)}</h2>
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-app-muted px-4 py-3">
-          <span className="text-sm text-app-subtle">Apply Promo Code</span>
-          <span className="text-xs font-semibold text-app-primary">APPLY</span>
-        </div>
+        {appliedCoupon ? (
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-green-700">{appliedCoupon} applied</p>
+              <p className="text-xs text-green-600">
+                You saved {formatCurrency(pricing.discountAmount)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="flex items-center gap-1 text-xs font-semibold text-green-700 hover:text-green-900"
+            >
+              <X className="h-3.5 w-3.5" /> Remove
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <div className="flex items-center gap-2 rounded-xl bg-app-muted px-4 py-2">
+              <input
+                type="text"
+                value={couponInput}
+                onChange={(e) => {
+                  setCouponInput(e.target.value.toUpperCase());
+                  setCouponError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleApplyCoupon();
+                  }
+                }}
+                placeholder="Apply promo code"
+                className="flex-1 bg-transparent text-sm text-app-text placeholder:text-app-subtle focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleApplyCoupon}
+                disabled={couponChecking || !couponInput.trim()}
+                className="flex items-center gap-1 text-xs font-semibold text-app-primary disabled:opacity-40"
+              >
+                {couponChecking && <Loader2 className="h-3.5 w-3.5 animate-spin" />} APPLY
+              </button>
+            </div>
+            {couponError && <p className="mt-2 text-xs text-red-600">{couponError}</p>}
+          </div>
+        )}
       </section>
 
       <section className="mt-5 surface-card p-4">

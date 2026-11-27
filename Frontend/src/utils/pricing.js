@@ -12,7 +12,7 @@ const parseDateTime = (date, time) => {
 };
 
 export const calculateBookingPricing = (
-  { vehicle, rentalType, startDate, startTime, endDate, endTime, batteryPackage },
+  { vehicle, rentalType, startDate, startTime, endDate, endTime, batteryPackage, couponDiscount },
   settings = {}
 ) => {
   const gstRate = Number(settings?.gstRate ?? 18);
@@ -29,6 +29,8 @@ export const calculateBookingPricing = (
       serviceFee: 0,
       platformFee: 0,
       batteryPackageFee: 0,
+      discountAmount: 0,
+      couponBase: 0,
       taxes: 0,
       gstRate,
       serviceChargeRate,
@@ -72,11 +74,18 @@ export const calculateBookingPricing = (
   // Dynamic Service Fee based on % from Admin Tax & Billing
   const serviceFee = Math.round(rentalBase * (serviceChargeRate / 100));
 
-  // Dynamic Taxes based on % from Admin Tax & Billing
-  const taxable = Math.max(0, rentalBase + serviceFee + platformFee + batteryPackageFee);
+  // What a coupon applies to: the rental itself plus the battery package, not
+  // the refundable deposit or the fees. Kept in step with the same sum in
+  // bookings.service.js, which is what actually prices the booking.
+  const couponBase = rentalBase + batteryPackageFee;
+  const discountAmount = Math.min(Math.max(0, Number(couponDiscount) || 0), couponBase);
+
+  // Dynamic Taxes based on % from Admin Tax & Billing. GST is charged on the
+  // discounted amount, matching calculateTotalAmount() on the server.
+  const taxable = Math.max(0, rentalBase + serviceFee + platformFee + batteryPackageFee - discountAmount);
   const taxes = Math.round(taxable * (gstRate / 100));
 
-  const total = rentalBase + vehicle.deposit + serviceFee + platformFee + batteryPackageFee + taxes;
+  const total = rentalBase + vehicle.deposit + serviceFee + platformFee + batteryPackageFee + taxes - discountAmount;
 
   return {
     rentalBase,
@@ -85,6 +94,8 @@ export const calculateBookingPricing = (
     serviceFee,
     platformFee,
     batteryPackageFee,
+    discountAmount,
+    couponBase,
     taxes,
     gstRate,
     serviceChargeRate,

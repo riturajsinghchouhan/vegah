@@ -71,6 +71,7 @@ import paymentsRoutes from './modules/payments/payments.routes.js';
 import electicaRoutes from './modules/electica/electica.routes.js';
 import fcmRoutes from './modules/notifications/fcm.routes.js';
 import ledgerRoutes from './modules/ledger/ledger.routes.js';
+import zohoRoutes from './integrations/zoho/zoho.routes.js';
 import { BATTERY_PACKAGES } from './modules/bookings/bookings.constants.js';
 
 app.use('/api/auth', authRoutes);
@@ -82,6 +83,7 @@ app.use('/api/admin/inventory', inventoryRoutes);
 app.use('/api/admin/inspections', inspectionsRoutes);
 app.use('/api/admin/finance', financeRoutes);
 app.use('/api/admin/ledger', ledgerRoutes);
+app.use('/api/admin/zoho', zohoRoutes);
 app.use('/api/admin/reports', reportsRoutes);
 app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/settings', settingsRoutes);

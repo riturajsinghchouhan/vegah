@@ -37,7 +37,10 @@ const withFreshDates = (draft) => {
   }
   const startTime = draft.startTime || "10:00";
   const endTime = draft.endTime || startTime;
-  return { ...draft, startDate, startTime, endDate, endTime, rentalType };
+  // Any coupon held by the draft is dropped: it may have expired or run out of
+  // uses since, and the dates it was priced against have just moved. The user
+  // re-applies it at checkout, which re-validates against the server.
+  return { ...draft, startDate, startTime, endDate, endTime, rentalType, couponCode: "", couponDiscount: 0 };
 };
 
 const initialState = {
@@ -54,6 +57,8 @@ const initialState = {
   licenseFile: null,
   batteryPackage: "unlimited", // default to unlimited package
   userPhotoFile: null,
+  couponCode: "",
+  couponDiscount: 0,
 };
 
 export const BookingContext = createContext(null);
@@ -144,6 +149,13 @@ export const BookingProvider = ({ children }) => {
   const updateBookingField = (field, value) => {
     setBooking((current) => {
       const updated = { ...current, [field]: value };
+      // The discount was calculated against a particular rental and battery
+      // package. Change either and the stale amount would be applied to a
+      // basket the server never approved, so it is cleared and re-applied.
+      if (["rentalType", "startDate", "startTime", "endDate", "endTime", "batteryPackage"].includes(field)) {
+        updated.couponCode = "";
+        updated.couponDiscount = 0;
+      }
       if (field === "rentalType") {
         updated.endDate = computeEndDate(updated.startDate, value);
         updated.endTime = updated.startTime || "10:00";
@@ -167,6 +179,8 @@ export const BookingProvider = ({ children }) => {
       return {
         ...current,
         vehicle,
+        couponCode: "",
+        couponDiscount: 0,
         pickupLocation: pickupLoc,
         startDate,
         rentalType,
@@ -175,6 +189,18 @@ export const BookingProvider = ({ children }) => {
         endTime,
       };
     });
+  };
+
+  const applyCoupon = (code, discountAmount) => {
+    setBooking((current) => ({
+      ...current,
+      couponCode: (code || "").trim().toUpperCase(),
+      couponDiscount: Number(discountAmount) || 0,
+    }));
+  };
+
+  const removeCoupon = () => {
+    setBooking((current) => ({ ...current, couponCode: "", couponDiscount: 0 }));
   };
 
   const resetBooking = () => {
@@ -196,6 +222,8 @@ export const BookingProvider = ({ children }) => {
       updateBookingField,
       selectVehicle,
       setLatestBooking,
+      applyCoupon,
+      removeCoupon,
       resetBooking,
     }),
     [booking, latestBooking, pricing, taxBillingSettings]

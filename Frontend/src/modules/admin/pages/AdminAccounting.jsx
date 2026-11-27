@@ -116,7 +116,23 @@ const emptyForm = () => ({
   paymentMode: "CASH",
   date: toInputDate(),
   notes: "",
+  vendorName: "",
+  vendorGstin: "",
+  taxRate: "0",
+  sac: "",
+  referenceNumber: "",
 });
+
+const GST_RATE_OPTIONS = [
+  { value: "0", label: "No GST" },
+  { value: "5", label: "5%" },
+  { value: "12", label: "12%" },
+  { value: "18", label: "18%" },
+  { value: "28", label: "28%" },
+];
+
+// 2 digit state + 10 char PAN + entity + 'Z' + checksum.
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 
 export default function AdminAccounting() {
   const [period, setPeriod] = useState("This Month");
@@ -201,6 +217,19 @@ export default function AdminAccounting() {
   const byCategory = summaryData?.expenseByCategory || [];
   const totalExpense = Number(summary.totalExpense) || 0;
 
+  // Mirrors the server's split so the admin sees what is recoverable before
+  // saving. The server recomputes it; this is only for the form.
+  const itcPreview = useMemo(() => {
+    const amount = Number(form.amount);
+    const rate = Number(form.taxRate) || 0;
+    if (!Number.isFinite(amount) || amount <= 0 || rate <= 0) return null;
+    const net = Math.round((amount / (1 + rate / 100)) * 100) / 100;
+    return {
+      inputTax: Math.round((amount - net) * 100) / 100,
+      eligible: GSTIN_PATTERN.test(form.vendorGstin.trim().toUpperCase()),
+    };
+  }, [form.amount, form.taxRate, form.vendorGstin]);
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm());
@@ -217,6 +246,11 @@ export default function AdminAccounting() {
       paymentMode: expense.paymentMode || "CASH",
       date: toInputDate(expense.date),
       notes: expense.notes || "",
+      vendorName: expense.vendorName || "",
+      vendorGstin: expense.vendorGstin || "",
+      taxRate: String(expense.taxRate ?? 0),
+      sac: expense.sac || "",
+      referenceNumber: expense.referenceNumber || "",
     });
     setFormError("");
     setModalOpen(true);
@@ -234,7 +268,18 @@ export default function AdminAccounting() {
     if (!Number.isFinite(amount) || amount <= 0) return setFormError("Enter a valid amount");
     if (!form.date) return setFormError("Date is required");
 
-    const payload = { ...form, title: form.title.trim(), amount };
+    const gstin = form.vendorGstin.trim().toUpperCase();
+    if (gstin && !GSTIN_PATTERN.test(gstin)) {
+      return setFormError("Vendor GSTIN is not valid");
+    }
+
+    const payload = {
+      ...form,
+      title: form.title.trim(),
+      amount,
+      vendorGstin: gstin,
+      taxRate: Number(form.taxRate) || 0,
+    };
     try {
       setSaving(true);
       setFormError("");
@@ -335,7 +380,15 @@ export default function AdminAccounting() {
           title="Total Expense"
           value={summaryLoading ? "…" : `− ${formatAmount(totalExpense)}`}
           icon={<Receipt />}
-          helper={`${summary.expenseCount ?? 0} entries`}
+          helper={
+            summaryLoading
+              ? `${summary.expenseCount ?? 0} entries`
+              : `${summary.expenseCount ?? 0} entries · ITC ${formatAmount(summary.inputTaxClaimable ?? 0)}${
+                  (summary.inputTaxUnclaimable ?? 0) > 0
+                    ? ` · ${formatAmount(summary.inputTaxUnclaimable)} lost (no GSTIN)`
+                    : ""
+                }`
+          }
         />
         <StatCard
           title={netEarning >= 0 ? "Net Earning" : "Net Loss"}
@@ -598,6 +651,69 @@ export default function AdminAccounting() {
                       <option key={value} value={value}>{label}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Input tax credit is only claimable against a registered
+                  vendor's GSTIN, so these decide whether the GST on this spend
+                  is recoverable or simply lost. */}
+              <div className="rounded-lg border border-gray-200 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-900">Vendor &amp; GST</p>
+                  {itcPreview && (
+                    <span
+                      className={`text-xs font-medium ${itcPreview.eligible ? "text-green-700" : "text-amber-600"}`}
+                    >
+                      {itcPreview.eligible
+                        ? `ITC claimable: ${formatAmount(itcPreview.inputTax)}`
+                        : "No ITC — vendor GSTIN required"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor name</label>
+                    <input
+                      value={form.vendorName}
+                      onChange={(e) => setForm((f) => ({ ...f, vendorName: e.target.value }))}
+                      placeholder="Optional"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Vendor GSTIN</label>
+                    <input
+                      value={form.vendorGstin}
+                      onChange={(e) => setForm((f) => ({ ...f, vendorGstin: e.target.value.toUpperCase() }))}
+                      placeholder="29ABCDE1234F1Z5"
+                      maxLength={15}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">GST rate</label>
+                    <select
+                      value={form.taxRate}
+                      onChange={(e) => setForm((f) => ({ ...f, taxRate: e.target.value }))}
+                      className={inputClass}
+                    >
+                      {GST_RATE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">The amount above is treated as inclusive of this rate.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bill / reference no.</label>
+                    <input
+                      value={form.referenceNumber}
+                      onChange={(e) => setForm((f) => ({ ...f, referenceNumber: e.target.value }))}
+                      placeholder="Optional"
+                      maxLength={60}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
               </div>
 

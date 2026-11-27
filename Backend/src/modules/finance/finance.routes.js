@@ -17,6 +17,17 @@ router.get('/tax-billing/bin', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), 
 router.post('/tax-billing/bin/:id/restore', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.restoreInvoice);
 router.delete('/tax-billing/bin/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.purgeInvoice);
 
+// GST documents. There is deliberately no update or delete route: an issued
+// tax invoice is immutable, and the only correction is a credit note.
+const admin = [authenticate, authorize('ADMIN', 'SUPER_ADMIN')];
+const approver = [authenticate, authorize('SUPER_ADMIN')];
+
+router.get('/gst/documents', ...admin, financeController.listTaxDocuments);
+router.get('/gst/documents/:id', ...admin, financeController.getTaxDocument);
+router.get('/gst/summary', ...admin, financeController.getGstSummary);
+router.post('/gst/invoices/booking/:bookingId', ...approver, financeController.issueTaxInvoice);
+router.post('/gst/documents/:id/credit-note', ...approver, financeController.issueCreditNote);
+
 // Accounting: manual expenses against booking earnings
 router.get('/accounting/summary', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getAccountingSummary);
 router.get('/expenses/meta', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), financeController.getExpenseMeta);

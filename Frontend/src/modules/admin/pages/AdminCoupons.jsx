@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Filter, Trash2, Power, PowerOff, X, Loader2 } from "lucide-react";
+import { Plus, Search, Trash2, Power, PowerOff, X, Loader2, Pencil } from "lucide-react";
 import Pagination from "@/shared/components/ui/Pagination";
 import { adminService } from "../services/adminService";
+
+const EMPTY_FORM = {
+  code: "",
+  type: "PERCENTAGE",
+  value: "",
+  minBookingAmount: "",
+  maxDiscountAmount: "",
+  usageLimitPerUser: "1",
+  totalUsageLimit: "",
+  startDate: "",
+  expiryDate: "",
+};
+
+// <input type="date"> only accepts YYYY-MM-DD, so the ISO timestamps the API
+// returns have to be trimmed or the field renders empty when editing.
+const toDateInput = (value) => (value ? new Date(value).toISOString().slice(0, 10) : "");
 
 export default function AdminCoupons() {
   const [coupons, setCoupons] = useState([]);
@@ -9,6 +25,8 @@ export default function AdminCoupons() {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formError, setFormError] = useState("");
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -16,16 +34,7 @@ export default function AdminCoupons() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [formData, setFormData] = useState({
-    code: "",
-    type: "PERCENTAGE",
-    value: "",
-    minBookingAmount: "",
-    maxDiscountAmount: "",
-    usageLimitPerUser: "1",
-    startDate: "",
-    expiryDate: "",
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const fetchCoupons = async () => {
     try {
@@ -57,6 +66,37 @@ export default function AdminCoupons() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const openCreate = () => {
+    setEditingId(null);
+    setFormError("");
+    setFormData(EMPTY_FORM);
+    setShowModal(true);
+  };
+
+  const openEdit = (coupon) => {
+    setEditingId(coupon._id);
+    setFormError("");
+    setFormData({
+      code: coupon.code || "",
+      type: coupon.type || "PERCENTAGE",
+      value: coupon.value ?? "",
+      minBookingAmount: coupon.minBookingAmount ?? "",
+      maxDiscountAmount: coupon.maxDiscountAmount ?? "",
+      usageLimitPerUser: coupon.usageLimitPerUser ?? "",
+      totalUsageLimit: coupon.totalUsageLimit ?? "",
+      startDate: toDateInput(coupon.startDate),
+      expiryDate: toDateInput(coupon.expiryDate),
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setFormError("");
+    setFormData(EMPTY_FORM);
+  };
+
   const toggleStatus = async (id) => {
     try {
       await adminService.toggleCouponStatus(id);
@@ -79,29 +119,46 @@ export default function AdminCoupons() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+
+    // Mirrors the server's rules so the obvious mistakes are caught before a
+    // round trip. The API still enforces both.
+    if (formData.type === "PERCENTAGE" && Number(formData.value) > 100) {
+      setFormError("A percentage discount cannot be more than 100%.");
+      return;
+    }
+    if (formData.expiryDate <= formData.startDate) {
+      setFormError("Expiry date must be after the start date.");
+      return;
+    }
+
+    const payload = {
+      code: formData.code.trim().toUpperCase(),
+      type: formData.type,
+      value: Number(formData.value),
+      minBookingAmount: Number(formData.minBookingAmount || 0),
+      maxDiscountAmount: formData.maxDiscountAmount ? Number(formData.maxDiscountAmount) : null,
+      usageLimitPerUser: formData.usageLimitPerUser ? Number(formData.usageLimitPerUser) : null,
+      totalUsageLimit: formData.totalUsageLimit ? Number(formData.totalUsageLimit) : null,
+      startDate: formData.startDate,
+      expiryDate: formData.expiryDate,
+    };
+
     try {
       setSubmitting(true);
-      await adminService.createCoupon({
-        ...formData,
-        value: Number(formData.value),
-        minBookingAmount: Number(formData.minBookingAmount || 0),
-        maxDiscountAmount: formData.maxDiscountAmount ? Number(formData.maxDiscountAmount) : null,
-        usageLimitPerUser: Number(formData.usageLimitPerUser || 1),
-      });
-      setShowModal(false);
-      setFormData({
-        code: "",
-        type: "PERCENTAGE",
-        value: "",
-        minBookingAmount: "",
-        maxDiscountAmount: "",
-        usageLimitPerUser: "1",
-        startDate: "",
-        expiryDate: "",
-      });
+      if (editingId) {
+        await adminService.updateCoupon(editingId, payload);
+      } else {
+        await adminService.createCoupon(payload);
+      }
+      closeModal();
       fetchCoupons();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create coupon");
+      const res = err.response?.data;
+      const detail = Array.isArray(res?.errors) && res.errors.length
+        ? res.errors.map((item) => item.message).join(", ")
+        : null;
+      setFormError(detail || res?.message || `Failed to ${editingId ? "update" : "create"} coupon`);
     } finally {
       setSubmitting(false);
     }
@@ -128,7 +185,7 @@ export default function AdminCoupons() {
               />
            </div>
           <button 
-            onClick={() => setShowModal(true)}
+            onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -155,6 +212,7 @@ export default function AdminCoupons() {
                     <th className="py-4 px-6 font-medium">Min Booking</th>
                     <th className="py-4 px-6 font-medium">Max Discount</th>
                     <th className="py-4 px-6 font-medium">Used</th>
+                    <th className="py-4 px-6 font-medium">Per User</th>
                     <th className="py-4 px-6 font-medium">Validity</th>
                     <th className="py-4 px-6 font-medium">Status</th>
                     <th className="py-4 px-6 font-medium text-right">Actions</th>
@@ -163,7 +221,7 @@ export default function AdminCoupons() {
                 <tbody className="text-sm">
                   {coupons.length === 0 ? (
                     <tr>
-                      <td colSpan="9" className="text-center py-8 text-gray-500">No coupons found</td>
+                      <td colSpan="10" className="text-center py-8 text-gray-500">No coupons found</td>
                     </tr>
                   ) : (
                     coupons.map((coupon) => (
@@ -175,7 +233,13 @@ export default function AdminCoupons() {
                         </td>
                         <td className="py-4 px-6 text-gray-600">₹{coupon.minBookingAmount || 0}</td>
                         <td className="py-4 px-6 text-gray-600">{coupon.maxDiscountAmount ? `₹${coupon.maxDiscountAmount}` : 'N/A'}</td>
-                        <td className="py-4 px-6 font-medium text-gray-900">{coupon.usedCount || 0}</td>
+                        <td className="py-4 px-6 font-medium text-gray-900">
+                          {coupon.usedCount || 0}
+                          <span className="text-gray-400 font-normal">
+                            {coupon.totalUsageLimit ? ` / ${coupon.totalUsageLimit}` : " / ∞"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-gray-600">{coupon.usageLimitPerUser || "∞"}</td>
                         <td className="py-4 px-6 text-gray-500 text-xs">
                           <div>{new Date(coupon.startDate).toLocaleDateString()}</div>
                           <div className="text-gray-400">to {new Date(coupon.expiryDate).toLocaleDateString()}</div>
@@ -195,6 +259,13 @@ export default function AdminCoupons() {
                               title={coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                             >
                               {coupon.status === 'ACTIVE' ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                            </button>
+                            <button 
+                              onClick={() => openEdit(coupon)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
                             </button>
                             <button 
                               onClick={() => handleDelete(coupon._id)}
@@ -227,13 +298,13 @@ export default function AdminCoupons() {
         </div>
       </div>
 
-      {/* Add Coupon Modal */}
+      {/* Add / Edit Coupon Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Add New Coupon</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
+              <h2 className="text-xl font-bold text-gray-900">{editingId ? "Edit Coupon" : "Add New Coupon"}</h2>
+              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -263,14 +334,18 @@ export default function AdminCoupons() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount Value</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Discount Value {formData.type === "PERCENTAGE" ? "(%)" : "(₹)"}
+                  </label>
                   <input 
                     type="number" 
                     required
+                    min="0"
+                    max={formData.type === "PERCENTAGE" ? 100 : undefined}
                     value={formData.value}
                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                    placeholder="e.g. 20" 
+                    placeholder={formData.type === "PERCENTAGE" ? "e.g. 20" : "e.g. 150"} 
                   />
                 </div>
                 <div>
@@ -284,9 +359,14 @@ export default function AdminCoupons() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Discount Amount (₹)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Discount Amount (₹)
+                    {formData.type === "FLAT" && <span className="text-gray-400 font-normal"> — percentage only</span>}
+                  </label>
                   <input 
                     type="number" 
+                    min="0"
+                    disabled={formData.type === "FLAT"}
                     value={formData.maxDiscountAmount}
                     onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
@@ -297,10 +377,22 @@ export default function AdminCoupons() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Limit Per User</label>
                   <input 
                     type="number" 
+                    min="1"
                     value={formData.usageLimitPerUser}
                     onChange={(e) => setFormData({ ...formData, usageLimitPerUser: e.target.value })}
                     className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
-                    placeholder="1" 
+                    placeholder="Blank = unlimited" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Usage Limit</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    value={formData.totalUsageLimit}
+                    onChange={(e) => setFormData({ ...formData, totalUsageLimit: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                    placeholder="Blank = unlimited" 
                   />
                 </div>
                 <div>
@@ -325,10 +417,16 @@ export default function AdminCoupons() {
                 </div>
               </div>
               
+              {formError && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {formError}
+                </div>
+              )}
+
               <div className="flex justify-end gap-3">
                 <button 
                   type="button" 
-                  onClick={() => setShowModal(false)} 
+                  onClick={closeModal} 
                   className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
@@ -336,9 +434,10 @@ export default function AdminCoupons() {
                 <button 
                   type="submit" 
                   disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center disabled:opacity-60"
                 >
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />} Save Coupon
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+                  {editingId ? "Update Coupon" : "Save Coupon"}
                 </button>
               </div>
             </form>

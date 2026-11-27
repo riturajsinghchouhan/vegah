@@ -84,6 +84,16 @@ const envSchema = Joi.object({
   ELECTICA_WRITE_KEY: Joi.string().allow(''),
   ELECTICA_STATION_ID: Joi.string().default('BLR001'),
   SWAP_PROXIMITY_RADIUS_METERS: Joi.number().default(100),
+
+  // Zoho Books. The data centre decides both hosts, so an India account must
+  // use accounts.zoho.in with zohoapis.in -- tokens are not valid across DCs.
+  ZOHO_ENABLED: Joi.boolean().default(false),
+  ZOHO_ACCOUNTS_URL: Joi.string().uri().default('https://accounts.zoho.in'),
+  ZOHO_API_BASE_URL: Joi.string().uri().default('https://www.zohoapis.in/books/v3'),
+  ZOHO_CLIENT_ID: Joi.string().allow(''),
+  ZOHO_CLIENT_SECRET: Joi.string().allow(''),
+  ZOHO_REFRESH_TOKEN: Joi.string().allow(''),
+  ZOHO_ORGANIZATION_ID: Joi.string().allow(''),
 }).unknown(true);
 
 const { error, value: envVars } = envSchema.validate(process.env);

@@ -485,6 +485,65 @@ export const adminService = {
     URL.revokeObjectURL(url);
   },
 
+  // --- Zoho Books (GST filing mirror of the ledger) ---
+  async getZohoStatus() {
+    const res = await adminApi.get('/admin/zoho/status');
+    return res.data.data;
+  },
+  async getZohoConfig() {
+    const res = await adminApi.get('/admin/zoho/config');
+    return res.data.data;
+  },
+  async saveZohoConfig(payload) {
+    const res = await adminApi.put('/admin/zoho/config', payload);
+    return res.data.data;
+  },
+  // Account and tax ids read live from Zoho, so the mapping is picked from a
+  // list instead of copied by hand.
+  async getZohoLookups() {
+    const res = await adminApi.get('/admin/zoho/lookups');
+    return res.data.data;
+  },
+  async getZohoSyncRecords(params = {}) {
+    const res = await adminApi.get('/admin/zoho/sync', { params });
+    return res.data;
+  },
+  async syncZohoCustomers(limit = 100) {
+    const res = await adminApi.post('/admin/zoho/customers/sync', { limit });
+    return res.data.data;
+  },
+  // kind: customers | invoices | payments | expenses | all
+  async pushZohoPending(kind = 'all', limit = 50) {
+    const res = await adminApi.post(`/admin/zoho/push/${kind}`, { limit });
+    return res.data.data;
+  },
+  async retryZohoRecord(id) {
+    const res = await adminApi.post(`/admin/zoho/sync/${id}/retry`);
+    return res.data.data;
+  },
+
+  // --- GST documents (tax invoices and credit notes) ---
+  async getGstDocuments(params = {}) {
+    const res = await adminApi.get('/admin/finance/gst/documents', { params });
+    return res.data;
+  },
+  async getGstDocument(id) {
+    const res = await adminApi.get(`/admin/finance/gst/documents/${id}`);
+    return res.data.data;
+  },
+  async getGstSummary(params = {}) {
+    const res = await adminApi.get('/admin/finance/gst/summary', { params });
+    return res.data.data;
+  },
+  async issueGstInvoice(bookingId) {
+    const res = await adminApi.post(`/admin/finance/gst/invoices/booking/${bookingId}`);
+    return res.data.data;
+  },
+  async issueGstCreditNote(id, { reason, amount = null }) {
+    const res = await adminApi.post(`/admin/finance/gst/documents/${id}/credit-note`, { reason, amount });
+    return res.data.data;
+  },
+
   // --- Settings ---
   async getSettings(params = {}) {
     const res = await adminApi.get('/admin/settings', { params });

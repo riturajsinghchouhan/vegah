@@ -27,6 +27,8 @@ import AdminBalanceSheet from "./pages/accounting/AdminBalanceSheet";
 import AdminAccountingProfitLoss from "./pages/accounting/AdminAccountingProfitLoss";
 import AdminAccountingRevenue from "./pages/accounting/AdminAccountingRevenue";
 import AdminLedger from "./pages/accounting/AdminLedger";
+import AdminZohoSync from "./pages/accounting/AdminZohoSync";
+import AdminGstDocuments from "./pages/accounting/AdminGstDocuments";
 import AdminSettlements from "./pages/AdminSettlements";
 import AdminTaxBilling from "./pages/AdminTaxBilling";
 import AdminSettings from "./pages/AdminSettings";
@@ -102,6 +104,8 @@ export default function AdminRoutes() {
         <Route path="accounting/profit-loss" element={<AdminAccountingProfitLoss />} />
         <Route path="accounting/revenue" element={<AdminAccountingRevenue />} />
         <Route path="accounting/ledger" element={<AdminLedger />} />
+        <Route path="accounting/gst" element={<AdminGstDocuments />} />
+        <Route path="accounting/zoho" element={<AdminZohoSync />} />
         <Route path="settlements" element={<AdminSettlements />} />
         <Route path="tax-billing" element={<AdminTaxBilling />} />
         <Route path="settings" element={<AdminSettings />} />

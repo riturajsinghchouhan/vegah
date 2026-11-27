@@ -49,8 +49,21 @@ export const createCoupon = async (data) => {
 };
 
 export const updateCoupon = async (id, data) => {
+  const existing = await Coupon.findById(id);
+  if (!existing) {
+    const error = new Error('Coupon not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
   if (data.code) {
     data.code = data.code.toUpperCase();
+    const clash = await Coupon.findOne({ code: data.code, _id: { $ne: id } });
+    if (clash) {
+      const error = new Error('Coupon code already exists');
+      error.statusCode = 400;
+      throw error;
+    }
   }
   if (data.type) {
     data.type = data.type.toUpperCase();
@@ -59,13 +72,32 @@ export const updateCoupon = async (id, data) => {
     data.status = data.status.toUpperCase();
   }
 
-  const coupon = await Coupon.findByIdAndUpdate(id, data, { new: true, runValidators: true });
-  if (!coupon) {
-    const error = new Error('Coupon not found');
-    error.statusCode = 404;
+  // A partial update can change one half of a pair, so the rules are checked
+  // against the merged result rather than against the payload alone.
+  const merged = { ...existing.toObject(), ...data };
+
+  if (new Date(merged.expiryDate) <= new Date(merged.startDate)) {
+    const error = new Error('expiryDate must be after startDate');
+    error.statusCode = 400;
     throw error;
   }
-  return coupon;
+
+  if (merged.type === 'PERCENTAGE' && Number(merged.value) > 100) {
+    const error = new Error('value for a PERCENTAGE coupon cannot be more than 100');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Lowering the cap below what has already been redeemed would leave the
+  // coupon in a state validateCoupon reads as "limit reached" with no way back.
+  if (merged.totalUsageLimit != null && merged.totalUsageLimit < existing.usedCount) {
+    const error = new Error(`This coupon has already been used ${existing.usedCount} times, so the total usage limit cannot be lower than that`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  Object.assign(existing, data);
+  return await existing.save();
 };
 
 export const deleteCoupon = async (id) => {
@@ -89,8 +121,16 @@ export const toggleCouponStatus = async (id) => {
   return await coupon.save();
 };
 
-export const validateCoupon = async (code, bookingAmount, userId) => {
-  const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+export const validateCoupon = async (code, bookingAmount, userId, options = {}) => {
+  const { session = null } = options;
+
+  if (!code || typeof code !== 'string') {
+    const error = new Error('Coupon code is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const coupon = await Coupon.findOne({ code: code.trim().toUpperCase() }).session(session);
 
   if (!coupon) {
     const error = new Error('Invalid coupon code');
@@ -124,7 +164,7 @@ export const validateCoupon = async (code, bookingAmount, userId) => {
   }
 
   if (userId && coupon.usageLimitPerUser) {
-    const userUsageCount = await CouponUsage.countDocuments({ coupon: coupon._id, user: userId });
+    const userUsageCount = await CouponUsage.countDocuments({ coupon: coupon._id, user: userId }).session(session);
     if (userUsageCount >= coupon.usageLimitPerUser) {
       const error = new Error('You have reached the usage limit for this coupon');
       error.statusCode = 400;
@@ -149,4 +189,59 @@ export const validateCoupon = async (code, bookingAmount, userId) => {
     discountAmount,
     finalAmount: bookingAmount - discountAmount,
   };
+};
+
+/**
+ * Claim one use of a coupon. Called from inside the booking transaction so a
+ * booking and its coupon usage either both land or neither does.
+ *
+ * The `usedCount` bump is done with a conditional `$inc` rather than a
+ * read-modify-write: two users redeeming the last remaining use at the same
+ * time would otherwise both pass the `validateCoupon` check and push
+ * `usedCount` past `totalUsageLimit`.
+ */
+export const recordCouponUsage = async ({ couponId, userId, bookingId, discountApplied, session = null }) => {
+  const claimed = await Coupon.findOneAndUpdate(
+    {
+      _id: couponId,
+      $or: [
+        { totalUsageLimit: null },
+        { $expr: { $lt: ['$usedCount', '$totalUsageLimit'] } },
+      ],
+    },
+    { $inc: { usedCount: 1 } },
+    { new: true, session }
+  );
+
+  if (!claimed) {
+    const error = new Error('Coupon total usage limit reached');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await CouponUsage.create([{
+    coupon: couponId,
+    user: userId,
+    booking: bookingId,
+    discountApplied,
+  }], { session });
+
+  return claimed;
+};
+
+/**
+ * Give a use back when a booking that held a coupon never goes through
+ * (expired reservation, cancellation). Without this a coupon with a usage
+ * limit slowly burns down on bookings that were never honoured.
+ */
+export const releaseCouponUsage = async ({ couponId, bookingId, session = null }) => {
+  const usage = await CouponUsage.findOneAndDelete({ coupon: couponId, booking: bookingId }, { session });
+  if (!usage) return false;
+
+  await Coupon.updateOne(
+    { _id: couponId, usedCount: { $gt: 0 } },
+    { $inc: { usedCount: -1 } },
+    { session }
+  );
+  return true;
 };

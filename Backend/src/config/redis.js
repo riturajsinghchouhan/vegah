@@ -38,13 +38,18 @@ if (env.REDIS_ENABLED) {
 }
 
 /**
- * A separate connection for rate limiting, which must never make a request
- * wait. The shared client above queues commands forever while Redis is down,
- * so using it for rate limiting hangs every incoming request. Here offline
- * queueing is off, so a command rejects at once and the limiter is free to let
- * the request through instead.
+ * A connection for callers that must never be made to wait.
+ *
+ * The shared client above queues commands forever while Redis is down, which
+ * is right for a job queue and wrong for anything sitting in a request path:
+ * the command neither succeeds nor fails, so a `catch` around it never runs
+ * and the caller hangs. With offline queueing off a command rejects at once,
+ * and the caller is free to fall back.
+ *
+ * Use this for any cache where a miss is recoverable. Only BullMQ should hold
+ * the shared client.
  */
-export const createRateLimitRedis = () => {
+export const createNonBlockingRedis = (label) => {
   if (!env.REDIS_ENABLED) return null;
 
   const client = new Redis(env.REDIS_URL, {
@@ -53,8 +58,11 @@ export const createRateLimitRedis = () => {
     enableReadyCheck: false,
   });
 
-  attachErrorLogging(client, 'Redis (rate limiting)');
+  attachErrorLogging(client, label);
   return client;
 };
+
+/** Rate limiting, which must let a request through rather than hold it. */
+export const createRateLimitRedis = () => createNonBlockingRedis('Redis (rate limiting)');
 
 export default redisClient;

@@ -4,6 +4,7 @@ import Refund from '../../models/Refund.js';
 import User from '../../models/User.js';
 import { BadRequestError } from '../../utils/errors.js';
 import * as ledgerHooks from '../ledger/hooks.js';
+import * as zohoHooks from '../../integrations/zoho/zoho.hooks.js';
 
 export const getUserWallet = async (userId) => {
   let wallet = await Wallet.findOne({ user: userId });
@@ -278,6 +279,16 @@ export const updateRefundStatus = async (refundId, status, adminId) => {
 
     // Non-blocking: the wallet has already been credited.
     await ledgerHooks.onRefundPaid({ refund, userId, from: 'RIDER_WALLET' });
+
+    // Zoho holds the deposit as a customer advance, so returning it has to be
+    // recorded against that advance rather than as a fresh payment out.
+    await zohoHooks.onDepositRefunded({
+      booking: refund.booking,
+      amount: refund.amount,
+      date: refund.processedAt || new Date(),
+      reason: refund.reason,
+      mode: 'WALLET',
+    });
   }
 
   return refund;
