@@ -737,6 +737,54 @@ const publishStatusChange = async (booking, oldStatus, newStatus) => {
   }
 };
 
+/**
+ * Marks collected cash as paid.
+ *
+ * Cash never passes through a gateway, so nothing moves its Payment row off
+ * PENDING the way a Razorpay callback does -- the row was still sitting unpaid
+ * long after the rider had handed over the money and ridden away. The ledger
+ * was never wrong about this (it posts E5 CASH_COLLECTED from the booking),
+ * but anything reading Payment was: the Zoho push only applies SUCCESS
+ * payments, so every cash booking would have been filed as an invoice that was
+ * never paid, inflating receivables by exactly the cash in the till.
+ *
+ * Idempotent, and deliberately narrow about which rows it touches:
+ *
+ * - BOOKING: only the newest unsettled row. A rider who abandoned one attempt
+ *   and started another leaves two rows for the same money (production has
+ *   exactly this), and settling both would pay the invoice twice.
+ * - EXTENSION: every unsettled cash row, because each extension is its own
+ *   separate collection rather than a retry of the last one.
+ */
+const settleCashPayments = async (booking, { purpose, session, at }) => {
+  const unsettled = { $in: ['INITIATED', 'PENDING'] };
+
+  const rows = purpose === 'EXTENSION'
+    ? await Payment.find({
+      booking: booking._id, purpose: 'EXTENSION', method: 'CASH', status: unsettled,
+    }).session(session)
+    // `$ne` rather than `purpose: 'BOOKING'`: rows written before the field
+    // existed have no `purpose` at all, and the schema default only applies to
+    // new documents. Matching on the value would have skipped every older cash
+    // booking and left it unpaid -- which is the bug this function is here to
+    // fix.
+    : await Payment.find({
+      booking: booking._id, purpose: { $ne: 'EXTENSION' }, status: unsettled,
+    }).sort({ createdAt: -1 }).limit(1).session(session);
+
+  for (const row of rows) {
+    row.status = 'SUCCESS';
+    row.method = row.method || 'CASH';
+    row.paidAt = at;
+    await row.save({ session });
+  }
+
+  if (rows.length) {
+    logger.info(`Booking ${booking.bookingId}: settled ${rows.length} cash ${purpose.toLowerCase()} payment(s)`);
+  }
+  return rows.length;
+};
+
 export const handleStatusTransition = async (bookingId, newStatus, options = {}) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -791,6 +839,15 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       if (options.assignedPlateNumber) booking.assignedPlateNumber = options.assignedPlateNumber;
     }
 
+    // Handover is the moment the cash is taken. Both routes into ACTIVE count:
+    // a cash booking waits at PENDING_VERIFICATION for the admin and is often
+    // taken straight to ACTIVE from there, never passing through CONFIRMED.
+    const isPickup = newStatus === BOOKING_STATUS.ACTIVE
+      && [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.PENDING_VERIFICATION].includes(oldStatus);
+    if (isPickup && booking.paymentMethod === 'CASH') {
+      await settleCashPayments(booking, { purpose: 'BOOKING', session, at: now });
+    }
+
     if (newStatus === BOOKING_STATUS.PENDING_RETURN) {
       booking.returnRequestedAt = now;
     }
@@ -807,6 +864,14 @@ export const handleStatusTransition = async (bookingId, newStatus, options = {})
       booking.lateFee = Math.max(booking.lateFee || 0, await calculateLateFee(booking, now));
       booking.depositStatus = options.depositStatus || 'REFUNDED';
       if (options.adminId) booking.returnConfirmedBy = options.adminId;
+
+      // A cash extension is collected at the hub like the booking charge, but
+      // there is no event at the moment it changes hands -- the rider is
+      // already riding. The return is the last point at which it is certainly
+      // collected, and it is the same transaction that invoices the booking,
+      // so the Zoho push below sees the payment rather than missing it by one
+      // status change.
+      await settleCashPayments(booking, { purpose: 'EXTENSION', session, at: now });
       if (booking.depositStatus === 'REFUNDED') {
         await raiseDepositRefund(booking, session);
       }
