@@ -73,6 +73,11 @@ export const BookingProvider = ({ children }) => {
     batteryPackageUnlimited: 150,
   });
 
+  // Whether checkout and the extension sheet may offer cash at the hub. Admin >
+  // Settings > Booking owns this. Default on so a failed settings fetch does not
+  // silently hide a payment method -- the server refuses it anyway if it is off.
+  const [codEnabled, setCodEnabled] = useState(true);
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -87,6 +92,7 @@ export const BookingProvider = ({ children }) => {
             batteryPackageSingle: Number(data.batteryPackageSingle ?? 50),
             batteryPackageUnlimited: Number(data.batteryPackageUnlimited ?? 150),
           });
+          setCodEnabled(data.codEnabled !== false);
         }
       } catch (err) {
         console.warn("Could not load dynamic tax/billing settings, using defaults.", err);
@@ -218,6 +224,7 @@ export const BookingProvider = ({ children }) => {
       booking,
       pricing,
       taxBillingSettings,
+      codEnabled,
       latestBooking,
       updateBookingField,
       selectVehicle,
@@ -226,7 +233,7 @@ export const BookingProvider = ({ children }) => {
       removeCoupon,
       resetBooking,
     }),
-    [booking, latestBooking, pricing, taxBillingSettings]
+    [booking, latestBooking, pricing, taxBillingSettings, codEnabled]
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

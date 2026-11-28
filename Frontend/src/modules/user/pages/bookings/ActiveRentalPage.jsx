@@ -18,6 +18,7 @@ import Button from "../../../../components/common/Button";
 import MetricCard from "../../../../components/common/MetricCard";
 import PageHeader from "../../../../components/layout/PageHeader";
 import { bookingService } from "../../../../services/bookingService";
+import { useBooking } from "../../../../hooks/useBooking";
 import { initSocket } from "../../../../services/socketService";
 import { formatCurrency, describeRentalDays } from "../../../../utils/formatters";
 import { loadRazorpayScript } from "../../../../utils/razorpay";
@@ -40,6 +41,10 @@ const playChime = () => {
 const ActiveRentalPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  // Admin > Settings > Booking can switch cash off. An extension is a new
+  // supply, so the switch applies here too, even on a booking that is itself
+  // running on cash.
+  const { codEnabled } = useBooking();
   const [activeBooking, setActiveBooking] = useState(null);
   const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +60,15 @@ const ActiveRentalPage = () => {
   const [error, setError] = useState("");
   const [reminderAlert, setReminderAlert] = useState(null);
   const remindedRef = useRef(false);
+
+  // With cash off, online is the only way to extend, so the rider is not asked
+  // to pick from a list of one. This also clears a cash selection made in the
+  // moment before the public settings arrived.
+  useEffect(() => {
+    if (!codEnabled && paymentMode !== "ONLINE") {
+      setPaymentMode("ONLINE");
+    }
+  }, [codEnabled, paymentMode]);
 
   // The deadline the countdown runs against. Comes from the server and is the
   // admin-confirmed pickup time plus the booked duration, not the booked start.
@@ -579,19 +593,21 @@ const ActiveRentalPage = () => {
                     <p className="text-xs text-app-subtle">UPI, card or net banking via Razorpay</p>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setPaymentMode("CASH"); setPlanError(""); }}
-                  className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40"
-                >
-                  <div className="rounded-xl bg-green-500/15 p-2 text-green-400">
-                    <Banknote size={20} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-app-text">Cash on delivery (COD)</p>
-                    <p className="text-xs text-app-subtle">Extend now, pay in cash at the hub</p>
-                  </div>
-                </button>
+                {codEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => { setPaymentMode("CASH"); setPlanError(""); }}
+                    className="flex w-full items-center gap-3 rounded-[18px] border border-app-border bg-app-card p-4 text-left transition hover:border-app-primary/60 hover:bg-[#13301F]/40"
+                  >
+                    <div className="rounded-xl bg-green-500/15 p-2 text-green-400">
+                      <Banknote size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-app-text">Cash on delivery (COD)</p>
+                      <p className="text-xs text-app-subtle">Extend now, pay in cash at the hub</p>
+                    </div>
+                  </button>
+                )}
               </div>
             ) : (
             <div className="mt-4 space-y-3">
@@ -599,14 +615,16 @@ const ActiveRentalPage = () => {
                 <span>
                   Paying by: <span className="text-app-text">{paymentMode === "CASH" ? "Cash on delivery" : "Online"}</span>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode(null)}
-                  disabled={Boolean(payingPlanId)}
-                  className="text-app-primary hover:underline disabled:opacity-50"
-                >
-                  Change
-                </button>
+                {codEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode(null)}
+                    disabled={Boolean(payingPlanId)}
+                    className="text-app-primary hover:underline disabled:opacity-50"
+                  >
+                    Change
+                  </button>
+                )}
               </div>
               {plansLoading ? (
                 <p className="py-8 text-center text-sm font-semibold text-app-subtle">Loading plans...</p>

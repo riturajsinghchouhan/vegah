@@ -24,6 +24,11 @@ export const getPublicSettings = async (req, res, next) => {
       cancellationFee: Number(settings.cancellationFee ?? 100),
       batteryPackageSingle: Number(settings.batteryPackageSingle ?? 50),
       batteryPackageUnlimited: Number(settings.batteryPackageUnlimited ?? 150),
+      // Whether the checkout and extension screens may offer "pay cash at the
+      // hub". Absent means on, so an install that never touched the switch
+      // keeps offering it. The server enforces this too -- this is only so the
+      // rider is not shown an option that would be refused.
+      codEnabled: !(settings.codEnabled === false || settings.codEnabled === 'false'),
     };
     sendSuccess(res, 200, 'Public settings fetched successfully', publicSettings);
   } catch (error) {

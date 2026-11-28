@@ -9,6 +9,7 @@ import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { handleStatusTransition } from '../bookings/bookings.service.js';
 import { BOOKING_STATUS } from '../bookings/bookings.constants.js';
 import * as ledgerHooks from '../ledger/hooks.js';
+import * as cod from '../settings/cod.js';
 
 // Booking states that still accept a payment attempt.
 const PAYABLE_BOOKING_STATUSES = [
@@ -164,6 +165,11 @@ export const payWithCash = async (bookingId, userId) => {
   }
 
   await assertNotAlreadyPaid(booking._id);
+
+  // The COD switch. Checked here rather than only at booking creation because
+  // this is where the method is actually set, and a booking taken before the
+  // switch was thrown is still allowed through.
+  await cod.assertBookingPayableInCash(booking);
 
   const existing = await Payment.findOne({ booking: booking._id, method: 'CASH', status: 'PENDING' });
   const payment = existing || await Payment.create({

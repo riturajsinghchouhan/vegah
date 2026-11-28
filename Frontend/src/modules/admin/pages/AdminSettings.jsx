@@ -17,6 +17,8 @@ export default function AdminSettings() {
     maxDurationDays: "30",
     advanceBookingDays: "15",
     freeCancellationHours: "24",
+    // Cash on delivery. On unless an admin turns it off; see Booking tab.
+    codEnabled: true,
     securityDeposit: "1000",
     // Late returns are billed per day at this rate, after the grace days below.
     lateFeePerDay: "0",
@@ -261,6 +263,29 @@ export default function AdminSettings() {
                             value={settings.freeCancellationHours}
                             onChange={(e) => setSettings({ ...settings, freeCancellationHours: e.target.value })}
                             className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-100 pt-6">
+                        <div className="flex items-start justify-between gap-6">
+                          <div>
+                            <p className="font-medium text-gray-900">Cash on Delivery</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Let riders choose &ldquo;pay cash at the hub&rdquo; at checkout and when extending a rental.
+                            </p>
+                            {!Boolean(settings.codEnabled) && (
+                              <p className="text-sm text-amber-700 mt-2">
+                                Off: new bookings and extensions must be paid online or from the wallet. Bookings already
+                                running on cash are unaffected, and the hub still collects what is owed.
+                              </p>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(settings.codEnabled)}
+                            onChange={(e) => setSettings({ ...settings, codEnabled: e.target.checked })}
+                            className="w-5 h-5 text-blue-600 rounded shrink-0 mt-0.5"
                           />
                         </div>
                       </div>

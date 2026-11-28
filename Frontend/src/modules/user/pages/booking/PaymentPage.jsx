@@ -21,7 +21,14 @@ const paymentMethods = [
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const { booking, pricing, setLatestBooking, resetBooking, applyCoupon, removeCoupon } = useBooking();
+  const { booking, pricing, codEnabled, setLatestBooking, resetBooking, applyCoupon, removeCoupon } = useBooking();
+
+  // Cash is dropped from the list entirely when the admin switch is off, rather
+  // than shown disabled: there is nothing the rider can do about it, so an
+  // explanation of an option they cannot take is just noise.
+  const availableMethods = codEnabled
+    ? paymentMethods
+    : paymentMethods.filter((method) => method.id !== "CASH");
 
   const [paymentMode, setPaymentMode] = useState("ONLINE");
   const [processing, setProcessing] = useState(false);
@@ -40,6 +47,14 @@ const PaymentPage = () => {
       }
     }).catch(err => console.error("Failed to fetch settings", err));
   }, []);
+
+  // The switch arrives with the public settings, a moment after the screen
+  // paints, so a rider can have cash selected by the time it says cash is off.
+  useEffect(() => {
+    if (!codEnabled && paymentMode === "CASH") {
+      setPaymentMode("ONLINE");
+    }
+  }, [codEnabled, paymentMode]);
 
   // Warm the checkout SDK while the user is still picking a payment method. It
   // used to be fetched only after the booking POST returned, so its download sat
@@ -279,7 +294,7 @@ const PaymentPage = () => {
       <section className="mt-5 surface-card p-4">
         <h2 className="text-base font-semibold text-app-text">Recommended</h2>
         <div className="mt-4 space-y-3">
-          {paymentMethods.map(({ id, title, description, icon: Icon }) => {
+          {availableMethods.map(({ id, title, description, icon: Icon }) => {
             const isWallet = id === "WALLET";
             const subtitle = !isWallet
               ? description

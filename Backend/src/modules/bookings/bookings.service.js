@@ -22,6 +22,7 @@ import {
 } from './bookings.constants.js';
 import { calculateRentalCost, calculateTotalAmount, deriveHourlyRate } from '../../utils/pricing.js';
 import * as settingsService from '../settings/settings.service.js';
+import * as cod from '../settings/cod.js';
 import * as couponsService from '../coupons/coupons.service.js';
 import { NotFoundError, BadRequestError, ConflictError, ForbiddenError } from '../../utils/errors.js';
 import env from '../../config/env.js';
@@ -177,6 +178,13 @@ export const reserveVehicle = async (userId, data) => {
           `You already have a booking for this vehicle at this time (${existingBooking.bookingId}, ${existingBooking.status}). Check My Bookings, or pick a different slot.`
         );
       }
+    }
+
+    // A rider cannot open a booking on cash while the COD switch is off. This
+    // sits inside the transaction with everything else so a rejected booking
+    // leaves no reservation behind.
+    if ((data.paymentMethod || 'ONLINE') === 'CASH') {
+      await cod.assertCodEnabled();
     }
 
     // 2. Fetch the vehicle and check live availability.
@@ -1560,6 +1568,11 @@ export const verifyExtensionPayment = async (bookingId, userId, { razorpayOrderI
  * cannot grant themselves a rental they have not paid for.
  */
 export const requestCashExtension = async (bookingId, userId, planId) => {
+  // An extension is a fresh supply being bought, not part of what the rider
+  // already paid for, so the switch applies even on a booking that itself ran
+  // on cash.
+  await cod.assertCodEnabled();
+
   const booking = await loadExtendableBooking(bookingId, userId);
   const plan = findExtensionPlan(booking.vehicle, planId);
 

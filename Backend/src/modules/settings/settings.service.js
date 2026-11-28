@@ -31,8 +31,21 @@ export const getSettingValues = async (keys = []) => {
 
 export const updateSettings = async (settingsData, adminId, category) => {
   const updatedSettings = {};
+  const payload = { ...settingsData };
 
-  for (const [key, value] of Object.entries(settingsData)) {
+  // Turning COD off stamps when it happened, because a booking taken while it
+  // was still on may still be paid in cash (see settings/cod.js). Every
+  // settings write funnels through here, so the stamp cannot be missed.
+  if (Object.prototype.hasOwnProperty.call(payload, 'codEnabled')) {
+    const enabled = !(payload.codEnabled === false || payload.codEnabled === 'false');
+    const previous = await Setting.findOne({ key: 'codEnabled' }).lean();
+    const wasEnabled = !(previous?.value === false || previous?.value === 'false');
+    if (wasEnabled && !enabled) {
+      payload.codDisabledAt = new Date().toISOString();
+    }
+  }
+
+  for (const [key, value] of Object.entries(payload)) {
     const updatePayload = { key, value, updatedBy: adminId };
     if (category) {
       updatePayload.category = category;
